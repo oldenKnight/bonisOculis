@@ -60,7 +60,9 @@ def build_parser() -> argparse.ArgumentParser:
     e.add_argument("--out", default=None)
     pr = sub.add_parser("probe", help="describe a media file")
     pr.add_argument("--input", required=True)
-    sub.add_parser("version", help="print versions")
+    v = sub.add_parser("version", help="print versions")
+    v.add_argument("--cpu-features", dest="cpu_features", action="store_true",
+                   help="also report the CPU features the dialogue/speech engines need (AVX2 on x86)")
     return p
 
 
@@ -137,6 +139,10 @@ def cmd_version(args: argparse.Namespace, proto: Protocol) -> int:
         info["llamaCpp"] = llama_cpp.__version__
     except Exception:  # noqa: BLE001
         info["llamaCpp"] = None
+    if getattr(args, "cpu_features", False):
+        from . import cpu  # noqa: PLC0415
+
+        info["cpu"] = cpu.report()
     proto.emit(info)
     return EXIT_OK
 

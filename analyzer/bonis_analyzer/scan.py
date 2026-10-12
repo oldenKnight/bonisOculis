@@ -17,7 +17,7 @@ from typing import Any, Callable, Dict, List, Optional, Sequence
 
 import numpy as np
 
-from . import __version__, config, fusion, output
+from . import __version__, config, cpu, fusion, output
 from . import fingerprint as fpmod
 from . import models as modelsmod
 from .pipeline import checkpoint as ck
@@ -84,7 +84,8 @@ def parse_stages(text: Optional[str], proto: Protocol) -> List[str]:
     return names
 
 
-EXTRA_FED_KEYS = ("cuts", "audioClasses", "transcript", "captionsText")
+EXTRA_FED_KEYS = ("cuts", "audioClasses", "transcript", "captionsText", "framesParts")
+FRAMES_PARTS = ("nsfw", "clipNudity")
 
 
 def _per_second(v: Any, n: int, what: str) -> np.ndarray:
@@ -108,7 +109,9 @@ def load_scores_from(path: str, n: int) -> Dict[str, Any]:
     "cuts": [seconds, ...] (optional, added to the decoded cuts),
     "audioClasses": {AudioSet display name: [per-second] | {segments}} (optional: fed YAMNet class scores),
     "transcript": [[start, end, text], ...] (optional: what the fake speech engine "hears"),
-    "captionsText": [[start, end, caption], ...] (optional: fake scene descriptions by media time)}.
+    "captionsText": [[start, end, caption], ...] (optional: fake scene descriptions by media time),
+    "framesParts": {"nsfw": [...] | {segments}, "clipNudity": [...] | {segments}} (optional: the two
+    nudity inputs of the frames scorer, fused as the real scorer does)}.
     A bare {signal: {...}} object is accepted too."""
     try:
         with open(path, encoding="utf-8") as f:
@@ -141,13 +144,21 @@ def load_scores_from(path: str, n: int) -> Dict[str, Any]:
         if not (isinstance(item, list) and len(item) == 3):
             raise BadInput("--scores-from: transcript entries are [start, end, text]")
         transcript.append({"start": float(item[0]), "end": float(item[1]), "text": str(item[2])})
+    parts: Dict[str, np.ndarray] = {}
+    if src.get("framesParts") is not None:
+        if not isinstance(src["framesParts"], dict):
+            raise BadInput("--scores-from: framesParts must be an object")
+        for k, v in src["framesParts"].items():
+            if k not in FRAMES_PARTS:
+                raise BadInput("--scores-from: unknown framesParts key %r" % k)
+            parts[k] = _per_second(v, n, "framesParts.%s" % k)
     caps = []
     for item in src.get("captionsText") or []:
         if not (isinstance(item, list) and len(item) == 3):
             raise BadInput("--scores-from: captionsText entries are [start, end, caption]")
         caps.append((float(item[0]), float(item[1]), str(item[2])))
     return {"signals": out, "cuts": [float(c) for c in cuts] if isinstance(cuts, list) else [],
-            "audioClasses": classes, "transcript": transcript, "captionsText": caps}
+            "audioClasses": classes, "transcript": transcript, "captionsText": caps, "framesParts": parts}
 
 
 # --------------------------------------------------------------------------
@@ -175,11 +186,42 @@ class Scan:
         self.started = iso_now()
         self.device = "cpu"
         self.stage_meta: Dict[str, Dict[str, Any]] = {}
+        self._ggml: Optional[bool] = None
+        self._cpu_warned: set = set()
 
     # helpers -----------------------------------------------------------------
-    def warn(self, msg: str) -> None:
+    def warn(self, msg: str, code: Optional[str] = None, **extra: Any) -> None:
         log.warning(msg)
-        self.proto.warn(msg)
+        self.proto.warn(msg, code, **extra)
+
+    # CPU guard (cpu.py): llama.cpp / whisper.cpp need AVX2 on x86 --------------
+    CPU_DETAIL = "This processor lacks AVX2, which the %s needs."
+    CPU_WARN = {
+        "speech": "This computer's processor is too old for speech recognition (no AVX2); "
+                  "dialogue was not checked.",
+        "lm": "This computer's processor is too old for the dialogue model (no AVX2); "
+              "dialogue was checked with keywords only.",
+        "captions": "This computer's processor is too old for the dialogue model (no AVX2); "
+                    "scene descriptions were checked with keywords only.",
+    }
+
+    def _ggml_ok(self) -> bool:
+        """Cached per scan. Applies to the in-process stand-ins (FakeLM,
+        FakeSTT) too, so tests exercise the guard by patching cpu.has_avx2."""
+        if self._ggml is None:
+            self._ggml = bool(cpu.ggml_supported())
+        return self._ggml
+
+    def _cpu_blocks(self, stage: str) -> bool:
+        """True (after one warn line for this stage) when ``stage`` would run
+        llama.cpp / whisper.cpp on an x86 CPU without AVX2. The caption LM
+        does not warn again when the dialogue LM already did."""
+        if self._ggml_ok():
+            return False
+        if stage not in self._cpu_warned and not (stage == "captions" and "lm" in self._cpu_warned):
+            self._cpu_warned.add(stage)
+            self.warn(self.CPU_WARN[stage], "cpu-no-avx2", stage=stage)
+        return True
 
     def _stage_begin(self, name: str, **extra: Any) -> float:
         self.profiler.begin(name)
@@ -203,6 +245,19 @@ class Scan:
         self.ckpt.set_stage(name, "skipped", detail=detail, noArrays=True)
         self.stage_meta[name] = {"status": "skipped", "detail": detail}
         self._stage_end(name, "skipped", t0)
+
+    def _apply_fed(self, signals: Dict[str, Dict[str, np.ndarray]], skip: Sequence[str] = ()) -> None:
+        """Fed signals replace the stage results. Exception: with "framesParts"
+        the frames stage computed nudity from the fed parts (fuse_nudity); that
+        value is kept (max with a fed frames nudity array, if any)."""
+        for s, per in self.fed["signals"].items():
+            if s in skip:
+                continue
+            new = dict(per)
+            if s == "frames" and self.fed.get("framesParts") and "nudity" in signals.get("frames", {}):
+                staged = fusion.fit(signals["frames"]["nudity"], self.n)
+                new["nudity"] = np.maximum(fusion.fit(new.get("nudity"), self.n), staged).astype(np.float32)
+            signals[s] = new
 
     def _unit_delay(self) -> float:
         """Test hook: seconds to sleep per audio chunk / speech window / shot (fed scans only)."""
@@ -263,8 +318,7 @@ class Scan:
         t0 = self._stage_begin("fusion")
         signals, _ = fusion.assemble_signals(self._stage_arrays(), self.n)
         if self.fed:
-            for s, per in self.fed["signals"].items():
-                signals[s] = dict(per)
+            self._apply_fed(signals)
             cuts = sorted(set(cuts) | set(self.fed["cuts"]))
         ranges = fusion.fuse(signals, cuts, self.duration, self.levels, self.lang)
         comb = {c: fusion.fused_score(signals, c, self.n).astype(np.float32) for c in config.CATEGORIES}
@@ -322,6 +376,8 @@ class Scan:
                 if lm.get("status") == "done":
                     lm_name = os.path.splitext(config.LM_FILE)[0]
                     st["model"] = "keywords+" + lm_name if name == "subtitles" else "%s+%s" % (st.get("model"), lm_name)
+                elif lm.get("status") == "skipped" and lm.get("detail"):
+                    st["detail"] = "; ".join(x for x in (st.get("detail"), lm["detail"]) if x)
             out[name] = st
         for name, meta in self.stage_meta.items():
             out.setdefault(name, meta)
@@ -366,7 +422,7 @@ class Scan:
     # frames ------------------------------------------------------------------------
     def _frame_scorer(self) -> Any:
         if self.fed is not None:
-            return framesig.FedFrameScorer(self.fed["signals"].get("frames", {}))
+            return framesig.FedFrameScorer(self.fed["signals"].get("frames", {}), self.fed.get("framesParts"))
         make, used = modelsmod.session_factory(self.threads, self.a.device, self.warn)
         self.device = used
         return framesig.ModelFrameScorer(self.models_dir, make)
@@ -460,7 +516,7 @@ class Scan:
         save = dict(arrays)
         save["cuts"] = np.asarray(final_cuts, dtype=np.float64)
         self.ckpt.save_arrays(name, save)
-        model = "scores-from" if self.fed is not None else "nudenet-320n+clip-vit-b32-int8"
+        model = "scores-from" if self.fed is not None else config.FRAMES_MODEL
         self.ckpt.stage(name)["framesThisRun"] = state["count"]
         self.ckpt.stage(name)["firstFrameThisRun"] = state["first"]
         self._stage_end(name, "done", t0, model=model, device=self.device,
@@ -511,6 +567,10 @@ class Scan:
         self.ckpt.set_stage(name, source=source)
         lm = None
         try:
+            if self._cpu_blocks(name):
+                self.ckpt.set_stage(name, "skipped", noArrays=True, detail=self.CPU_DETAIL % "dialogue model")
+                self._stage_end(name, "skipped", t0)
+                return None
             lm = self._make_lm()
             if lm is None:
                 self.ckpt.set_stage(name, "skipped", noArrays=True)
@@ -592,6 +652,9 @@ class Scan:
             return None, []
         if not self.media.get("audio"):
             self._skip(name, t0, "No sound track.", "This movie has no sound track; dialogue was not checked.")
+            return None, []
+        if self._cpu_blocks(name):
+            self._skip(name, t0, self.CPU_DETAIL % "speech recognition")
             return None, []
         stt = self._stt()
         if stt is None:
@@ -769,19 +832,18 @@ class Scan:
             return None
 
     def _lm_possible(self) -> bool:
-        if self.lm_factory is not None:
-            return True
-        if self.fed is not None:
+        if self.lm_factory is None and self.fed is not None:
             return False
-        return lmmod.available() and os.path.isfile(os.path.join(self.models_dir, config.LM_FILE))
+        if self.lm_factory is None and not (lmmod.available()
+                                            and os.path.isfile(os.path.join(self.models_dir, config.LM_FILE))):
+            return False
+        return not self._cpu_blocks("captions")
 
     def _other_signal(self) -> np.ndarray:
         """Per-second max of every other signal (visual categories) for the caption budget."""
         signals, _ = fusion.assemble_signals(self._stage_arrays(OTHER_SIGNAL_STAGES), self.n)
         if self.fed:
-            for s, per in self.fed["signals"].items():
-                if s != "captions":
-                    signals[s] = dict(per)
+            self._apply_fed(signals, skip=("captions",))
         out = np.zeros(self.n, dtype=np.float32)
         for s, per in signals.items():
             if s == "captions":

@@ -1,7 +1,7 @@
 {
  "file": "clip_prompts.npz",
  "dim": 512,
- "count": 68,
+ "count": 81,
  "textModel": "clip-vit-b32-text_quantized.onnx",
  "textModelSha256": "73baab855d406190da9faa498cfedf65f15cf309f4cc7385b7b032e6d08e5c3a",
  "groups": [
@@ -9,6 +9,7 @@
   "kissing",
   "implied",
   "gore",
+  "nudity",
   "safe"
  ],
  "prompts": [
@@ -173,6 +174,46 @@
    "text": "a surgical scene with open flesh and blood"
   },
   {
+   "group": "nudity",
+   "text": "a movie still of a naked person"
+  },
+  {
+   "group": "nudity",
+   "text": "a nude woman in a film scene"
+  },
+  {
+   "group": "nudity",
+   "text": "a nude man in a film scene"
+  },
+  {
+   "group": "nudity",
+   "text": "a topless woman with bare breasts in a movie"
+  },
+  {
+   "group": "nudity",
+   "text": "a person taking a shower with no clothes on"
+  },
+  {
+   "group": "nudity",
+   "text": "a naked person bathing in a bathtub"
+  },
+  {
+   "group": "nudity",
+   "text": "a person undressing and taking off all of their clothes"
+  },
+  {
+   "group": "nudity",
+   "text": "an unclothed person lying on a bed"
+  },
+  {
+   "group": "nudity",
+   "text": "a naked person seen from behind"
+  },
+  {
+   "group": "nudity",
+   "text": "people without any clothes on at a nude beach"
+  },
+  {
    "group": "safe",
    "text": "people talking at a dinner table"
   },
@@ -283,6 +324,18 @@
   {
    "group": "safe",
    "text": "a doctor talking to a patient in a hospital"
+  },
+  {
+   "group": "safe",
+   "text": "a shirtless man working out at a gym"
+  },
+  {
+   "group": "safe",
+   "text": "people in swimsuits on a sunny beach"
+  },
+  {
+   "group": "safe",
+   "text": "a person wearing a bathrobe in a bathroom"
   }
  ]
 }

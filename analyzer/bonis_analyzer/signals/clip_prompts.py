@@ -3,7 +3,11 @@
 tools/make-clip-prompts.py encodes these with the CLIP text model at build
 time and writes analyzer/models/clip_prompts.npz; the text encoder is not
 shipped. Group "safe" holds counter-prompts that absorb probability mass
-for ordinary scenes. Change a prompt -> rerun the tool and commit the npz.
+for ordinary scenes. Group "nudity" backs up the nudity classifier (ledger
+D22: NudeNet's body-part detector was dropped); the frames scorer uses
+max(classifier, CLIP_NUDITY_WEIGHT x this group). Its safe counterparts
+(swimwear, shirtless sport, bathrobes) sit in "safe". Change a prompt ->
+rerun the tool and commit the npz.
 """
 
 from __future__ import annotations
@@ -57,6 +61,18 @@ PROMPTS = {
         "a zombie with a torn bloody face",
         "a surgical scene with open flesh and blood",
     ],
+    "nudity": [
+        "a movie still of a naked person",
+        "a nude woman in a film scene",
+        "a nude man in a film scene",
+        "a topless woman with bare breasts in a movie",
+        "a person taking a shower with no clothes on",
+        "a naked person bathing in a bathtub",
+        "a person undressing and taking off all of their clothes",
+        "an unclothed person lying on a bed",
+        "a naked person seen from behind",
+        "people without any clothes on at a nude beach",
+    ],
     "safe": [
         "people talking at a dinner table",
         "a family sitting on a couch watching television",
@@ -86,7 +102,10 @@ PROMPTS = {
         "a couple holding hands while walking",
         "people swimming at a public pool in swimsuits",
         "a doctor talking to a patient in a hospital",
+        "a shirtless man working out at a gym",
+        "people in swimsuits on a sunny beach",
+        "a person wearing a bathrobe in a bathroom",
     ],
 }
 
-GROUPS = ["sex", "kissing", "implied", "gore", "safe"]
+GROUPS = ["sex", "kissing", "implied", "gore", "nudity", "safe"]

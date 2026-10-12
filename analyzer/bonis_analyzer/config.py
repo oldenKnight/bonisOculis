@@ -138,27 +138,23 @@ CHECKPOINT_EVERY = 30.0      # media seconds between frame-stage checkpoints
 RESUME_PREROLL = 2.0         # decode this much before resumeAt so cuts at resumeAt are seen
 CUT_DEDUPE = 0.25
 
-NUDENET_SIZE = 320
-NUDENET_MIN_SCORE = 0.20
-NUDENET_NMS_SCORE = 0.25
-NUDENET_NMS_IOU = 0.45
-# NudeNet 3.x labels, in model output order.
-NUDENET_LABELS = (
-    "FEMALE_GENITALIA_COVERED", "FACE_FEMALE", "BUTTOCKS_EXPOSED", "FEMALE_BREAST_EXPOSED",
-    "FEMALE_GENITALIA_EXPOSED", "MALE_BREAST_EXPOSED", "ANUS_EXPOSED", "FEET_EXPOSED",
-    "BELLY_COVERED", "FEET_COVERED", "ARMPITS_COVERED", "ARMPITS_EXPOSED", "FACE_MALE",
-    "BELLY_EXPOSED", "MALE_GENITALIA_EXPOSED", "ANUS_COVERED", "FEMALE_BREAST_COVERED",
-    "BUTTOCKS_COVERED",
-)
-# Detected class -> nudity weight (score * weight; max over detections).
-NUDENET_NUDITY_WEIGHTS = {
-    "FEMALE_GENITALIA_EXPOSED": 1.00,
-    "MALE_GENITALIA_EXPOSED": 1.00,
-    "ANUS_EXPOSED": 1.00,
-    "FEMALE_BREAST_EXPOSED": 0.90,
-    "BUTTOCKS_EXPOSED": 0.80,
-    "FEMALE_GENITALIA_COVERED": 0.25,
-}
+# Nudity classifier: AdamCodd/vit-base-nsfw-detector (ViT-B/16 at 384 px,
+# Apache-2.0), int8 ONNX. Input `pixel_values` [N, 3, 384, 384] float32,
+# output `logits` [N, 2] with id2label {0: sfw, 1: nsfw}. The preprocessing
+# below is the model's preprocessor_config.json (ViTImageProcessor: plain
+# resize to 384 x 384, rescale 1/255, normalise mean 0.5 / std 0.5); the
+# shipped JSON files are read at load and override these defaults.
+NSFW_SIZE = 384
+NSFW_MEAN = (0.5, 0.5, 0.5)
+NSFW_STD = (0.5, 0.5, 0.5)
+NSFW_LABEL = "nsfw"
+NSFW_BATCH = 8               # frames per classifier call (ORT batch)
+# Frame nudity = max(classifier nsfw probability, CLIP_NUDITY_WEIGHT x CLIP
+# "nudity" prompt-group probability). The classifier replaced NudeNet's
+# body-part detector (ledger D22); the CLIP group catches unclothed people
+# the whole-image classifier misses (small figures, bathing scenes) but is a
+# zero-shot guess, so it is discounted. Reasoning: analyzer/TUNING.md.
+CLIP_NUDITY_WEIGHT = 0.8
 
 CLIP_SIZE = 224
 CLIP_LOGIT_SCALE = 100.0
@@ -166,6 +162,8 @@ CLIP_MEAN = (0.48145466, 0.4578275, 0.40821073)
 CLIP_STD = (0.26862954, 0.26130258, 0.27577711)
 # CLIP prompt group -> category it scores.
 CLIP_GROUP_CATEGORY = {"sex": "sex", "kissing": "kissing", "implied": "implied", "gore": "gore"}
+# CLIP prompt group fused into frame nudity (scaled by CLIP_NUDITY_WEIGHT).
+CLIP_NUDITY_GROUP = "nudity"
 
 # --------------------------------------------------------------------------
 # audio events (YAMNet, AudioSet 521 classes)
@@ -257,12 +255,24 @@ MAX_THUMBS = 400
 # model files (analyzer/models/manifest.json names)
 # --------------------------------------------------------------------------
 
-NUDENET_FILES = ("nudenet-320n.onnx", "320n.onnx")
-NUDENET_TARBALL = "nudenet-3.4.2.tar.gz"
-NUDENET_TAR_MEMBER = "nudenet-3.4.2/nudenet/320n.onnx"
+NSFW_FILE = "nsfw-vit-int8.onnx"
+NSFW_CONFIG_FILE = "nsfw-vit-config.json"
+NSFW_PREPROCESSOR_FILE = "nsfw-vit-preprocessor_config.json"
 CLIP_VISION_FILE = "clip-vit-b32-vision_quantized.onnx"
 CLIP_TEXT_FILE = "clip-vit-b32-text_quantized.onnx"
 CLIP_TOKENIZER_FILE = "clip-vit-b32-tokenizer.json"
 CLIP_PROMPTS_FILE = "clip_prompts.npz"
 LM_FILE = "qwen3-0.6b-q4_k_m.gguf"
-MODEL_SET = "nudenet-320n+clip-b32-int8+qwen3-0.6b-q4+yamnet+whisper-small-q5_1+florence2-base-ft-q4f16"
+FRAMES_MODEL = "nsfw-vit-int8+clip-vit-b32-int8"   # scan.stages.frames.model
+
+# --------------------------------------------------------------------------
+# CPU features (bonis_analyzer/cpu.py)
+# --------------------------------------------------------------------------
+
+# Stages whose native engines (llama.cpp, whisper.cpp; both ggml) are built
+# for AVX2 on x86 and die with an illegal instruction without it. On an x86
+# CPU without AVX2 they are skipped with a warning; ONNX Runtime stages
+# (frames, audio, captions) pick their own kernels and still run.
+GGML_STAGES = ("lm", "speech")
+CPU_ENV = "BONIS_CPU_AVX2"   # test/override hook: "0" forces "no AVX2", "1" forces "AVX2 present"
+MODEL_SET = "nsfw-vit-int8+clip-b32-int8+qwen3-0.6b-q4+yamnet+whisper-small-q5_1+florence2-base-ft-q4f16"

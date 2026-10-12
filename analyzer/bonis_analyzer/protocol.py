@@ -4,6 +4,7 @@
     {"t":"progress","stage":"frames","p":0.42,"eta":610}
     {"t":"stage","stage":"frames","status":"done"}
     {"t":"warn","msg":"..."}
+    {"t":"warn","code":"cpu-no-avx2","stage":"lm","msg":"..."}   (machine-readable code, optional)
     {"t":"paused"} / {"t":"resumed"}
     {"t":"done","out":"/path/movie.bonis.json"}
     {"t":"error","code":3,"msg":"..."}
@@ -98,11 +99,16 @@ class Protocol:
         obj.update(extra)
         self.emit(obj)
 
-    def warn(self, msg: str) -> None:
+    def warn(self, msg: str, code: Optional[str] = None, **extra: Any) -> None:
         msg = str(msg)[:500]
         if msg not in self.warnings:
             self.warnings.append(msg)
-        self.emit({"t": "warn", "msg": msg})
+        obj: dict[str, Any] = {"t": "warn"}
+        if code:
+            obj["code"] = str(code)
+            obj.update(extra)
+        obj["msg"] = msg
+        self.emit(obj)
 
     def paused(self) -> None:
         self.emit({"t": "paused"})
@@ -143,7 +149,7 @@ def parse_line(line: str) -> dict:
         assert isinstance(obj.get("stage"), str) and obj.get("status") in (
             "pending", "running", "done", "skipped", "failed")
     elif t == "warn":
-        assert isinstance(obj.get("msg"), str)
+        assert isinstance(obj.get("msg"), str) and isinstance(obj.get("code", ""), str)
     elif t == "done":
         assert isinstance(obj.get("out"), str)
     elif t == "error":
