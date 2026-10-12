@@ -10,6 +10,7 @@
  *   videoIdFromUrl(url)     stable id of the title, or '' (pure; tested in node)
  *   getVideoId()            id for the current page and video
  *   findVideo(cb)           cb(video) now and whenever the main <video> changes; returns stop()
+ *   deepVideo (spec)        search open shadow roots for the <video> (Disney+ only: costly)
  *   getSubtitleTracks(cb)   cb(track) for every captured track, now and later; returns stop()
  *   seekTo(seconds)         jump (may be ignored by the site; the enforcer verifies)
  *   currentTime()           seconds
@@ -43,11 +44,13 @@
     a.getVideoId = spec.getVideoId || function () { return a.videoIdFromUrl(location.href); };
 
     a.pickVideo = spec.pickVideo || function () {
-      return BO.util.biggestVideo(a.videoSelector) || (a.videoSelector ? BO.util.biggestVideo(null) : null);
+      return BO.util.biggestVideo(a.videoSelector, false) || BO.util.biggestVideo(null, !!spec.deepVideo);
     };
 
+    /* Polls: every 0.7 s until a video shows up, then every 2 s to notice a
+       replaced or removed element (cheap: one querySelectorAll). */
     a.findVideo = function (cb) {
-      var stopped = false, timer;
+      var stopped = false, timer = null;
       function look() {
         var v;
         if (stopped) { return; }
@@ -59,10 +62,10 @@
           a.video = null;
           cb(null);
         }
+        timer = setTimeout(look, a.video ? 2000 : 700);
       }
       look();
-      timer = setInterval(look, 700);
-      return function () { stopped = true; clearInterval(timer); };
+      return function () { stopped = true; if (timer !== null) { clearTimeout(timer); } };
     };
 
     a.currentTime = function () {

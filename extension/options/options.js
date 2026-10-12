@@ -25,7 +25,7 @@
   }
 
   function renderShortcut() {
-    $('shortcutText').textContent = t('shortcutHelp', [keys || t('shortcutNotSet')]);
+    $('shortcutText').textContent = keys ? t('shortcutHelp', [keys]) : t('shortcutNotSet');
   }
 
   function render() {

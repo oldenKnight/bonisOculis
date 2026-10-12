@@ -63,8 +63,9 @@
     return out;
   }
 
-  function biggestVideo(selector) {
-    var list = selector ? document.querySelectorAll(selector) : findVideos(document), best = null, bestArea = 0, i, r, a;
+  /* deep: also search open shadow roots (costly; only adapters that need it). */
+  function biggestVideo(selector, deep) {
+    var list = selector ? document.querySelectorAll(selector) : (deep ? findVideos(document) : document.querySelectorAll('video')), best = null, bestArea = 0, i, r, a;
     for (i = 0; i < list.length; i++) {
       r = list[i].getBoundingClientRect();
       a = Math.max(0, r.width) * Math.max(0, r.height);

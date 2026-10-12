@@ -154,9 +154,12 @@ test('score parity with spec/fixtures/subtitles/expected/*.scores.json', functio
     var base = n.replace(/\.scores\.json$/, ''), doc = JSON.parse(read(path.join(expDir, n)));
     var srt = path.join(FIX, base + '.srt'), lang, arrays, got, opts = {};
     if (!fs.existsSync(srt)) { return; }
-    lang = doc.language || doc.lang || (/(^|[._-])es([._-]|$)/.test(base) ? 'es' : 'en');
+    lang = doc.lexicon || doc.language || doc.lang || (/(^|[._-])es([._-]|$)/.test(base) ? 'es' : 'en');
     if (typeof doc.duration === 'number') { opts.duration = doc.duration; }
     opts.round = true;
+    if (Array.isArray(doc.cues)) {
+      assert.deepStrictEqual(sub.parseSrt(read(srt)), doc.cues, base + ' parsed cues');
+    }
     got = sub.score(sub.parseSrt(read(srt)), sub.langFamily(lang) === 'es' ? ES : EN, opts);
     arrays = expectedArrays(doc);
     sub.CATEGORIES.forEach(function (c) {

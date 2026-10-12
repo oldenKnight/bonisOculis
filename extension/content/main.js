@@ -108,7 +108,7 @@
     lastHref = location.href;
     id = currentVideoId();
     if (id === videoId) { return; }
-    BO.bridge.reset();
+    BO.bridge.reset(function (t) { return id.length >= 6 && t.url.indexOf(id) >= 0; });
     plan = [];
     enforcer.setRanges([]);
     loadRecord(function () { recompute(); });

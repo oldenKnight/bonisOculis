@@ -13,6 +13,7 @@
     nameKey: 'siteDisneyplus',
     seekMode: 'best-effort',
     rolling: true,
+    deepVideo: true,
     matches: function (url) { return /^https:\/\/(www\.)?disneyplus\.com\//i.test(String(url)); },
     videoIdFromUrl: function (url) {
       var m = /\/(?:video|play)\/([A-Za-z0-9-]{6,64})/.exec(String(url));

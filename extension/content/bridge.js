@@ -111,7 +111,14 @@
     return out;
   }
 
-  function reset() { tracks = {}; order = []; }
+  /* Forget tracks (title changed); keep(track) may keep some (already the new title's). */
+  function reset(keep) {
+    var k, i;
+    for (i = order.length - 1; i >= 0; i--) {
+      k = order[i];
+      if (!(keep && tracks[k] && keep(tracks[k]))) { delete tracks[k]; order.splice(i, 1); }
+    }
+  }
 
   function send(cmd) {
     var msg = {}, k;

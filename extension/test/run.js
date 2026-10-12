@@ -49,9 +49,21 @@ var t0 = Date.now();
 
 function log(s) { process.stdout.write(s + '\n'); }
 
-/* promise -> callback(err, value) */
+/* The running step's end(err); assertion errors thrown inside callbacks are routed to it. */
+var currentEnd = null;
+
+function failCurrent(e) {
+  if (currentEnd) { currentEnd(e); } else { log(String(e && e.stack ? e.stack : e)); process.exit(1); }
+}
+
+process.on('uncaughtException', failCurrent);
+
+/* promise -> callback(err, value); a throw inside cb fails the current step */
 function p(promise, cb) {
-  promise.then(function (v) { cb(null, v); }, function (e) { cb(e || new Error('rejected')); });
+  promise.then(function (v) { call(null, v); }, function (e) { call(e || new Error('rejected')); });
+  function call(err, v) {
+    try { cb(err, v); } catch (e) { failCurrent(e); }
+  }
 }
 
 function rmrf(dir) { try { fs.rmSync(dir, { recursive: true, force: true }); } catch (e) { /* ignore */ } }
@@ -125,6 +137,7 @@ function serve(roots, cb) {
   var server = http.createServer(function (req, res) {
     var name = decodeURIComponent(req.url.split('?')[0]).replace(/^\/+/, '') || 'index.html', file = null, i, stat, range, m, start, end;
     if (name.indexOf('..') >= 0) { res.writeHead(400); res.end(); return; }
+    if (name === 'favicon.ico') { res.writeHead(204); res.end(); return; }
     for (i = 0; i < roots.length; i++) { if (fs.existsSync(path.join(roots[i], name))) { file = path.join(roots[i], name); break; } }
     if (!file) { res.writeHead(404); res.end(); return; }
     stat = fs.statSync(file);
@@ -453,7 +466,7 @@ function browserTest(pw, done) {
           state(function (e3, s) {
             if (e3) { next(e3); return; }
             assert.notDeepStrictEqual(cmpRanges(byPrefix(s, 'rfile')), cmpRanges(pageRanges));
-            p(popup.click('#autoSync'), function (e4) {
+            p(popup.click('#timingBox > summary', { timeout: 5000 }).then(function () { return popup.click('#autoSync', { timeout: 5000 }); }), function (e4) {
               if (e4) { next(e4); return; }
               waitFor('offset -2.5', function (k) { state(function (e, s2) { k(e, s2 && s2.offset === -2.5); }); }, 5000, function (e5) {
                 if (e5) { next(e5); return; }
@@ -508,7 +521,7 @@ function browserTest(pw, done) {
     }],
 
     ['language toggle: the popup switches to Spanish', function (next) {
-      p(popup.click('button[data-lang="es"]'), function (err) {
+      p(popup.click('button[data-lang="es"]', { timeout: 5000 }), function (err) {
         if (err) { next(err); return; }
         waitFor('Spanish text', function (k) {
           p(popup.textContent('#scenesLine'), function (e, txt) { k(e, /^Se omitirán \d+ escenas$/.test(txt || '')); });
@@ -550,12 +563,14 @@ function browserTest(pw, done) {
     if (i >= steps.length) { finish(null); return; }
     name = steps[i][0];
     timer = setTimeout(function () { end(new Error('step timed out')); }, 30000);
+    currentEnd = end;
     function end(err) {
       if (finished) { return; }
       finished = true;
+      currentEnd = null;
       clearTimeout(timer);
       results.push([name, err]);
-      log((err ? 'not ok ' : 'ok ') + (i + 1) + ' - ' + name + (err ? '\n    ' + (err.stack || err).toString().split('\n').slice(0, 4).join('\n    ') : ''));
+      log((err ? 'not ok ' : 'ok ') + (i + 1) + ' - ' + name + (err ? '\n    ' + (err.stack || err).toString().split('\n').slice(0, 14).join('\n    ') : ''));
       if (err) { finish(err); return; }
       runStep(i + 1);
     }

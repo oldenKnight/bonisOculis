@@ -62,13 +62,30 @@ def default_action(category: str, level: str) -> str:
 
 # Weight of each signal per category in the noisy-OR:
 #   p = 1 - prod_s (1 - w[s][c] * score[s][c])
+# Reasoning per weight: analyzer/TUNING.md. In short: frames strongest for
+# nudity/gore; dialogue (subtitles, or speech-to-text when there are none)
+# moderate for everything; sounds moderate for sex, weak for gore (a weighted
+# audio gore score can never reach the strict threshold on its own); scene
+# captions moderate for implied/sex/kissing.
 SIGNAL_WEIGHTS: Dict[str, Dict[str, float]] = {
     "frames":    {"nudity": 1.00, "sex": 0.90, "implied": 0.70, "kissing": 0.85, "gore": 0.90, "language": 0.00},
     "subtitles": {"nudity": 0.70, "sex": 0.85, "implied": 0.85, "kissing": 0.75, "gore": 0.75, "language": 1.00},
     "speech":    {"nudity": 0.60, "sex": 0.75, "implied": 0.75, "kissing": 0.65, "gore": 0.65, "language": 0.90},
-    "audio":     {"nudity": 0.30, "sex": 0.70, "implied": 0.60, "kissing": 0.40, "gore": 0.60, "language": 0.00},
-    "captions":  {"nudity": 0.70, "sex": 0.80, "implied": 0.80, "kissing": 0.80, "gore": 0.80, "language": 0.00},
+    "audio":     {"nudity": 0.00, "sex": 0.60, "implied": 0.50, "kissing": 0.00, "gore": 0.35, "language": 0.00},
+    "captions":  {"nudity": 0.60, "sex": 0.70, "implied": 0.75, "kissing": 0.70, "gore": 0.60, "language": 0.00},
 }
+
+# Signal agreement: at a second where at least AGREE_MIN_SIGNALS signals from
+# DIFFERENT groups each score >= AGREE_MIN, the fused score gets
+#   p' = 1 - (1 - p) * (1 - AGREE_BONUS)
+# (raises confidence, never above 1). Subtitles and speech are both dialogue
+# and count as one group. Language is excluded (a single-source category).
+AGREE_MIN = 0.30
+AGREE_MIN_SIGNALS = 2
+AGREE_BONUS = 0.25
+SIGNAL_GROUPS = {"frames": "picture", "captions": "description", "subtitles": "dialogue",
+                 "speech": "dialogue", "audio": "sound"}
+AGREE_CATEGORIES = ("nudity", "sex", "implied", "kissing", "gore")
 
 # A signal "agrees" for intensity and notes when its peak in the range is at
 # least this high.
@@ -79,7 +96,12 @@ MAX_SNAP = 20.0
 MERGE_GAP = 3.0
 LEAD_IN = 2.0
 TAIL = 1.0
-MIN_DURATION = 1.5
+MIN_DURATION = 1.5           # default; per category below
+# Minimum range length per category (shorter ranges are EXTENDED, never
+# dropped: catch too much, brief 3.2). Sex/implied scenes are never a single
+# beat, so a lone hit becomes a 3 s range a parent can judge from its thumbnail.
+CATEGORY_MIN_DURATION = {"nudity": 1.5, "sex": 3.0, "implied": 3.0, "kissing": 2.0, "gore": 1.5,
+                         "language": 1.0}
 
 # Per-category overrides. Language ranges mute dialogue; snapping them to a
 # whole shot and padding by 3 s would mute far more speech than the word
@@ -146,6 +168,83 @@ CLIP_STD = (0.26862954, 0.26130258, 0.27577711)
 CLIP_GROUP_CATEGORY = {"sex": "sex", "kissing": "kissing", "implied": "implied", "gore": "gore"}
 
 # --------------------------------------------------------------------------
+# audio events (YAMNet, AudioSet 521 classes)
+# --------------------------------------------------------------------------
+
+AUDIO_RATE = 16000
+AUDIO_CHUNK = 10.0           # seconds of new audio per model call
+AUDIO_OVERLAP = 1.0          # seconds of the previous chunk prepended (frames across the seam)
+AUDIO_CHECKPOINT_CHUNKS = 6  # flush audio.npz + resumeAt every 60 media seconds
+YAMNET_HOP = 0.48
+YAMNET_WINDOW = 0.96
+# AudioSet display name -> {category: weight}. Category score of a 0.96 s frame
+# = max over mapped classes of weight * class score; per second = max over the
+# frames overlapping it. Names must exist in models/yamnet_class_map.csv
+# (a test checks). Reasoning in analyzer/TUNING.md.
+AUDIO_CLASS_MAP: Dict[str, Dict[str, float]] = {
+    # vocal sounds of intimacy: sex, and at a lower weight implied
+    "Wail, moan": {"sex": 0.90, "implied": 0.70},
+    "Pant": {"sex": 0.70, "implied": 0.50},
+    "Groan": {"sex": 0.60, "implied": 0.40},
+    "Gasp": {"sex": 0.55, "implied": 0.40},
+    "Whimper": {"sex": 0.50, "implied": 0.35},
+    "Breathing": {"sex": 0.40, "implied": 0.30},
+    "Grunt": {"sex": 0.40, "implied": 0.25},
+    # violence. Screaming is capped at 0.50: with the audio->gore fusion weight
+    # (0.35) it contributes at most 0.175, far below every gore threshold, so a
+    # scream (horror, a roller coaster, a birthday surprise) never flags gore
+    # alone; it only counts through the agreement bonus with another signal.
+    "Gunshot, gunfire": {"gore": 0.80},
+    "Machine gun": {"gore": 0.80},
+    "Fusillade": {"gore": 0.70},
+    "Squish": {"gore": 0.70},
+    "Explosion": {"gore": 0.50},
+    "Screaming": {"gore": 0.50},
+    "Slap, smack": {"gore": 0.45},
+    "Chop": {"gore": 0.45},
+    "Crying, sobbing": {"gore": 0.30},
+}
+YAMNET_FILE = "yamnet.onnx"
+# models/yamnet_class_map.csv: the official class map (Apache-2.0), committed, from
+# https://raw.githubusercontent.com/tensorflow/models/master/research/audioset/yamnet/yamnet_class_map.csv
+# sha256 cdf24d193e196d9e95912a2667051ae203e92a2ba09449218ccb40ef787c6df2 (fetched 2026-10-12)
+YAMNET_CLASS_MAP_FILE = "yamnet_class_map.csv"
+YAMNET_CLASS_MAP_SHA256 = "cdf24d193e196d9e95912a2667051ae203e92a2ba09449218ccb40ef787c6df2"
+YAMNET_CLASSES = 521
+
+# --------------------------------------------------------------------------
+# speech to text (whisper.cpp small q5_1); only when no subtitles were found
+# --------------------------------------------------------------------------
+
+SPEECH_WINDOW = 30.0         # whisper's native context
+SPEECH_OVERLAP = 2.0         # consecutive windows share 2 s; cues are split at the overlap midpoint
+WHISPER_FILE = "whisper-small-q5_1.bin"
+WHISPER_CLI_ENV = "BONIS_WHISPER_CLI"   # optional whisper-cli executable (fallback when pywhispercpp is missing)
+
+# --------------------------------------------------------------------------
+# scene captions (Florence-2 base-ft q4f16, ONNX Runtime)
+# --------------------------------------------------------------------------
+
+CAPTION_MAX_SHOTS = 1500
+CAPTION_PRIORITY = 0.20      # shots where any other signal reaches this are always captioned
+CAPTION_MAX_SHOT = 20.0      # longer shots are split so a static 3-minute shot gets several keyframes
+CAPTION_NO_CUTS_STEP = 10.0  # shot length when no scene cuts are known (frames stage not run)
+CAPTION_MAX_TOKENS = 40
+CAPTION_CHECKPOINT_SHOTS = 10
+CAPTION_SIZE = 768
+CAPTION_MEAN = (0.485, 0.456, 0.406)
+CAPTION_STD = (0.229, 0.224, 0.225)
+CAPTION_LM_WEIGHT = 0.85     # caption LM score scaled before max() with the caption lexicon score
+FLORENCE_FILES = {
+    "vision": "florence2-vision_encoder_q4f16.onnx",
+    "embed": "florence2-embed_tokens_q4f16.onnx",
+    "encoder": "florence2-encoder_model_q4f16.onnx",
+    "decoder": "florence2-decoder_model_merged_q4f16.onnx",
+}
+FLORENCE_TOKENIZER_FILE = "florence2-tokenizer.json"
+FLORENCE_PROMPTS_FILE = "florence_prompts.json"
+
+# --------------------------------------------------------------------------
 # thumbnails
 # --------------------------------------------------------------------------
 
@@ -165,4 +264,4 @@ CLIP_TEXT_FILE = "clip-vit-b32-text_quantized.onnx"
 CLIP_TOKENIZER_FILE = "clip-vit-b32-tokenizer.json"
 CLIP_PROMPTS_FILE = "clip_prompts.npz"
 LM_FILE = "qwen3-0.6b-q4_k_m.gguf"
-MODEL_SET = "nudenet-320n+clip-b32-int8+qwen3-0.6b-q4"
+MODEL_SET = "nudenet-320n+clip-b32-int8+qwen3-0.6b-q4+yamnet+whisper-small-q5_1+florence2-base-ft-q4f16"

@@ -69,7 +69,7 @@
     last = s;
     $('msg').hidden = true;
     $('ready').hidden = false;
-    $('siteName').textContent = t(s.nameKey);
+    $('siteName').textContent = s.adapter === 'generic' ? s.site : t(s.nameKey);
     anySource = s.pageTracks || s.subFile || s.skipFiles.length || s.marks;
     if (!anySource) {
       $('scenesLine').textContent = t('scenesWaiting');
@@ -142,6 +142,7 @@
     BO.ui.clear(rows);
     if (s.subFile) { rows.appendChild(timingRow('sub', t('timingSubLabel'), s.offset, true)); }
     if (s.skipFiles.length) { rows.appendChild(timingRow('skip', t('timingSkipLabel'), s.skipOffset, false)); }
+    rows.hidden = !rows.firstChild;
     $('timingNone').hidden = !!rows.firstChild;
   }
 
