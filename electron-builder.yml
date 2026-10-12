@@ -1,0 +1,126 @@
+# bonis oculis - electron-builder configuration (M9a). Offline installers, no auto-update.
+#
+# Inputs that must exist before `electron-builder` runs (see packaging/README.md):
+#   bin/<platform>-<arch>/                     node tools/fetch-binaries.js (+ whisper-cli on macOS)
+#   dist/analyzer/<platform>-<arch>/bonis-analyzer/   pyinstaller packaging/analyzer.spec
+#   analyzer/models/                           node tools/fetch-models.js
+#
+# Packaged layout (desktop/main/paths.js reads it; nothing is per-arch inside one installer):
+#   <resources>/app.asar                       desktop/, shared/*.js, package.json
+#   <resources>/bin/{mpv,ffmpeg,ffprobe,whisper-cli}[.exe] + their libraries + licenses/
+#   <resources>/analyzer/bonis-analyzer[.exe] + _internal/
+#   <resources>/models/                        shipped models + committed sidecars + manifest.json
+#   <resources>/player/bonis.lua
+#   <resources>/spec/lexicon/{en,es}.json
+#   <resources>/help/{en-US,es-MX}.md, LICENSES.md, BINARIES.md
+#
+# Signing: none is configured. electron-builder signs only when CSC_LINK / CSC_KEY_PASSWORD
+# (macOS, Windows) or WIN_CSC_LINK are present in the environment; the workflow passes them only
+# when the repository has those secrets. Unsigned macOS builds are ad-hoc signed (identity "-")
+# by the workflow so Apple Silicon will run them.
+
+appId: mx.bonisoculis.app
+productName: bonis oculis
+copyright: "Copyright © 2026 bonis oculis"
+
+directories:
+  output: dist/electron
+  buildResources: packaging
+
+asar: true
+asarUnpack: []          # binaries live in resources/, never inside the archive
+npmRebuild: false       # the app has no native Node modules
+publish: null           # no update feed, no app-update.yml: the app never phones home
+
+files:
+  - package.json
+  - desktop/**/*
+  - "!desktop/test{,/**/*}"
+  - "!desktop/renderer/design-preview.html"
+  - "!**/*.map"
+  - "!**/{.DS_Store,Thumbs.db,*.log}"
+  - shared/*.js
+
+extraResources:
+  - from: analyzer/models
+    to: models
+    filter:
+      - manifest.json
+      - nudenet-320n.onnx
+      - clip-vit-b32-vision_quantized.onnx
+      - clip-vit-b32-preprocessor_config.json
+      - clip_prompts.npz
+      - yamnet.onnx
+      - yamnet_class_map.csv
+      - whisper-small-q5_1.bin
+      - qwen3-0.6b-q4_k_m.gguf
+      - florence2-vision_encoder_q4f16.onnx
+      - florence2-embed_tokens_q4f16.onnx
+      - florence2-encoder_model_q4f16.onnx
+      - florence2-decoder_model_merged_q4f16.onnx
+      - florence2-tokenizer.json
+      - florence2-config.json
+      - florence2-preprocessor_config.json
+      - florence2-generation_config.json
+      - florence_prompts.json
+  - from: player/bonis.lua
+    to: player/bonis.lua
+  - from: spec/lexicon
+    to: spec/lexicon
+    filter: ["en.json", "es.json"]
+  - from: docs/HELP
+    to: help
+  - from: docs/LICENSES.md
+    to: help/LICENSES.md
+  - from: packaging/BINARIES.md
+    to: help/BINARIES.md
+
+win:
+  target:
+    - target: nsis
+      arch: [x64]
+  icon: packaging/icons/icon.ico
+  extraResources:
+    - from: bin/win32-${arch}
+      to: bin
+    - from: dist/analyzer/win32-${arch}/bonis-analyzer
+      to: analyzer
+
+nsis:
+  oneClick: false                       # assisted installer
+  perMachine: false                     # asks "just me" (default) or "all users" (elevates)
+  allowElevation: true
+  allowToChangeInstallationDirectory: true
+  differentialPackage: false            # no blockmap: nothing downloads updates
+  createDesktopShortcut: always
+  createStartMenuShortcut: true
+  shortcutName: bonis oculis
+  deleteAppDataOnUninstall: false       # skip files and decisions survive a reinstall
+  artifactName: bonis-oculis-${version}-win-${arch}-setup.${ext}
+
+mac:
+  target: dmg                           # one DMG per arch: the CI runs --x64 and --arm64 separately
+  category: public.app-category.video
+  icon: packaging/icons/icon.icns
+  minimumSystemVersion: "12.0"          # Electron 38; mpv arm64 build itself needs macOS 14
+  hardenedRuntime: false                # turn on together with signing + notarization
+  gatekeeperAssess: false
+  extraResources:
+    - from: bin/darwin-${arch}
+      to: bin
+    - from: dist/analyzer/darwin-${arch}/bonis-analyzer
+      to: analyzer
+
+dmg:
+  artifactName: bonis-oculis-${version}-mac-${arch}.${ext}
+  writeUpdateInfo: false
+
+linux:                                  # development / CI smoke test only; not a shipped target
+  target: dir
+  icon: packaging/icons/png
+  category: AudioVideo
+  extraResources:
+    - from: bin/linux-${arch}
+      to: bin
+    - from: dist/analyzer/linux-${arch}/bonis-analyzer
+      to: analyzer

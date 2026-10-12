@@ -1,0 +1,232 @@
+# bonis oculis - build and test (M9a).
+#
+#   test   ubuntu: lint, node suites (shared, desktop, player, packaging), extension unit tests,
+#          analyzer unit tests, Electron e2e under xvfb, repository source checks
+#   build  windows x64 (NSIS), macOS arm64 and macOS x64 (one DMG each): pinned binaries,
+#          models, PyInstaller analyzer, electron-builder, tools/verify-bundle.js, artifacts
+#
+# No secret is required. Signing and notarization steps run only when the repository has the
+# matching secrets (MAC_CSC_LINK + MAC_CSC_KEY_PASSWORD, APPLE_ID + APPLE_APP_SPECIFIC_PASSWORD
+# + APPLE_TEAM_ID, WIN_CSC_LINK + WIN_CSC_KEY_PASSWORD); otherwise the builds are unsigned
+# (macOS: ad-hoc signed so Apple Silicon runs them) and the in-app help explains the
+# Gatekeeper / SmartScreen first launch.
+#
+# Pinning: tools/fetch-binaries.js refuses any packaging/binaries.json entry still marked
+# PIN_ON_FIRST_FETCH because CI=true here. Pin once on a machine with GitHub access:
+#   node tools/fetch-binaries.js --platform win32 --arch x64 --write-pins
+# and record the whisper.cpp commit (builds."whisper.cpp".commit) the same way.
+
+name: build
+
+on:
+  push:
+    branches: ["**"]
+    tags: ["v*"]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: build-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  ELECTRON_BUILDER: electron-builder@26.15.3
+  PYINSTALLER: pyinstaller==6.22.3
+  WHISPER_TAG: v1.9.5
+  PYTHONUTF8: "1"
+
+jobs:
+  test:
+    name: tests (linux)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: analyzer/requirements*.txt
+      - name: System packages (ffmpeg, mpv, xvfb)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends ffmpeg mpv xvfb xauth
+      - run: npm ci
+      - name: Python dependencies
+        env:
+          CMAKE_ARGS: -DGGML_NATIVE=OFF
+        run: python -m pip install --prefer-binary -r analyzer/requirements.txt
+      - name: ES5 lint
+        run: npm run lint
+      - name: Node suites (shared, desktop, player) under xvfb
+        run: xvfb-run -a npm test
+      - name: Packaging tools
+        run: node --test "packaging/test/*.test.js"
+      - name: Extension unit tests
+        run: npm run test:extension
+      - name: Analyzer unit tests (synthetic fixtures, no models)
+        run: python -m unittest discover -s analyzer/tests
+      - name: Electron end-to-end (xvfb)
+        run: npm run test:e2e
+      - name: Source checks (lint, no-network, forbidden words)
+        run: node tools/verify-bundle.js --repo-only
+
+  build:
+    name: build ${{ matrix.platform }}-${{ matrix.arch }}
+    needs: test
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 120
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: windows-latest
+            platform: win32
+            arch: x64
+            eb: --win --x64
+            unpacked: dist/electron/win-unpacked
+            cmake_args: -DGGML_NATIVE=OFF
+          - runner: macos-14
+            platform: darwin
+            arch: arm64
+            eb: --mac --arm64
+            unpacked: dist/electron/mac-arm64
+            cmake_args: -DGGML_NATIVE=OFF -DGGML_METAL=ON
+            whisper_cmake: -DGGML_METAL=ON -DGGML_METAL_EMBED_LIBRARY=ON
+          - runner: macos-15-intel
+            platform: darwin
+            arch: x64
+            eb: --mac --x64
+            unpacked: dist/electron/mac
+            cmake_args: -DGGML_NATIVE=OFF -DGGML_METAL=OFF
+            whisper_cmake: -DGGML_METAL=OFF
+    env:
+      TARGET: ${{ matrix.platform }}-${{ matrix.arch }}
+      MACOSX_DEPLOYMENT_TARGET: "12.0"
+      HAVE_MAC_CERT: ${{ secrets.MAC_CSC_LINK != '' }}
+      HAVE_NOTARY: ${{ secrets.APPLE_ID != '' }}
+      HAVE_WIN_CERT: ${{ secrets.WIN_CSC_LINK != '' }}
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: analyzer/requirements*.txt
+      - run: npm ci
+
+      # ---- third-party executables (pinned, sha256-verified) ----
+      - name: Cache downloaded binary archives
+        uses: actions/cache@v4
+        with:
+          path: bin/.cache
+          key: binaries-${{ env.TARGET }}-${{ hashFiles('packaging/binaries.json') }}
+      - name: Fetch mpv, ffmpeg, ffprobe (and whisper-cli on Windows)
+        run: node tools/fetch-binaries.js --platform ${{ matrix.platform }} --arch ${{ matrix.arch }}
+      - name: Build whisper-cli from source (macOS)
+        if: matrix.platform == 'darwin'
+        run: |
+          git clone --depth 1 --branch "$WHISPER_TAG" https://github.com/ggml-org/whisper.cpp.git build/whisper.cpp
+          cmake -S build/whisper.cpp -B build/whisper.cpp/build -DCMAKE_BUILD_TYPE=Release \
+            -DBUILD_SHARED_LIBS=OFF -DWHISPER_BUILD_TESTS=OFF -DWHISPER_BUILD_SERVER=OFF \
+            -DWHISPER_SDL2=OFF -DWHISPER_CURL=OFF -DGGML_NATIVE=OFF ${{ matrix.whisper_cmake }} \
+            -DCMAKE_OSX_DEPLOYMENT_TARGET="$MACOSX_DEPLOYMENT_TARGET"
+          cmake --build build/whisper.cpp/build --config Release -j 4 --target whisper-cli
+          otool -L build/whisper.cpp/build/bin/whisper-cli
+          node tools/fetch-binaries.js --platform darwin --arch ${{ matrix.arch }} \
+            --add-built whisper-cli=build/whisper.cpp/build/bin/whisper-cli \
+            --built-commit "$(git -C build/whisper.cpp rev-parse HEAD)"
+      - name: Verify bin/${{ env.TARGET }} against the pins
+        run: node tools/fetch-binaries.js --check --platform ${{ matrix.platform }} --arch ${{ matrix.arch }}
+
+      # ---- models (~1 GB, cached by manifest hash, shared across OSes) ----
+      - name: Cache models
+        uses: actions/cache@v4
+        with:
+          path: |
+            analyzer/models/*.onnx
+            analyzer/models/*.gguf
+            analyzer/models/*.bin
+            analyzer/models/*.tar.gz
+            analyzer/models/florence2-*.json
+            analyzer/models/clip-vit-b32-*.json
+          key: models-${{ hashFiles('analyzer/models/manifest.json') }}
+          enableCrossOsArchive: true
+      - name: Fetch models
+        run: node tools/fetch-models.js && node tools/fetch-models.js --check
+
+      # ---- analyzer (PyInstaller onedir, no PyTorch) ----
+      - name: Analyzer dependencies
+        env:
+          CMAKE_ARGS: ${{ matrix.cmake_args }}
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install --prefer-binary -r analyzer/requirements.txt "$PYINSTALLER"
+      - name: Build the analyzer
+        env:
+          BONIS_REQUIRE_OPTIONAL: "1"
+        run: |
+          pyinstaller packaging/analyzer.spec --noconfirm \
+            --distpath "dist/analyzer/$TARGET" --workpath "build/pyinstaller/$TARGET"
+          "dist/analyzer/$TARGET/bonis-analyzer/bonis-analyzer" version
+
+      # ---- signing (each step is skipped when its secrets are absent) ----
+      # Secrets go straight into the electron-builder step's environment (empty when absent,
+      # which electron-builder treats as "not set"); these steps only choose flags.
+      - name: macOS signing with a Developer ID certificate
+        if: matrix.platform == 'darwin' && env.HAVE_MAC_CERT == 'true'
+        run: echo "EB_SIGN_FLAGS=-c.mac.hardenedRuntime=true" >> "$GITHUB_ENV"
+      - name: macOS notarization
+        if: matrix.platform == 'darwin' && env.HAVE_MAC_CERT == 'true' && env.HAVE_NOTARY == 'true'
+        run: echo "EB_SIGN_FLAGS=-c.mac.hardenedRuntime=true -c.mac.notarize=true" >> "$GITHUB_ENV"
+      - name: macOS without a certificate (ad-hoc signature, Apple Silicon needs one)
+        if: matrix.platform == 'darwin' && env.HAVE_MAC_CERT != 'true'
+        run: |
+          echo "CSC_IDENTITY_AUTO_DISCOVERY=false" >> "$GITHUB_ENV"
+          echo "EB_SIGN_FLAGS=-c.mac.identity=-" >> "$GITHUB_ENV"
+      - name: Windows signing
+        if: matrix.platform == 'win32' && env.HAVE_WIN_CERT == 'true'
+        run: echo "Windows installer will be signed with WIN_CSC_LINK"
+
+      # ---- installer ----
+      - name: electron-builder
+        env:
+          CSC_LINK: ${{ matrix.platform == 'darwin' && secrets.MAC_CSC_LINK || '' }}
+          CSC_KEY_PASSWORD: ${{ matrix.platform == 'darwin' && secrets.MAC_CSC_KEY_PASSWORD || '' }}
+          APPLE_ID: ${{ matrix.platform == 'darwin' && env.HAVE_MAC_CERT == 'true' && secrets.APPLE_ID || '' }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ matrix.platform == 'darwin' && env.HAVE_MAC_CERT == 'true' && secrets.APPLE_APP_SPECIFIC_PASSWORD || '' }}
+          APPLE_TEAM_ID: ${{ matrix.platform == 'darwin' && env.HAVE_MAC_CERT == 'true' && secrets.APPLE_TEAM_ID || '' }}
+          WIN_CSC_LINK: ${{ matrix.platform == 'win32' && secrets.WIN_CSC_LINK || '' }}
+          WIN_CSC_KEY_PASSWORD: ${{ matrix.platform == 'win32' && secrets.WIN_CSC_KEY_PASSWORD || '' }}
+        run: npx --yes "$ELECTRON_BUILDER" ${{ matrix.eb }} --publish never $EB_SIGN_FLAGS
+      - name: Verify the bundle
+        run: node tools/verify-bundle.js "${{ matrix.unpacked }}" --target "$TARGET" --run-analyzer
+      - name: Checksums
+        run: |
+          cd dist/electron
+          for f in *.exe *.dmg; do [ -f "$f" ] && (shasum -a 256 "$f" 2>/dev/null || sha256sum "$f"); done > SHA256SUMS-$TARGET.txt
+          cat SHA256SUMS-$TARGET.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: bonis-oculis-${{ env.TARGET }}
+          path: |
+            dist/electron/*.exe
+            dist/electron/*.dmg
+            dist/electron/SHA256SUMS-*.txt
+            bin/${{ env.TARGET }}/binaries.lock.json
+          if-no-files-found: error
+          retention-days: 14

@@ -13,3 +13,7 @@ analyzer/models/*.bin
 analyzer/models/*.tar.gz
 player/mpv/
 bin/
+analyzer/models/florence2-*.json
+analyzer/models/clip-vit-b32-*.json
+analyzer/models/nsfw-vit-*.json
+analyzer/models/*.onnx

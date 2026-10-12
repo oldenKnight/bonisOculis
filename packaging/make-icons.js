@@ -119,26 +119,26 @@ function render(argv, cb) {
   var opts = { headless: true };
   if (exe) { opts.executablePath = exe; }
   playwright.chromium.launch(opts).then(function (browser) {
-    return browser.newPage().then(function (page) {
+    // One 1024x1024 page; each size is an <img> of that size at the origin, clipped. (Tiny
+    // viewports such as 16x16 stall headless screenshots.)
+    return browser.newPage({ viewport: { width: 1024, height: 1024 }, deviceScaleFactor: 1 }).then(function (page) {
       var jobs = [];
       PNG_SIZES.forEach(function (n) { jobs.push(['tile', tile, n]); jobs.push(['mac', mac, n]); });
       function one(i) {
         var j;
-        if (i >= jobs.length) { return browser.close(); }
+        if (i >= jobs.length) { return null; }
         j = jobs[i];
-        return page.setViewportSize({ width: j[2], height: j[2] }).then(function () {
-          return page.setContent('<!doctype html><html><head><style>html,body{margin:0;background:transparent}img{display:block;width:' + j[2] + 'px;height:' + j[2] + 'px}</style></head><body><img src="data:image/svg+xml;base64,' + Buffer.from(j[1]).toString('base64') + '"></body></html>');
-        }).then(function () {
+        return page.setContent('<!doctype html><html><head><style>html,body{margin:0;background:transparent}img{display:block;width:' + j[2] + 'px;height:' + j[2] + 'px}</style></head><body><img src="data:image/svg+xml;base64,' + Buffer.from(j[1]).toString('base64') + '"></body></html>').then(function () {
           return page.waitForFunction(function () { var im = document.querySelector('img'); return im && im.complete && im.naturalWidth > 0; });
         }).then(function () {
-          return page.screenshot({ omitBackground: true, clip: { x: 0, y: 0, width: j[2], height: j[2] } });
+          return page.screenshot({ omitBackground: true, clip: { x: 0, y: 0, width: j[2], height: j[2] }, timeout: 60000 });
         }).then(function (png) {
           out[j[0]][j[2]] = png;
           return one(i + 1);
         });
       }
       return one(0);
-    });
+    }).then(function () { return browser.close(); }, function (err) { return browser.close().then(function () { throw err; }); });
   }).then(function () { cb(null, out); }, function (err) { cb(err); });
 }
 

@@ -381,6 +381,6 @@ function main(argv) {
   }(0));
 }
 
-module.exports = { loadTable: loadTable, checkTarget: checkTarget, LOCK: LOCK, TABLE_FILE: TABLE_FILE };
+module.exports = { loadTable: loadTable, checkTarget: checkTarget, extractTarget: extractTarget, LOCK: LOCK, TABLE_FILE: TABLE_FILE };
 
 if (require.main === module) { main(process.argv.slice(2)); }
