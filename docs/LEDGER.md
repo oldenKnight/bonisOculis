@@ -84,6 +84,13 @@ D17 PIN is a deterrent, not a security boundary; hashed properly; settings tampe
   safety net. A seek to a range end still decodes (and discards) frames from the previous keyframe.
 - Blur fallback to hide is untested under real frame drops (needs a slow machine).
 
+## Polish backlog (for the M9 board pass)
+- Extension defaults `language` to strict; desktop presets default it off. Align to the desktop.
+- Extension popup repeats the level explanation under all six categories; show it once per
+  selected level or collapse unselected categories.
+- Extension: Disney+ X-TIMESTAMP-MAP offset parsed but not applied; iframes unsupported.
+- Player: blur fallback untested under real frame drops.
+
 ## Quality board (brief 5.2 + 5.2b) — what each reviewer will demand
 - mpv/VLC engineer: no decode-path cost at playback; frame-accurate seeks landing on keyframes with
   lead-in; HEVC/AC3/DTS passthrough; no IPC race on skip; clean-copy via stream copy.
@@ -139,7 +146,7 @@ M2  Skip-file spec v1 + validator + fixtures + EDL export ......... DONE 2026-10
 M3  Player: mpv control, Lua skip script, marking + panic keys .... DONE 2026-10-12 (reviewed)
 M4  Analyzer v1: subtitles + frames, resumable, checkpointed ...... DONE 2026-10-12 (reviewed)
 M5  App shell: library, review timeline, PIN, import/export, clean copy  todo
-M6  Extension: subtitle pre-read + skip-file import ............... todo
+M6  Extension: subtitle pre-read + skip-file import ............... DONE 2026-10-12 (reviewed)
 M7  Analyzer v2: audio + captions + fusion tuning + measurement .... todo
 M8  Extension live-audio mode ..................................... todo
 M9  Packaging (Win x64, macOS universal), in-app help (TV paths) .. todo
