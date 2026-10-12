@@ -9,6 +9,8 @@ questions were decided by the planner (see "Decisions on open questions"). docs/
 Active milestones: M1 (design, Sonnet), M2 (spec + shared lib), M3 (player). Agents run in parallel.
 
 ## Timeline
+- 2026-10-12  Owner delegated full authority. M1a plan+spec, M1b design, M2 shared lib done.
+              M3 player and M4 analyzer v1 running as agents.
 - 2026-10-12  Session 1 (Fable 5.1). Repo was empty. Researched models/licences, mpv EDL, Fire TV,
               Tauri vs Electron, MV3 limits. Delivered critique + 8 questions to the owner.
               Owner added quality standard 5.2b (kids-protection commission; excel vs Common Sense
@@ -59,6 +61,13 @@ D15 Gore has no mature off-the-shelf model; it is the weakest category and the i
 D16 Browser extension: per-site adapters, main-world injected script for subtitle fetch (MV3 cannot
     read response bodies). On DRM sites dependable action = black-out + mute; seek is a bonus
     (Netflix ignores video.currentTime; its private player API breaks on updates).
+D18 Peek (review screen): a parent may reveal a flagged frame only behind the PIN (re-asked after
+    5 min), rendered LIVE from the video into memory (ffmpeg pipe -> data URL), shown while the
+    button is held, never written to disk, never available in kid mode. Thumbnails on disk stay
+    blurred (overrides the designer's "lighter blur" reading).
+D19 Design accepted: Atkinson Hyperlegible Next (body) + Fraunces (titles), both OFL, bundled.
+    Category colours carry redundant cues (icon, label, pattern); real colour-blind user test
+    pending (owner).
 D17 PIN is a deterrent, not a security boundary; hashed properly; settings tamper-evident; help says
     so plainly.
 
@@ -112,8 +121,8 @@ Q9 (new) Should "language/profanity" be an optional category? The subtitle pass 
 ## Milestones (planned; update status here)
 M0  Ledger + brief in repo ........................................ DONE 2026-10-12
 M1a docs/PLAN.md + spec/skipfile.schema.json + SKIPFILE.md ........ DONE 2026-10-12
-M1b Sonnet visual design system + logo (docs/DESIGN.md, tokens.css) in progress
-M2  Skip-file spec v1 + validator + fixtures + EDL export ......... todo
+M1b Sonnet visual design system + logo (docs/DESIGN.md, tokens.css) DONE 2026-10-12 (reviewed)
+M2  Skip-file spec v1 + validator + fixtures + EDL export ......... DONE 2026-10-12 (reviewed)
 M3  Player: mpv control, Lua skip script, marking + panic keys .... todo
 M4  Analyzer v1: subtitles + frames, resumable, checkpointed ...... todo
 M5  App shell: library, review timeline, PIN, import/export, clean copy  todo

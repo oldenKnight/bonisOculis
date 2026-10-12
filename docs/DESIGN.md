@@ -320,7 +320,7 @@ State legend in the tables below: D default, H hover, A active (pressed), F focu
 | F | Focus ring around the card |
 | X | `surface-2`, `text-3`, flat, thumbnail at 60%, grey badge. Use only for "not ready yet"; prefer hiding the tile. |
 
-`bo-title-card` (parent library): thumbnail (blurred until the scan has proven it clean, 12), title (Fraunces 18px), meta line, status pill, then a full-width primary Play (or Review, or a secondary Scan now) and a 44px more button. Hover and focus-within raise it to shadow-2 and `border-strong`. A scanning card hides the pill's progress bar (the percentage stays) and shows the same bar in the drawer.
+`bo-title-card` (parent library): thumbnail (blurred until the scan has proven it clean, section 12), title (Fraunces 18px), meta line, status pill, then a full-width primary Play (or Review, or a secondary Scan now) and a 44px more button. Hover and focus-within raise it to shadow-2 and `border-strong`. A scanning card hides the pill's progress bar (the percentage stays) and shows the same bar in the drawer.
 
 ### 7.3 Status pill
 

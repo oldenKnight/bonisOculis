@@ -18,7 +18,8 @@ whisper-cli as separate processes and loads models as data.
 | whisper small q5_1 | STT model | MIT | yes (182 MB) |
 | Qwen3-0.6B Q4_K_M | dialogue/caption scoring | Apache-2.0 | yes (462 MB) |
 | Florence-2 base-ft q4f16 (onnx-community) | keyframe captions | MIT | yes (~215 MB) |
-| Fonts (see docs/DESIGN.md) | UI | OFL | yes |
+| Atkinson Hyperlegible Next (variable, latin) | UI body font | SIL OFL 1.1 | yes (34 KB) |
+| Fraunces (variable, latin) | UI titles | SIL OFL 1.1 | yes (37 KB) |
 
 Total shipped models: see analyzer/models/manifest.json (`shippedMiB`). GPL compliance for mpv
 and ffmpeg: the installer's About screen links to the exact build sources and the project

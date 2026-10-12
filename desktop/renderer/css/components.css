@@ -692,6 +692,7 @@
 .bo-queue-item__no { font-variant-numeric: tabular-nums; font-weight: var(--bo-fw-bold); color: var(--bo-text-3); text-align: center; }
 .bo-queue-item__title { font-weight: var(--bo-fw-semibold); }
 .bo-queue-item__status { display: block; font-size: var(--bo-fs-sm); color: var(--bo-text-2); }
+.bo-queue-item > .bo-button { grid-column: -2 / -1; justify-self: end; }
 .bo-queue-item.is-active { background: var(--bo-primary-soft); }
 .bo-queue-item.is-paused .bo-queue-item__status { color: var(--bo-status-review-fg); font-weight: var(--bo-fw-semibold); }
 /* Narrow drawer: drop the progress bars, the percentage stays in the sentence */
