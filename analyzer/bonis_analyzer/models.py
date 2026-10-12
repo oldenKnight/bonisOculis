@@ -78,3 +78,72 @@ def session_factory(threads: int, device: str, warn: Callable[[str], None]) -> T
             return ort.InferenceSession(src, sess_options=options(), providers=["CPUExecutionProvider"])
 
     return make, used
+
+
+# --------------------------------------------------------------------------
+# loaded-model registry: "one model set at a time" (docs/PLAN.md section 4)
+# --------------------------------------------------------------------------
+#
+# Every stage registers the model set it loads (``with model_set("audio"):``)
+# and releases it before the next stage loads anything. The registry is the
+# auditable form of the rule: tests assert ``max_concurrent() == 1`` after a
+# full scan. A violation is logged (and recorded), never raised: a scan must
+# not die on a bookkeeping error.
+
+import gc as _gc  # noqa: E402
+import threading as _threading  # noqa: E402
+from contextlib import contextmanager as _contextmanager  # noqa: E402
+from typing import Dict as _Dict, Iterator as _Iterator  # noqa: E402
+
+_REG_LOCK = _threading.Lock()
+_LOADED: _Dict[str, str] = {}
+_HISTORY: List[Tuple[str, str, int]] = []   # (event, set name, sets loaded after the event)
+_MAX = {"n": 0}
+
+
+def register(name: str, detail: str = "") -> None:
+    with _REG_LOCK:
+        if _LOADED and name not in _LOADED:
+            log.error("model set %s loaded while %s is still loaded", name, sorted(_LOADED))
+        _LOADED[name] = detail
+        _MAX["n"] = max(_MAX["n"], len(_LOADED))
+        _HISTORY.append(("load", name, len(_LOADED)))
+
+
+def release(name: str) -> None:
+    with _REG_LOCK:
+        _LOADED.pop(name, None)
+        _HISTORY.append(("release", name, len(_LOADED)))
+    _gc.collect()
+
+
+@_contextmanager
+def model_set(name: str, detail: str = "") -> _Iterator[None]:
+    """Mark a stage's models as loaded for the duration of the block."""
+    register(name, detail)
+    try:
+        yield
+    finally:
+        release(name)
+
+
+def loaded() -> List[str]:
+    with _REG_LOCK:
+        return sorted(_LOADED)
+
+
+def max_concurrent() -> int:
+    return _MAX["n"]
+
+
+def history() -> List[Tuple[str, str, int]]:
+    with _REG_LOCK:
+        return list(_HISTORY)
+
+
+def reset_registry() -> None:
+    """Tests only."""
+    with _REG_LOCK:
+        _LOADED.clear()
+        _HISTORY.clear()
+        _MAX["n"] = 0
