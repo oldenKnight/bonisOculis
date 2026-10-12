@@ -65,6 +65,16 @@ D18 Peek (review screen): a parent may reveal a flagged frame only behind the PI
     5 min), rendered LIVE from the video into memory (ffmpeg pipe -> data URL), shown while the
     button is held, never written to disk, never available in kid mode. Thumbnails on disk stay
     blurred (overrides the designer's "lighter blur" reading).
+D22 NudeNet dropped (2026-10-12): the 3.4.2 sdist ships the AGPL-3.0 licence text while its
+    metadata says MIT; too ambiguous to ship. Replaced by AdamCodd/vit-base-nsfw-detector
+    (Apache-2.0, ViT-B/16 384, int8 ONNX, 84 MiB) plus a CLIP "nudity" prompt group. Loses
+    body-part granularity; expect more false alarms on swimwear/medical scenes until tuned.
+D23 Packaging decisions accepted from M9a: Windows ffmpeg from gyan.dev (permanent URLs with
+    publisher sha256), macOS ffmpeg from Martin Riedl (arm64 + x64), mpv.app from stolendata,
+    mpv Windows baseline x86_64 (no AVX2 requirement) 0.41.0; two macOS DMGs (arm64, x64)
+    because per-arch sidecars differ; ad-hoc signing on macOS until certificates exist;
+    CI on windows-latest, macos-15, macos-15-intel; whisper-cli pins are PIN_ON_FIRST_FETCH
+    until run once on a machine with GitHub access (CI refuses unpinned entries by design).
 D21 App-shell decisions accepted from M5: 12-character recovery code (not 12 words); levels
     re-applied at playback to unreviewed auto ranges without a rescan; clean copy also cuts mute
     ranges (stream copy cannot mute; fail closed); skip-file integrity kept in the HMAC-signed
@@ -97,6 +107,14 @@ D17 PIN is a deterrent, not a security boundary; hashed properly; settings tampe
   subtitles needs ~18 min of STT at 4 threads, ~36 min at 2.
 - Audio and caption keyframes are separate ffmpeg passes (D7 relaxed): sharing one pass would
   break one-model-at-a-time; all still through pipes, nothing on disk.
+- llama.cpp / whisper.cpp wheels assume AVX2 on x86; pre-Haswell i5 (before 2013) would crash
+  the LM/speech stages. Guard added (D22 task): those stages are skipped with a warning there.
+- macOS arm64 mpv build needs macOS 14+; Apple Silicon on macOS 12-13 cannot play.
+- Windows bin folder is 316 MiB uncompressed (two static ffmpeg binaries); a shared build would
+  save ~100 MiB. Backlog.
+- GPL: stolendata mpv bundles 45 Homebrew dylibs without published sources; a release must
+  either collect those sources or build mpv in CI. The written GPL offer in packaging/BINARIES.md
+  needs the owner's approval (Q1).
 - Live tab-audio (extension): YAMNet in wasm costs ~25 ms per 0.96 s window (~5% of a core);
   it reacts ~2 s after a scene starts, so it is a backstop, never the primary protection.
 
@@ -164,7 +182,8 @@ M5  App shell: library, review timeline, PIN, import/export, clean copy  DONE 20
 M6  Extension: subtitle pre-read + skip-file import ............... DONE 2026-10-12 (reviewed)
 M7  Analyzer v2: audio + captions + fusion tuning + profiling ...... DONE 2026-10-12 (reviewed)
 M8  Extension live-audio mode ..................................... DONE 2026-10-12 (reviewed)
-M9  Packaging (Win x64, macOS universal), in-app help (TV paths) .. todo
+M9a Packaging + CI ................................................ DONE 2026-10-12 (reviewed; Linux-verified)
+M9b Board review pass + fixes ...................................... in progress
 
 ## Handoff note
 Nothing is built. Repo layout proposed for M1: desktop/ (Electron, ES5 IIFE modules), analyzer/
