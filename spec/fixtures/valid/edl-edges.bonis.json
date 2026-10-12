@@ -1,0 +1,121 @@
+{
+  "format": "bonis-oculis-skip",
+  "version": 1,
+  "id": "6b0c1f2e-3d4a-4b5c-8d6e-000000000011",
+  "created": "2026-10-01T09:00:00.000Z",
+  "modified": "2026-10-01T10:30:00.000Z",
+  "generator": {
+    "app": "bonis oculis",
+    "appVersion": "0.1.0"
+  },
+  "media": {
+    "title": "EDL edges",
+    "duration": 100,
+    "fingerprint": {
+      "size": 734003200,
+      "oshash": "8e245d9679d31e12"
+    }
+  },
+  "ranges": [
+    {
+      "id": "redge0001",
+      "start": 10.005,
+      "end": 20.001,
+      "category": "nudity",
+      "confidence": 0.9,
+      "action": "skip",
+      "source": "auto",
+      "review": "pending"
+    },
+    {
+      "id": "redge0002",
+      "start": 15,
+      "end": 25,
+      "category": "gore",
+      "confidence": 0.8,
+      "action": "skip",
+      "source": "auto",
+      "review": "pending"
+    },
+    {
+      "id": "redge0003",
+      "start": 25,
+      "end": 30,
+      "category": "sex",
+      "confidence": 0.7,
+      "action": "hide",
+      "source": "auto",
+      "review": "pending"
+    },
+    {
+      "id": "redge0004",
+      "start": 28,
+      "end": 40,
+      "category": "language",
+      "confidence": 0.9,
+      "action": "mute",
+      "source": "auto",
+      "review": "pending"
+    },
+    {
+      "id": "redge0005",
+      "start": 50,
+      "end": 52,
+      "category": "language",
+      "confidence": 0.9,
+      "action": "mute",
+      "source": "auto",
+      "review": "pending"
+    },
+    {
+      "id": "redge0006",
+      "start": 49,
+      "end": 60,
+      "category": "kissing",
+      "confidence": 0.6,
+      "action": "blur",
+      "source": "auto",
+      "review": "pending"
+    },
+    {
+      "id": "redge0007",
+      "start": 70,
+      "end": 75,
+      "category": "nudity",
+      "confidence": 0.9,
+      "action": "skip",
+      "source": "auto",
+      "review": "rejected"
+    },
+    {
+      "id": "redge0008",
+      "start": 76,
+      "end": 78,
+      "category": "nudity",
+      "confidence": 0.9,
+      "action": "none",
+      "source": "auto",
+      "review": "pending"
+    },
+    {
+      "id": "redge0009",
+      "start": 80.123,
+      "end": 80.127,
+      "category": "other",
+      "confidence": 1,
+      "action": "skip",
+      "source": "manual",
+      "review": "pending"
+    },
+    {
+      "id": "redge0010",
+      "start": 95,
+      "end": 100,
+      "category": "gore",
+      "confidence": 0.9,
+      "action": "skip",
+      "source": "auto",
+      "review": "pending"
+    }
+  ]
+}

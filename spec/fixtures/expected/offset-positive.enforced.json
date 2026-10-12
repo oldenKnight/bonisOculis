@@ -1,0 +1,42 @@
+[
+  {
+    "id": "roff00001",
+    "start": 12.5,
+    "end": 16.5,
+    "category": "gore",
+    "confidence": 0.8,
+    "action": "skip",
+    "source": "auto",
+    "review": "pending"
+  },
+  {
+    "id": "roff00002",
+    "start": 112.75,
+    "end": 142.5,
+    "category": "nudity",
+    "confidence": 0.9,
+    "action": "skip",
+    "source": "auto",
+    "review": "pending"
+  },
+  {
+    "id": "roff00003",
+    "start": 212.5,
+    "end": 214,
+    "category": "language",
+    "confidence": 0.9,
+    "action": "mute",
+    "source": "auto",
+    "review": "pending"
+  },
+  {
+    "id": "roff00004",
+    "start": 3602.5,
+    "end": 3612.5,
+    "category": "sex",
+    "confidence": 0.7,
+    "action": "skip",
+    "source": "auto",
+    "review": "pending"
+  }
+]

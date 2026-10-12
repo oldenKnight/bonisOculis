@@ -1,0 +1,31 @@
+{
+  "format": "bonis-oculis-skip",
+  "version": 1,
+  "id": "6b0c1f2e-3d4a-4b5c-8d6e-000000000020",
+  "created": "2026-10-01T09:00:00.000Z",
+  "modified": "2026-10-01T10:30:00.000Z",
+  "generator": {
+    "app": "bonis oculis",
+    "appVersion": "0.1.0"
+  },
+  "media": {
+    "title": "Invalid base",
+    "duration": 600,
+    "fingerprint": {
+      "size": 734003200,
+      "oshash": "8e245d9679d31e12"
+    }
+  },
+  "ranges": [
+    {
+      "id": "rbad00001",
+      "start": 10,
+      "end": 20,
+      "category": "nudity",
+      "confidence": 1.5,
+      "action": "skip",
+      "source": "auto",
+      "review": "pending"
+    }
+  ]
+}

@@ -1,0 +1,98 @@
+[
+  {
+    "size": 0,
+    "seed": 1,
+    "oshash": "0000000000000000",
+    "headSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "size": 1,
+    "seed": 2,
+    "oshash": "000000000000003d",
+    "headSha256": "9652595f37edd08c51dfa26567e6cd76e6fa2709c3e578478ca398d316837a7a"
+  },
+  {
+    "size": 7,
+    "seed": 8,
+    "oshash": "0118331fde6820f7",
+    "headSha256": "695a872f206908a152f0ebcb0338634f5f3f4ad3e71b4b2aacb1611783ab8c67"
+  },
+  {
+    "size": 8,
+    "seed": 9,
+    "oshash": "49ba7902daf7e416",
+    "headSha256": "1a5658152a7a0afe4564739e45aba8df43904446ed2088ca518c36fee3025492"
+  },
+  {
+    "size": 16,
+    "seed": 17,
+    "oshash": "555900eb8a08fefc",
+    "headSha256": "cec577a13bf50d0481842c8959b6cdcf6e9af131abfa26c41916a6ddbfd8172d"
+  },
+  {
+    "size": 4096,
+    "seed": 4097,
+    "oshash": "6c355063c2cf4930",
+    "headSha256": "bdfd3783bbeabffb19b6ffbac5715fe8e9cb9930413ebb73e0d69e47993249d2"
+  },
+  {
+    "size": 65535,
+    "seed": 65536,
+    "oshash": "dc30eff7db9b5219",
+    "headSha256": "e46c5f4323858acd33963bdcd03d41e541878428111fe41ee3f0d37e24147d1f"
+  },
+  {
+    "size": 65536,
+    "seed": 65537,
+    "oshash": "c57c8a56e8f916f6",
+    "headSha256": "32c48ce3e3bcd4c7301618249ec2ea0e41e7c4cfe54a32e17a6d99a5dec77a8c"
+  },
+  {
+    "size": 65537,
+    "seed": 65538,
+    "oshash": "456fc5e8c03746e3",
+    "headSha256": "270941c74f6078303719778cfbe3edb23aae898a96f7779735b1ae2fe14d2159"
+  },
+  {
+    "size": 131071,
+    "seed": 131072,
+    "oshash": "e28f81e6b8ea7cbf",
+    "headSha256": "da559ef80c04cca8302883d32f6611cbe5aaeb10afe9f07d48689c5505ef5ce5"
+  },
+  {
+    "size": 131072,
+    "seed": 131073,
+    "oshash": "a95ff9653e026196",
+    "headSha256": "2021c6a8b71fe1c70432d3e74f54bf6d868071db6e8eca09d75ffad3bb059136"
+  },
+  {
+    "size": 131073,
+    "seed": 131074,
+    "oshash": "ac53ffd2d43761b3",
+    "headSha256": "7018dac70dfde7c367ee684f263b6b982226ebf243ec63c1fa2649ef5a9df6f7"
+  },
+  {
+    "size": 200003,
+    "seed": 200004,
+    "oshash": "41aea067c841d0fe",
+    "headSha256": "4866e5a09465f440d4ed3dc573e6f97b7843ae00bcf3af5c1b983babc6e01638"
+  },
+  {
+    "size": 1048575,
+    "seed": 1048576,
+    "oshash": "08f0d2d185b22be0",
+    "headSha256": "45d7764a855caacebed509e8fc1ae09b0c393c2c954fc2aada0da70a45c3cfe2"
+  },
+  {
+    "size": 1048576,
+    "seed": 1048577,
+    "oshash": "6d19549c7a9300ca",
+    "headSha256": "0a8a732c6a578c11cde954d885b13f512e319de43cbb243a8d0765a3802b21ce"
+  },
+  {
+    "size": 1048579,
+    "seed": 1048580,
+    "oshash": "4060feedb70fd02a",
+    "headSha256": "14197b0fced7efe788ebd0e723313a6bc7043ac09d564192970d03dc1fa38b68"
+  }
+]

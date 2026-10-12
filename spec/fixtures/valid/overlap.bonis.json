@@ -1,0 +1,235 @@
+{
+  "format": "bonis-oculis-skip",
+  "version": 1,
+  "id": "6b0c1f2e-3d4a-4b5c-8d6e-000000000005",
+  "created": "2026-10-01T09:00:00.000Z",
+  "modified": "2026-10-01T10:30:00.000Z",
+  "generator": {
+    "app": "bonis oculis",
+    "appVersion": "0.1.0"
+  },
+  "media": {
+    "title": "Overlaps (pending ranges)",
+    "duration": 600,
+    "fingerprint": {
+      "size": 734003200,
+      "oshash": "8e245d9679d31e12"
+    }
+  },
+  "ranges": [
+    {
+      "id": "rj0001",
+      "start": 590,
+      "end": 650,
+      "category": "nudity",
+      "confidence": 0.8,
+      "action": "skip",
+      "source": "auto",
+      "review": "pending"
+    },
+    {
+      "id": "rb0001",
+      "start": 105,
+      "end": 120,
+      "category": "nudity",
+      "confidence": 0.9,
+      "action": "skip",
+      "source": "auto",
+      "review": "pending"
+    },
+    {
+      "id": "ra0001",
+      "start": 100,
+      "end": 110,
+      "category": "nudity",
+      "confidence": 0.7,
+      "action": "skip",
+      "source": "auto",
+      "review": "pending",
+      "cutStart": 100,
+      "intensity": 2
+    },
+    {
+      "id": "rc0001",
+      "start": 115,
+      "end": 130,
+      "category": "gore",
+      "confidence": 0.6,
+      "action": "skip",
+      "source": "auto",
+      "review": "pending",
+      "cutEnd": 130
+    },
+    {
+      "id": "rd0001",
+      "start": 200,
+      "end": 230,
+      "category": "language",
+      "confidence": 0.95,
+      "action": "mute",
+      "source": "auto",
+      "review": "pending"
+    },
+    {
+      "id": "re0001",
+      "start": 210,
+      "end": 215,
+      "category": "sex",
+      "confidence": 0.5,
+      "action": "skip",
+      "source": "auto",
+      "review": "pending"
+    },
+    {
+      "id": "rf0001",
+      "start": 300,
+      "end": 310,
+      "category": "kissing",
+      "confidence": 0.8,
+      "action": "skip",
+      "source": "auto",
+      "review": "approved",
+      "locked": true
+    },
+    {
+      "id": "rg0001",
+      "start": 305,
+      "end": 320,
+      "category": "kissing",
+      "confidence": 0.9,
+      "action": "skip",
+      "source": "auto",
+      "review": "pending"
+    },
+    {
+      "id": "rh0001",
+      "start": 400,
+      "end": 410,
+      "category": "implied",
+      "confidence": 0.5,
+      "action": "skip",
+      "source": "auto",
+      "review": "rejected"
+    },
+    {
+      "id": "ri0001",
+      "start": 402,
+      "end": 408,
+      "category": "implied",
+      "confidence": 0.6,
+      "action": "skip",
+      "source": "auto",
+      "review": "pending"
+    },
+    {
+      "id": "rk0001",
+      "start": 650,
+      "end": 660,
+      "category": "gore",
+      "confidence": 0.9,
+      "action": "skip",
+      "source": "auto",
+      "review": "pending"
+    },
+    {
+      "id": "rl0001",
+      "start": 50,
+      "end": 50.5,
+      "category": "other",
+      "confidence": 0.3,
+      "action": "none",
+      "source": "auto",
+      "review": "pending"
+    },
+    {
+      "id": "rn0001",
+      "start": 500,
+      "end": 505,
+      "category": "sex",
+      "confidence": 0.7,
+      "action": "hide",
+      "source": "auto",
+      "review": "pending",
+      "intensity": 1,
+      "signals": {
+        "frames": 0.4,
+        "audio": 0.9
+      }
+    },
+    {
+      "id": "rn0002",
+      "start": 503,
+      "end": 506,
+      "category": "sex",
+      "confidence": 0.95,
+      "action": "mute",
+      "source": "auto",
+      "review": "pending",
+      "intensity": 3,
+      "signals": {
+        "frames": 0.6,
+        "subtitles": 0.7
+      }
+    },
+    {
+      "id": "rp0001",
+      "start": 450,
+      "end": 480,
+      "category": "gore",
+      "confidence": 0.5,
+      "action": "skip",
+      "source": "auto",
+      "review": "pending"
+    },
+    {
+      "id": "rq0001",
+      "start": 460,
+      "end": 465,
+      "category": "nudity",
+      "confidence": 0.9,
+      "action": "skip",
+      "source": "auto",
+      "review": "pending"
+    },
+    {
+      "id": "rs0001",
+      "start": 550,
+      "end": 560,
+      "category": "gore",
+      "confidence": 0.8,
+      "action": "skip",
+      "source": "auto",
+      "review": "approved"
+    },
+    {
+      "id": "rt0001",
+      "start": 555,
+      "end": 570,
+      "category": "gore",
+      "confidence": 0.6,
+      "action": "skip",
+      "source": "auto",
+      "review": "pending"
+    },
+    {
+      "id": "ru0001",
+      "start": 20,
+      "end": 30,
+      "category": "implied",
+      "confidence": 0.5,
+      "action": "skip",
+      "source": "auto",
+      "review": "pending"
+    },
+    {
+      "id": "ru0001",
+      "start": 25,
+      "end": 26,
+      "category": "implied",
+      "confidence": 0.5,
+      "action": "skip",
+      "source": "auto",
+      "review": "rejected"
+    }
+  ]
+}

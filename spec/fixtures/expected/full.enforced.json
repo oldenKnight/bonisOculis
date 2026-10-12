@@ -1,0 +1,90 @@
+[
+  {
+    "id": "rnud00001",
+    "start": 600.5,
+    "end": 640.25,
+    "category": "nudity",
+    "confidence": 0.93,
+    "action": "skip",
+    "source": "auto",
+    "review": "pending",
+    "intensity": 3,
+    "cutStart": 600.5,
+    "cutEnd": 640.25,
+    "signals": {
+      "frames": 0.97,
+      "subtitles": 0.2,
+      "audio": 0.1,
+      "speech": 0,
+      "captions": 0.8
+    },
+    "note": "Nudity detected in the picture."
+  },
+  {
+    "id": "rsex00001",
+    "start": 1200.25,
+    "end": 1260,
+    "category": "sex",
+    "confidence": 0.81,
+    "action": "hide",
+    "source": "auto",
+    "review": "approved",
+    "intensity": 2,
+    "note": "Dialogue and sound suggest intimacy."
+  },
+  {
+    "id": "rimp00001",
+    "start": 1500,
+    "end": 1512.5,
+    "category": "implied",
+    "confidence": 0.55,
+    "action": "blur",
+    "source": "auto",
+    "review": "pending",
+    "intensity": 1
+  },
+  {
+    "id": "rgor00001",
+    "start": 2700,
+    "end": 2731.75,
+    "category": "gore",
+    "confidence": 0.71,
+    "action": "skip",
+    "source": "auto",
+    "review": "approved",
+    "intensity": 3,
+    "locked": true,
+    "note": "A violent injury is shown."
+  },
+  {
+    "id": "rlan00001",
+    "start": 3000.4,
+    "end": 3001.6,
+    "category": "language",
+    "confidence": 0.9,
+    "action": "mute",
+    "source": "imported",
+    "review": "pending"
+  },
+  {
+    "id": "roth00001",
+    "start": 4000.75,
+    "end": 4010,
+    "category": "other",
+    "confidence": 1,
+    "action": "skip",
+    "source": "manual",
+    "review": "approved"
+  },
+  {
+    "id": "roth00002",
+    "start": 4500,
+    "end": 4503.5,
+    "category": "other",
+    "confidence": 1,
+    "action": "skip",
+    "source": "panic",
+    "review": "approved",
+    "locked": false
+  }
+]

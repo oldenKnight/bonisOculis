@@ -1,0 +1,442 @@
+{
+  "invalid/wrong-format.json": {
+    "mustInclude": "/format",
+    "errors": [
+      {
+        "path": "/format",
+        "msg": "must be \"bonis-oculis-skip\""
+      }
+    ]
+  },
+  "invalid/wrong-version-string.json": {
+    "mustInclude": "/version",
+    "errors": [
+      {
+        "path": "/version",
+        "msg": "must be an integer"
+      }
+    ]
+  },
+  "invalid/wrong-version-zero.json": {
+    "mustInclude": "/version",
+    "errors": [
+      {
+        "path": "/version",
+        "msg": "must be >= 1"
+      }
+    ]
+  },
+  "invalid/end-not-after-start.json": {
+    "mustInclude": "/ranges/0/end",
+    "errors": [
+      {
+        "path": "/ranges/0/end",
+        "msg": "must be greater than start"
+      }
+    ]
+  },
+  "invalid/end-before-start.json": {
+    "mustInclude": "/ranges/0/end",
+    "errors": [
+      {
+        "path": "/ranges/0/end",
+        "msg": "must be greater than start"
+      }
+    ]
+  },
+  "invalid/bad-category.json": {
+    "mustInclude": "/ranges/0/category",
+    "errors": [
+      {
+        "path": "/ranges/0/category",
+        "msg": "must be one of: nudity, sex, implied, kissing, gore, language, other"
+      }
+    ]
+  },
+  "invalid/extra-key-range.json": {
+    "mustInclude": "/ranges/0/colour",
+    "errors": [
+      {
+        "path": "/ranges/0/colour",
+        "msg": "is not allowed"
+      }
+    ]
+  },
+  "invalid/bad-range-id.json": {
+    "mustInclude": "/ranges/0/id",
+    "errors": [
+      {
+        "path": "/ranges/0/id",
+        "msg": "must match ^r[0-9a-z]{4,16}$"
+      }
+    ]
+  },
+  "invalid/short-range-id.json": {
+    "mustInclude": "/ranges/0/id",
+    "errors": [
+      {
+        "path": "/ranges/0/id",
+        "msg": "must match ^r[0-9a-z]{4,16}$"
+      }
+    ]
+  },
+  "invalid/bad-confidence.json": {
+    "mustInclude": "/ranges/0/confidence",
+    "errors": [
+      {
+        "path": "/ranges/0/confidence",
+        "msg": "must be <= 1"
+      }
+    ]
+  },
+  "invalid/missing-media.json": {
+    "mustInclude": "/media",
+    "errors": [
+      {
+        "path": "/media",
+        "msg": "is required"
+      }
+    ]
+  },
+  "invalid/missing-fingerprint.json": {
+    "mustInclude": "/media/fingerprint",
+    "errors": [
+      {
+        "path": "/media/fingerprint",
+        "msg": "is required"
+      }
+    ]
+  },
+  "invalid/bad-oshash.json": {
+    "mustInclude": "/media/fingerprint/oshash",
+    "errors": [
+      {
+        "path": "/media/fingerprint/oshash",
+        "msg": "must match ^[0-9a-f]{16}$"
+      }
+    ]
+  },
+  "invalid/bad-uuid.json": {
+    "mustInclude": "/id",
+    "errors": [
+      {
+        "path": "/id",
+        "msg": "must match ^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+      }
+    ]
+  },
+  "invalid/bad-date.json": {
+    "mustInclude": "/created",
+    "errors": [
+      {
+        "path": "/created",
+        "msg": "must be an RFC 3339 date-time"
+      }
+    ]
+  },
+  "invalid/bad-date-nozone.json": {
+    "mustInclude": "/modified",
+    "errors": [
+      {
+        "path": "/modified",
+        "msg": "must be an RFC 3339 date-time"
+      }
+    ]
+  },
+  "invalid/bad-action.json": {
+    "mustInclude": "/ranges/0/action",
+    "errors": [
+      {
+        "path": "/ranges/0/action",
+        "msg": "must be one of: skip, hide, blur, mute, none"
+      }
+    ]
+  },
+  "invalid/bad-intensity.json": {
+    "mustInclude": "/ranges/0/intensity",
+    "errors": [
+      {
+        "path": "/ranges/0/intensity",
+        "msg": "must be an integer"
+      }
+    ]
+  },
+  "invalid/negative-start.json": {
+    "mustInclude": "/ranges/0/start",
+    "errors": [
+      {
+        "path": "/ranges/0/start",
+        "msg": "must be >= 0"
+      }
+    ]
+  },
+  "invalid/bad-language.json": {
+    "mustInclude": "/language",
+    "errors": [
+      {
+        "path": "/language",
+        "msg": "must match ^[a-z]{2}(-[A-Z]{2})?$"
+      }
+    ]
+  },
+  "invalid/bad-year.json": {
+    "mustInclude": "/media/year",
+    "errors": [
+      {
+        "path": "/media/year",
+        "msg": "must be >= 1880"
+      }
+    ]
+  },
+  "invalid/long-title.json": {
+    "mustInclude": "/media/title",
+    "errors": [
+      {
+        "path": "/media/title",
+        "msg": "must be at most 500 characters"
+      }
+    ]
+  },
+  "invalid/bad-stage.json": {
+    "mustInclude": "/scan/stages/ocr",
+    "errors": [
+      {
+        "path": "/scan/stages/ocr",
+        "msg": "is not allowed"
+      }
+    ]
+  },
+  "invalid/stage-missing-status.json": {
+    "mustInclude": "/scan/stages/frames/status",
+    "errors": [
+      {
+        "path": "/scan/stages/frames/status",
+        "msg": "is required"
+      }
+    ]
+  },
+  "invalid/bad-level.json": {
+    "mustInclude": "/scan/levels/nudity",
+    "errors": [
+      {
+        "path": "/scan/levels/other",
+        "msg": "is not allowed"
+      },
+      {
+        "path": "/scan/levels/nudity",
+        "msg": "must be one of: off, light, moderate, strict"
+      }
+    ]
+  },
+  "invalid/bad-summary-key.json": {
+    "mustInclude": "/summary/violence",
+    "errors": [
+      {
+        "path": "/summary/violence",
+        "msg": "is not allowed"
+      }
+    ]
+  },
+  "invalid/bad-summary-entry.json": {
+    "mustInclude": "/summary/nudity/count",
+    "errors": [
+      {
+        "path": "/summary/nudity/count",
+        "msg": "must be >= 0"
+      },
+      {
+        "path": "/summary/nudity/maxIntensity",
+        "msg": "must be <= 3"
+      }
+    ]
+  },
+  "invalid/bad-history-event.json": {
+    "mustInclude": "/history/0/event",
+    "errors": [
+      {
+        "path": "/history/0/event",
+        "msg": "must be one of: created, scanned, approved, rejected, edited, added, deleted, imported, exported, panic, offsetChanged"
+      }
+    ]
+  },
+  "invalid/history-too-long.json": {
+    "mustInclude": "/history",
+    "errors": [
+      {
+        "path": "/history",
+        "msg": "must have at most 2000 items"
+      }
+    ]
+  },
+  "invalid/bad-signal.json": {
+    "mustInclude": "/ranges/0/signals/smell",
+    "errors": [
+      {
+        "path": "/ranges/0/signals/smell",
+        "msg": "is not allowed"
+      },
+      {
+        "path": "/ranges/0/signals/frames",
+        "msg": "must be <= 1"
+      }
+    ]
+  },
+  "invalid/bad-locked.json": {
+    "mustInclude": "/ranges/0/locked",
+    "errors": [
+      {
+        "path": "/ranges/0/locked",
+        "msg": "must be a boolean"
+      }
+    ]
+  },
+  "invalid/bad-scene-cut.json": {
+    "mustInclude": "/media/fingerprint/sceneCuts/1",
+    "errors": [
+      {
+        "path": "/media/fingerprint/sceneCuts/1",
+        "msg": "must be >= 0"
+      },
+      {
+        "path": "/media/fingerprint/sceneCuts/2",
+        "msg": "must be a number"
+      }
+    ]
+  },
+  "invalid/ranges-not-array.json": {
+    "mustInclude": "/ranges",
+    "errors": [
+      {
+        "path": "/ranges",
+        "msg": "must be an array"
+      }
+    ]
+  },
+  "invalid/future-version-bad-known-key.json": {
+    "mustInclude": "/ranges/0/review",
+    "errors": [
+      {
+        "path": "/ranges/0/review",
+        "msg": "must be one of: pending, approved, rejected"
+      }
+    ]
+  },
+  "invalid/missing-everything.json": {
+    "mustInclude": "/format",
+    "errors": [
+      {
+        "path": "/format",
+        "msg": "is required"
+      },
+      {
+        "path": "/version",
+        "msg": "is required"
+      },
+      {
+        "path": "/id",
+        "msg": "is required"
+      },
+      {
+        "path": "/created",
+        "msg": "is required"
+      },
+      {
+        "path": "/modified",
+        "msg": "is required"
+      },
+      {
+        "path": "/generator",
+        "msg": "is required"
+      },
+      {
+        "path": "/media",
+        "msg": "is required"
+      },
+      {
+        "path": "/ranges",
+        "msg": "is required"
+      }
+    ]
+  },
+  "invalid/tilde-slash-key.json": {
+    "mustInclude": "/media/a~1b~0c",
+    "errors": [
+      {
+        "path": "/media/a~1b~0c",
+        "msg": "is not allowed"
+      }
+    ]
+  },
+  "invalid/extra-key-media.json": {
+    "mustInclude": "/media/notes",
+    "errors": [
+      {
+        "path": "/media/notes",
+        "msg": "is not allowed"
+      }
+    ]
+  },
+  "invalid/bad-history-range-id.json": {
+    "mustInclude": "/history/0/rangeId",
+    "errors": [
+      {
+        "path": "/history/0/rangeId",
+        "msg": "must match ^r[0-9a-z]{4,16}$"
+      }
+    ]
+  },
+  "invalid/truncated.json": {
+    "mustInclude": "",
+    "errors": [
+      {
+        "path": "",
+        "msg": "not valid JSON"
+      }
+    ]
+  },
+  "invalid/non-object.json": {
+    "mustInclude": "",
+    "errors": [
+      {
+        "path": "",
+        "msg": "must be an object"
+      }
+    ]
+  },
+  "invalid/null.json": {
+    "mustInclude": "",
+    "errors": [
+      {
+        "path": "",
+        "msg": "must be an object"
+      }
+    ]
+  },
+  "invalid/empty.json": {
+    "mustInclude": "",
+    "errors": [
+      {
+        "path": "",
+        "msg": "not valid JSON"
+      }
+    ]
+  },
+  "invalid/garbage.json": {
+    "mustInclude": "",
+    "errors": [
+      {
+        "path": "",
+        "msg": "not valid JSON"
+      }
+    ]
+  },
+  "invalid/nan-literal.json": {
+    "mustInclude": "",
+    "errors": [
+      {
+        "path": "",
+        "msg": "not valid JSON"
+      }
+    ]
+  }
+}

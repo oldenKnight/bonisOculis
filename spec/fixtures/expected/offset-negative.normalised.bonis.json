@@ -1,0 +1,99 @@
+{
+  "format": "bonis-oculis-skip",
+  "version": 1,
+  "id": "6b0c1f2e-3d4a-4b5c-8d6e-000000000004",
+  "created": "2026-10-01T09:00:00.000Z",
+  "modified": "2026-10-12T12:00:00.000Z",
+  "generator": {
+    "app": "bonis oculis",
+    "appVersion": "0.1.0"
+  },
+  "media": {
+    "title": "Shorter Edition",
+    "duration": 1200,
+    "fingerprint": {
+      "size": 734003200,
+      "oshash": "8e245d9679d31e12"
+    },
+    "offset": -5
+  },
+  "ranges": [
+    {
+      "id": "rneg00001",
+      "start": 1,
+      "end": 3,
+      "category": "nudity",
+      "confidence": 0.9,
+      "action": "skip",
+      "source": "auto",
+      "review": "pending"
+    },
+    {
+      "id": "rneg00002",
+      "start": 3,
+      "end": 10,
+      "category": "gore",
+      "confidence": 0.8,
+      "action": "skip",
+      "source": "auto",
+      "review": "pending"
+    },
+    {
+      "id": "rneg00003",
+      "start": 300.33,
+      "end": 310.67,
+      "category": "sex",
+      "confidence": 0.6,
+      "action": "blur",
+      "source": "auto",
+      "review": "pending"
+    },
+    {
+      "id": "rneg00004",
+      "start": 1195,
+      "end": 1200,
+      "category": "kissing",
+      "confidence": 0.5,
+      "action": "skip",
+      "source": "auto",
+      "review": "pending"
+    }
+  ],
+  "summary": {
+    "nudity": {
+      "count": 1,
+      "seconds": 2,
+      "maxIntensity": 0
+    },
+    "sex": {
+      "count": 1,
+      "seconds": 10.34,
+      "maxIntensity": 0
+    },
+    "implied": {
+      "count": 0,
+      "seconds": 0,
+      "maxIntensity": 0
+    },
+    "kissing": {
+      "count": 1,
+      "seconds": 5,
+      "maxIntensity": 0
+    },
+    "gore": {
+      "count": 1,
+      "seconds": 7,
+      "maxIntensity": 0
+    },
+    "language": {
+      "count": 0,
+      "seconds": 0,
+      "maxIntensity": 0
+    },
+    "other": {
+      "count": 0,
+      "seconds": 0,
+      "maxIntensity": 0
+    }
+  }
+}

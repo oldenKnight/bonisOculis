@@ -1,0 +1,135 @@
+{
+  "format": "bonis-oculis-skip",
+  "version": 1,
+  "id": "6b0c1f2e-3d4a-4b5c-8d6e-000000000007",
+  "created": "2026-10-01T09:00:00.000Z",
+  "modified": "2026-10-01T10:30:00.000Z",
+  "generator": {
+    "app": "bonis oculis",
+    "appVersion": "0.2.0",
+    "analyzerVersion": "0.2.0",
+    "modelSet": "v2"
+  },
+  "media": {
+    "title": "reviewed-rescan.mkv",
+    "duration": 1000.5,
+    "fingerprint": {
+      "size": 734003200,
+      "oshash": "8e245d9679d31e12",
+      "headSha256": "0000000000000000000000000000000000000000000000000000000000000001"
+    },
+    "filename": "reviewed.mkv"
+  },
+  "ranges": [
+    {
+      "id": "rn0001",
+      "start": 101,
+      "end": 111,
+      "category": "nudity",
+      "confidence": 0.85,
+      "action": "skip",
+      "source": "auto",
+      "review": "pending"
+    },
+    {
+      "id": "rn0002",
+      "start": 201,
+      "end": 212,
+      "category": "gore",
+      "confidence": 0.6,
+      "action": "skip",
+      "source": "auto",
+      "review": "pending"
+    },
+    {
+      "id": "rn0003",
+      "start": 205,
+      "end": 230,
+      "category": "gore",
+      "confidence": 0.7,
+      "action": "skip",
+      "source": "auto",
+      "review": "pending"
+    },
+    {
+      "id": "rn0004",
+      "start": 205,
+      "end": 209,
+      "category": "nudity",
+      "confidence": 0.9,
+      "action": "skip",
+      "source": "auto",
+      "review": "pending"
+    },
+    {
+      "id": "rn0005",
+      "start": 302,
+      "end": 308,
+      "category": "kissing",
+      "confidence": 0.8,
+      "action": "skip",
+      "source": "auto",
+      "review": "pending"
+    },
+    {
+      "id": "rn0006",
+      "start": 410,
+      "end": 430,
+      "category": "sex",
+      "confidence": 0.9,
+      "action": "skip",
+      "source": "auto",
+      "review": "pending"
+    },
+    {
+      "id": "rn0007",
+      "start": 902,
+      "end": 909,
+      "category": "nudity",
+      "confidence": 0.7,
+      "action": "skip",
+      "source": "auto",
+      "review": "pending"
+    },
+    {
+      "id": "ro0005",
+      "start": 550,
+      "end": 560,
+      "category": "gore",
+      "confidence": 0.5,
+      "action": "skip",
+      "source": "auto",
+      "review": "pending"
+    },
+    {
+      "id": "rn0009",
+      "start": 805,
+      "end": 815,
+      "category": "implied",
+      "confidence": 0.45,
+      "action": "skip",
+      "source": "auto",
+      "review": "pending"
+    },
+    {
+      "id": "rn0010",
+      "start": 990,
+      "end": 1010,
+      "category": "gore",
+      "confidence": 0.66,
+      "action": "skip",
+      "source": "auto",
+      "review": "pending"
+    }
+  ],
+  "scan": {
+    "status": "complete",
+    "finishedAt": "2026-10-12T12:00:00.000Z"
+  },
+  "history": [
+    {
+      "at": "2026-10-12T12:00:00.000Z",
+      "event": "created"
+    }
+  ]
+}

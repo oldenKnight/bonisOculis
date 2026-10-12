@@ -1,0 +1,32 @@
+[
+  {
+    "id": "rneg00002",
+    "start": 0,
+    "end": 5,
+    "category": "gore",
+    "confidence": 0.8,
+    "action": "skip",
+    "source": "auto",
+    "review": "pending"
+  },
+  {
+    "id": "rneg00003",
+    "start": 295.33,
+    "end": 305.67,
+    "category": "sex",
+    "confidence": 0.6,
+    "action": "blur",
+    "source": "auto",
+    "review": "pending"
+  },
+  {
+    "id": "rneg00004",
+    "start": 1190,
+    "end": 1195,
+    "category": "kissing",
+    "confidence": 0.5,
+    "action": "skip",
+    "source": "auto",
+    "review": "pending"
+  }
+]

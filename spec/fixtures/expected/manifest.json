@@ -1,0 +1,113 @@
+{
+  "now": "2026-10-12T12:00:00.000Z",
+  "valid": [
+    {
+      "fixture": "valid/minimal.bonis.json",
+      "mediaPath": "movie.mkv",
+      "kodi": "expected/minimal.edl",
+      "mpv": "expected/minimal.mpv.edl",
+      "enforced": "expected/minimal.enforced.json",
+      "normalised": "expected/minimal.normalised.bonis.json"
+    },
+    {
+      "fixture": "valid/full.bonis.json",
+      "mediaPath": "/media/movies/Full Example (1999).mkv",
+      "kodi": "expected/full.edl",
+      "mpv": "expected/full.mpv.edl",
+      "enforced": "expected/full.enforced.json",
+      "normalised": "expected/full.normalised.bonis.json"
+    },
+    {
+      "fixture": "valid/offset-positive.bonis.json",
+      "mediaPath": "/media/movies/Heat, Director's Cut.mkv",
+      "kodi": "expected/offset-positive.edl",
+      "mpv": "expected/offset-positive.mpv.edl",
+      "enforced": "expected/offset-positive.enforced.json",
+      "normalised": "expected/offset-positive.normalised.bonis.json"
+    },
+    {
+      "fixture": "valid/offset-negative.bonis.json",
+      "mediaPath": "movie.mkv",
+      "kodi": "expected/offset-negative.edl",
+      "mpv": "expected/offset-negative.mpv.edl",
+      "enforced": "expected/offset-negative.enforced.json",
+      "normalised": "expected/offset-negative.normalised.bonis.json"
+    },
+    {
+      "fixture": "valid/overlap.bonis.json",
+      "mediaPath": "movie.mkv",
+      "kodi": "expected/overlap.edl",
+      "mpv": "expected/overlap.mpv.edl",
+      "enforced": "expected/overlap.enforced.json",
+      "normalised": "expected/overlap.normalised.bonis.json"
+    },
+    {
+      "fixture": "valid/reviewed.bonis.json",
+      "mediaPath": "movie.mkv",
+      "kodi": "expected/reviewed.edl",
+      "mpv": "expected/reviewed.mpv.edl",
+      "enforced": "expected/reviewed.enforced.json",
+      "normalised": "expected/reviewed.normalised.bonis.json"
+    },
+    {
+      "fixture": "valid/movie-3h.bonis.json",
+      "mediaPath": "/media/movies/three_hour_epic.mkv",
+      "kodi": "expected/movie-3h.edl",
+      "mpv": "expected/movie-3h.mpv.edl",
+      "enforced": "expected/movie-3h.enforced.json",
+      "normalised": "expected/movie-3h.normalised.bonis.json"
+    },
+    {
+      "fixture": "valid/future-version.bonis.json",
+      "mediaPath": "movie.mkv",
+      "kodi": "expected/future-version.edl",
+      "mpv": "expected/future-version.mpv.edl",
+      "enforced": "expected/future-version.enforced.json",
+      "normalised": "expected/future-version.normalised.bonis.json"
+    },
+    {
+      "fixture": "valid/unicode-limits.bonis.json",
+      "mediaPath": "/media/movies/#película; versión=2 .mkv",
+      "kodi": "expected/unicode-limits.edl",
+      "mpv": "expected/unicode-limits.mpv.edl",
+      "enforced": "expected/unicode-limits.enforced.json",
+      "normalised": "expected/unicode-limits.normalised.bonis.json"
+    },
+    {
+      "fixture": "valid/edl-edges.bonis.json",
+      "mediaPath": "movie.mkv",
+      "kodi": "expected/edl-edges.edl",
+      "mpv": "expected/edl-edges.mpv.edl",
+      "enforced": "expected/edl-edges.enforced.json",
+      "normalised": "expected/edl-edges.normalised.bonis.json"
+    }
+  ],
+  "invalid": "expected/invalid-errors.json",
+  "merge": [
+    {
+      "old": "merge/old.bonis.json",
+      "new": "merge/new.bonis.json",
+      "expected": "merge/expected.bonis.json",
+      "kodi": "merge/expected.edl"
+    }
+  ],
+  "offset": [
+    {
+      "fixture": "valid/minimal.bonis.json",
+      "seconds": -2.25,
+      "expected": "expected/minimal.offset.bonis.json"
+    },
+    {
+      "fixture": "valid/offset-positive.bonis.json",
+      "seconds": 0.1,
+      "expected": "expected/offset-positive.offset.bonis.json"
+    },
+    {
+      "fixture": "valid/full.bonis.json",
+      "seconds": 3,
+      "expected": "expected/full.offset.bonis.json"
+    }
+  ],
+  "fingerprint": "expected/fingerprint.json",
+  "differential": "expected/differential.json"
+}

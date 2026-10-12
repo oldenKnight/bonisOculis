@@ -1,0 +1,63 @@
+{
+  "format": "bonis-oculis-skip",
+  "version": 1,
+  "id": "6b0c1f2e-3d4a-4b5c-8d6e-000000000003",
+  "created": "2026-10-01T09:00:00.000Z",
+  "modified": "2026-10-01T10:30:00.000Z",
+  "generator": {
+    "app": "bonis oculis",
+    "appVersion": "0.1.0"
+  },
+  "media": {
+    "title": "Heat, Director's Cut",
+    "duration": 3600,
+    "fingerprint": {
+      "size": 734003200,
+      "oshash": "8e245d9679d31e12"
+    },
+    "filename": "Heat, Director's Cut.mkv",
+    "offset": 12.5
+  },
+  "ranges": [
+    {
+      "id": "roff00001",
+      "start": 0,
+      "end": 4,
+      "category": "gore",
+      "confidence": 0.8,
+      "action": "skip",
+      "source": "auto",
+      "review": "pending"
+    },
+    {
+      "id": "roff00002",
+      "start": 100.25,
+      "end": 130,
+      "category": "nudity",
+      "confidence": 0.9,
+      "action": "skip",
+      "source": "auto",
+      "review": "pending"
+    },
+    {
+      "id": "roff00003",
+      "start": 200,
+      "end": 201.5,
+      "category": "language",
+      "confidence": 0.9,
+      "action": "mute",
+      "source": "auto",
+      "review": "pending"
+    },
+    {
+      "id": "roff00004",
+      "start": 3590,
+      "end": 3600,
+      "category": "sex",
+      "confidence": 0.7,
+      "action": "skip",
+      "source": "auto",
+      "review": "pending"
+    }
+  ]
+}

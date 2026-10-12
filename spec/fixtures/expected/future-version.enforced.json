@@ -1,0 +1,12 @@
+[
+  {
+    "id": "rfut00001",
+    "start": 10,
+    "end": 20,
+    "category": "nudity",
+    "confidence": 0.9,
+    "action": "skip",
+    "source": "auto",
+    "review": "pending"
+  }
+]

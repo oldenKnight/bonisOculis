@@ -1,0 +1,177 @@
+{
+  "format": "bonis-oculis-skip",
+  "version": 1,
+  "id": "6b0c1f2e-3d4a-4b5c-8d6e-000000000006",
+  "created": "2026-10-01T09:00:00.000Z",
+  "modified": "2026-10-12T12:00:00.000Z",
+  "generator": {
+    "app": "bonis oculis",
+    "appVersion": "0.1.0"
+  },
+  "media": {
+    "title": "Reviewed (rejected and locked)",
+    "duration": 1000,
+    "fingerprint": {
+      "size": 734003200,
+      "oshash": "8e245d9679d31e12"
+    }
+  },
+  "ranges": [
+    {
+      "id": "ro0001",
+      "start": 100,
+      "end": 110,
+      "category": "nudity",
+      "confidence": 0.8,
+      "action": "skip",
+      "source": "auto",
+      "review": "pending"
+    },
+    {
+      "id": "ro0002",
+      "start": 200,
+      "end": 210,
+      "category": "gore",
+      "confidence": 0.6,
+      "action": "none",
+      "source": "auto",
+      "review": "rejected"
+    },
+    {
+      "id": "ro0003",
+      "start": 300,
+      "end": 310,
+      "category": "kissing",
+      "confidence": 0.7,
+      "action": "skip",
+      "source": "auto",
+      "review": "approved"
+    },
+    {
+      "id": "ro0004",
+      "start": 400,
+      "end": 420,
+      "category": "sex",
+      "confidence": 0.75,
+      "action": "skip",
+      "source": "auto",
+      "review": "pending",
+      "locked": true,
+      "note": "Edges adjusted by a parent."
+    },
+    {
+      "id": "ro0005",
+      "start": 500,
+      "end": 505,
+      "category": "other",
+      "confidence": 1,
+      "action": "skip",
+      "source": "manual",
+      "review": "pending"
+    },
+    {
+      "id": "ro0006",
+      "start": 600,
+      "end": 603,
+      "category": "other",
+      "confidence": 1,
+      "action": "skip",
+      "source": "panic",
+      "review": "approved"
+    },
+    {
+      "id": "ro0007",
+      "start": 700,
+      "end": 702,
+      "category": "language",
+      "confidence": 1,
+      "action": "mute",
+      "source": "imported",
+      "review": "pending"
+    },
+    {
+      "id": "ro0008",
+      "start": 800,
+      "end": 810,
+      "category": "implied",
+      "confidence": 0.5,
+      "action": "skip",
+      "source": "auto",
+      "review": "pending"
+    },
+    {
+      "id": "ro0009",
+      "start": 900,
+      "end": 910,
+      "category": "nudity",
+      "confidence": 0.65,
+      "action": "none",
+      "source": "auto",
+      "review": "approved",
+      "locked": true
+    }
+  ],
+  "history": [
+    {
+      "at": "2026-10-01T09:00:00.000Z",
+      "event": "created"
+    },
+    {
+      "at": "2026-10-01T09:00:00.000Z",
+      "event": "scanned",
+      "detail": "kept 0, replaced 0, added 9, dropped 0"
+    },
+    {
+      "at": "2026-10-01T10:30:00.000Z",
+      "event": "rejected",
+      "rangeId": "ro0002"
+    },
+    {
+      "at": "2026-10-01T10:30:00.000Z",
+      "event": "approved",
+      "rangeId": "ro0003"
+    },
+    {
+      "at": "2026-10-01T10:30:00.000Z",
+      "event": "edited",
+      "rangeId": "ro0004"
+    }
+  ],
+  "summary": {
+    "nudity": {
+      "count": 1,
+      "seconds": 10,
+      "maxIntensity": 0
+    },
+    "sex": {
+      "count": 1,
+      "seconds": 20,
+      "maxIntensity": 0
+    },
+    "implied": {
+      "count": 1,
+      "seconds": 10,
+      "maxIntensity": 0
+    },
+    "kissing": {
+      "count": 1,
+      "seconds": 10,
+      "maxIntensity": 0
+    },
+    "gore": {
+      "count": 0,
+      "seconds": 0,
+      "maxIntensity": 0
+    },
+    "language": {
+      "count": 1,
+      "seconds": 2,
+      "maxIntensity": 0
+    },
+    "other": {
+      "count": 2,
+      "seconds": 8,
+      "maxIntensity": 0
+    }
+  }
+}

@@ -1,0 +1,74 @@
+[
+  {
+    "id": "ro0001",
+    "start": 100,
+    "end": 110,
+    "category": "nudity",
+    "confidence": 0.8,
+    "action": "skip",
+    "source": "auto",
+    "review": "pending"
+  },
+  {
+    "id": "ro0003",
+    "start": 300,
+    "end": 310,
+    "category": "kissing",
+    "confidence": 0.7,
+    "action": "skip",
+    "source": "auto",
+    "review": "approved"
+  },
+  {
+    "id": "ro0004",
+    "start": 400,
+    "end": 420,
+    "category": "sex",
+    "confidence": 0.75,
+    "action": "skip",
+    "source": "auto",
+    "review": "pending",
+    "locked": true,
+    "note": "Edges adjusted by a parent."
+  },
+  {
+    "id": "ro0005",
+    "start": 500,
+    "end": 505,
+    "category": "other",
+    "confidence": 1,
+    "action": "skip",
+    "source": "manual",
+    "review": "pending"
+  },
+  {
+    "id": "ro0006",
+    "start": 600,
+    "end": 603,
+    "category": "other",
+    "confidence": 1,
+    "action": "skip",
+    "source": "panic",
+    "review": "approved"
+  },
+  {
+    "id": "ro0007",
+    "start": 700,
+    "end": 702,
+    "category": "language",
+    "confidence": 1,
+    "action": "mute",
+    "source": "imported",
+    "review": "pending"
+  },
+  {
+    "id": "ro0008",
+    "start": 800,
+    "end": 810,
+    "category": "implied",
+    "confidence": 0.5,
+    "action": "skip",
+    "source": "auto",
+    "review": "pending"
+  }
+]

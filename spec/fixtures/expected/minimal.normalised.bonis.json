@@ -1,0 +1,57 @@
+{
+  "format": "bonis-oculis-skip",
+  "version": 1,
+  "id": "6b0c1f2e-3d4a-4b5c-8d6e-000000000001",
+  "created": "2026-10-01T09:00:00.000Z",
+  "modified": "2026-10-12T12:00:00.000Z",
+  "generator": {
+    "app": "bonis oculis",
+    "appVersion": "0.1.0"
+  },
+  "media": {
+    "title": "Minimal",
+    "duration": 0,
+    "fingerprint": {
+      "size": 734003200,
+      "oshash": "8e245d9679d31e12"
+    }
+  },
+  "ranges": [],
+  "summary": {
+    "nudity": {
+      "count": 0,
+      "seconds": 0,
+      "maxIntensity": 0
+    },
+    "sex": {
+      "count": 0,
+      "seconds": 0,
+      "maxIntensity": 0
+    },
+    "implied": {
+      "count": 0,
+      "seconds": 0,
+      "maxIntensity": 0
+    },
+    "kissing": {
+      "count": 0,
+      "seconds": 0,
+      "maxIntensity": 0
+    },
+    "gore": {
+      "count": 0,
+      "seconds": 0,
+      "maxIntensity": 0
+    },
+    "language": {
+      "count": 0,
+      "seconds": 0,
+      "maxIntensity": 0
+    },
+    "other": {
+      "count": 0,
+      "seconds": 0,
+      "maxIntensity": 0
+    }
+  }
+}

@@ -42,8 +42,15 @@ parent's edit sets `locked: true` and survives rescans.
 `approved` ranges whose action is not `none`. `rejected` ranges are kept (so a rescan does not
 re-create them) but never enforced.
 
-Kid mode is fail-closed: if the file is missing, fails validation, or `scan.status` is `none`,
-the player refuses to play in kid mode and tells the parent why.
+Kid mode is fail-closed: the player plays in kid mode only when the file exists, validates, and
+`scan.status` is `complete`. A missing `scan` block counts as `none`. A parent who marks a title
+by hand can declare it fully reviewed; the app then writes `scan.status: complete` with every
+stage `skipped` and a history entry. Anything else: refuse to play in kid mode and tell the parent
+why.
+
+Versioning: `version` is an integer >= 1. Readers written for v1 accept higher versions, ignore
+unknown top-level keys, and still validate every known key against v1. `summary` counts enforced
+ranges only (pending or approved, action not `none`).
 
 ## Notes
 `note` is a short, non-graphic sentence for the review screen and the parents card. It is

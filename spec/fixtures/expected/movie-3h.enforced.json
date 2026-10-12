@@ -1,0 +1,618 @@
+[
+  {
+    "id": "r3h002",
+    "start": 398.7,
+    "end": 427,
+    "category": "kissing",
+    "confidence": 0.79,
+    "action": "blur",
+    "source": "auto",
+    "review": "pending",
+    "intensity": 1
+  },
+  {
+    "id": "r3h003",
+    "start": 653.4,
+    "end": 671.5,
+    "category": "gore",
+    "confidence": 0.65,
+    "action": "skip",
+    "source": "auto",
+    "review": "pending",
+    "intensity": 2
+  },
+  {
+    "id": "r3h004",
+    "start": 828.9,
+    "end": 856.5,
+    "category": "gore",
+    "confidence": 0.89,
+    "action": "skip",
+    "source": "auto",
+    "review": "pending",
+    "intensity": 2
+  },
+  {
+    "id": "r3h005",
+    "start": 936.6,
+    "end": 968.8000000000001,
+    "category": "sex",
+    "confidence": 0.83,
+    "action": "skip",
+    "source": "auto",
+    "review": "approved",
+    "intensity": 3,
+    "signals": {
+      "frames": 0.87,
+      "subtitles": 0.06
+    }
+  },
+  {
+    "id": "r3h006",
+    "start": 1151.1,
+    "end": 1155.3999999999999,
+    "category": "nudity",
+    "confidence": 0.86,
+    "action": "skip",
+    "source": "auto",
+    "review": "approved",
+    "intensity": 1
+  },
+  {
+    "id": "r3h008",
+    "start": 1529.4,
+    "end": 1586,
+    "category": "language",
+    "confidence": 0.46,
+    "action": "mute",
+    "source": "auto",
+    "review": "pending",
+    "intensity": 3
+  },
+  {
+    "id": "r3h009",
+    "start": 1675.4,
+    "end": 1709.6000000000001,
+    "category": "nudity",
+    "confidence": 0.78,
+    "action": "skip",
+    "source": "auto",
+    "review": "approved",
+    "intensity": 1,
+    "signals": {
+      "frames": 0.89,
+      "subtitles": 0.23
+    }
+  },
+  {
+    "id": "r3h010",
+    "start": 1894.5,
+    "end": 1954.2,
+    "category": "sex",
+    "confidence": 0.74,
+    "action": "skip",
+    "source": "auto",
+    "review": "pending",
+    "intensity": 2,
+    "cutStart": 1894.5,
+    "cutEnd": 1954.2
+  },
+  {
+    "id": "r3h011",
+    "start": 2048.5,
+    "end": 2100.3,
+    "category": "sex",
+    "confidence": 0.61,
+    "action": "skip",
+    "source": "auto",
+    "review": "approved",
+    "intensity": 2
+  },
+  {
+    "id": "r3h012",
+    "start": 2194.8,
+    "end": 2216.1000000000004,
+    "category": "nudity",
+    "confidence": 0.43,
+    "action": "skip",
+    "source": "auto",
+    "review": "approved",
+    "intensity": 3
+  },
+  {
+    "id": "r3h013",
+    "start": 2367.1,
+    "end": 2376.4,
+    "category": "kissing",
+    "confidence": 0.88,
+    "action": "blur",
+    "source": "auto",
+    "review": "approved",
+    "intensity": 1,
+    "signals": {
+      "frames": 0.13,
+      "subtitles": 0.89
+    }
+  },
+  {
+    "id": "r3h014",
+    "start": 2533.7,
+    "end": 2566.6,
+    "category": "language",
+    "confidence": 0.43,
+    "action": "mute",
+    "source": "auto",
+    "review": "approved",
+    "intensity": 3
+  },
+  {
+    "id": "r3h016",
+    "start": 2960.6,
+    "end": 2989.4,
+    "category": "sex",
+    "confidence": 0.68,
+    "action": "skip",
+    "source": "auto",
+    "review": "pending",
+    "intensity": 2,
+    "cutStart": 2960.6,
+    "cutEnd": 2989.4
+  },
+  {
+    "id": "r3h017",
+    "start": 3071.5,
+    "end": 3079,
+    "category": "kissing",
+    "confidence": 0.82,
+    "action": "blur",
+    "source": "auto",
+    "review": "pending",
+    "intensity": 1,
+    "signals": {
+      "frames": 0.92,
+      "subtitles": 0.57
+    }
+  },
+  {
+    "id": "r3h018",
+    "start": 3253.5,
+    "end": 3263,
+    "category": "nudity",
+    "confidence": 0.74,
+    "action": "skip",
+    "source": "auto",
+    "review": "approved",
+    "intensity": 2
+  },
+  {
+    "id": "r3h019",
+    "start": 3524.1,
+    "end": 3574.2,
+    "category": "implied",
+    "confidence": 0.84,
+    "action": "hide",
+    "source": "auto",
+    "review": "approved",
+    "intensity": 2,
+    "signals": {
+      "frames": 0.52,
+      "subtitles": 0.77
+    }
+  },
+  {
+    "id": "r3h021",
+    "start": 3877.1,
+    "end": 3913.7999999999997,
+    "category": "nudity",
+    "confidence": 0.97,
+    "action": "skip",
+    "source": "auto",
+    "review": "pending",
+    "intensity": 3,
+    "cutStart": 3877.1,
+    "cutEnd": 3913.7999999999997
+  },
+  {
+    "id": "r3h022",
+    "start": 3973.4,
+    "end": 3998.8,
+    "category": "gore",
+    "confidence": 0.57,
+    "action": "skip",
+    "source": "auto",
+    "review": "approved",
+    "intensity": 2
+  },
+  {
+    "id": "r3h024",
+    "start": 4338.7,
+    "end": 4387.4,
+    "category": "kissing",
+    "confidence": 0.98,
+    "action": "blur",
+    "source": "auto",
+    "review": "pending",
+    "intensity": 3
+  },
+  {
+    "id": "r3h025",
+    "start": 4573.4,
+    "end": 4588.599999999999,
+    "category": "kissing",
+    "confidence": 0.56,
+    "action": "blur",
+    "source": "auto",
+    "review": "approved",
+    "intensity": 2
+  },
+  {
+    "id": "r3h026",
+    "start": 4721.3,
+    "end": 4745.5,
+    "category": "nudity",
+    "confidence": 0.54,
+    "action": "skip",
+    "source": "auto",
+    "review": "pending",
+    "intensity": 3
+  },
+  {
+    "id": "r3h027",
+    "start": 4953.6,
+    "end": 5013,
+    "category": "nudity",
+    "confidence": 0.68,
+    "action": "skip",
+    "source": "auto",
+    "review": "approved",
+    "intensity": 1,
+    "cutStart": 4953.6,
+    "cutEnd": 5013
+  },
+  {
+    "id": "r3h028",
+    "start": 5128.5,
+    "end": 5135.2,
+    "category": "language",
+    "confidence": 0.95,
+    "action": "mute",
+    "source": "auto",
+    "review": "approved",
+    "intensity": 1,
+    "signals": {
+      "frames": 0.04,
+      "subtitles": 0
+    }
+  },
+  {
+    "id": "r3h029",
+    "start": 5317.4,
+    "end": 5334,
+    "category": "gore",
+    "confidence": 0.48,
+    "action": "skip",
+    "source": "auto",
+    "review": "pending",
+    "intensity": 3,
+    "signals": {
+      "frames": 0.67,
+      "subtitles": 0.66
+    }
+  },
+  {
+    "id": "r3h030",
+    "start": 5428.7,
+    "end": 5471.7,
+    "category": "kissing",
+    "confidence": 0.91,
+    "action": "blur",
+    "source": "auto",
+    "review": "approved",
+    "intensity": 3
+  },
+  {
+    "id": "r3h031",
+    "start": 5599.6,
+    "end": 5640.700000000001,
+    "category": "kissing",
+    "confidence": 0.94,
+    "action": "blur",
+    "source": "auto",
+    "review": "approved",
+    "intensity": 1
+  },
+  {
+    "id": "r3h032",
+    "start": 5849.2,
+    "end": 5904.099999999999,
+    "category": "language",
+    "confidence": 0.49,
+    "action": "mute",
+    "source": "auto",
+    "review": "approved",
+    "intensity": 1
+  },
+  {
+    "id": "r3h033",
+    "start": 6014,
+    "end": 6019.3,
+    "category": "implied",
+    "confidence": 0.94,
+    "action": "hide",
+    "source": "auto",
+    "review": "approved",
+    "intensity": 2
+  },
+  {
+    "id": "r3h034",
+    "start": 6179.5,
+    "end": 6189.2,
+    "category": "nudity",
+    "confidence": 0.42,
+    "action": "skip",
+    "source": "auto",
+    "review": "pending",
+    "intensity": 2
+  },
+  {
+    "id": "r3h035",
+    "start": 6357,
+    "end": 6369.1,
+    "category": "language",
+    "confidence": 0.8,
+    "action": "mute",
+    "source": "auto",
+    "review": "approved",
+    "intensity": 2,
+    "signals": {
+      "frames": 0.1,
+      "subtitles": 0.8
+    }
+  },
+  {
+    "id": "r3h036",
+    "start": 6568.8,
+    "end": 6627.900000000001,
+    "category": "kissing",
+    "confidence": 0.4,
+    "action": "blur",
+    "source": "auto",
+    "review": "approved",
+    "intensity": 1
+  },
+  {
+    "id": "r3h037",
+    "start": 6681.3,
+    "end": 6718.900000000001,
+    "category": "language",
+    "confidence": 0.48,
+    "action": "mute",
+    "source": "auto",
+    "review": "pending",
+    "intensity": 1
+  },
+  {
+    "id": "r3h040",
+    "start": 7278.1,
+    "end": 7326.8,
+    "category": "sex",
+    "confidence": 0.74,
+    "action": "skip",
+    "source": "auto",
+    "review": "pending",
+    "intensity": 3,
+    "cutStart": 7278.1,
+    "cutEnd": 7326.8
+  },
+  {
+    "id": "r3h041",
+    "start": 7413.7,
+    "end": 7469.599999999999,
+    "category": "kissing",
+    "confidence": 0.62,
+    "action": "blur",
+    "source": "auto",
+    "review": "approved",
+    "intensity": 2
+  },
+  {
+    "id": "r3h042",
+    "start": 7565.8,
+    "end": 7602.400000000001,
+    "category": "kissing",
+    "confidence": 0.4,
+    "action": "blur",
+    "source": "auto",
+    "review": "pending",
+    "intensity": 3,
+    "cutStart": 7565.8,
+    "cutEnd": 7602.400000000001
+  },
+  {
+    "id": "r3h043",
+    "start": 7816.3,
+    "end": 7822,
+    "category": "sex",
+    "confidence": 0.99,
+    "action": "skip",
+    "source": "auto",
+    "review": "approved",
+    "intensity": 1,
+    "signals": {
+      "frames": 0.26,
+      "subtitles": 0.45
+    },
+    "cutStart": 7816.3,
+    "cutEnd": 7822
+  },
+  {
+    "id": "r3h045",
+    "start": 8138.1,
+    "end": 8166.900000000001,
+    "category": "kissing",
+    "confidence": 0.58,
+    "action": "blur",
+    "source": "auto",
+    "review": "pending",
+    "intensity": 3
+  },
+  {
+    "id": "r3h046",
+    "start": 8327.9,
+    "end": 8385.199999999999,
+    "category": "language",
+    "confidence": 0.63,
+    "action": "mute",
+    "source": "auto",
+    "review": "pending",
+    "intensity": 3
+  },
+  {
+    "id": "r3h047",
+    "start": 8505.7,
+    "end": 8525.2,
+    "category": "sex",
+    "confidence": 0.66,
+    "action": "skip",
+    "source": "auto",
+    "review": "pending",
+    "intensity": 2,
+    "cutStart": 8505.7,
+    "cutEnd": 8525.2
+  },
+  {
+    "id": "r3h049",
+    "start": 8924.4,
+    "end": 8974.5,
+    "category": "kissing",
+    "confidence": 0.51,
+    "action": "blur",
+    "source": "auto",
+    "review": "approved",
+    "intensity": 2
+  },
+  {
+    "id": "r3h050",
+    "start": 9072.2,
+    "end": 9081.7,
+    "category": "nudity",
+    "confidence": 0.97,
+    "action": "skip",
+    "source": "auto",
+    "review": "pending",
+    "intensity": 1
+  },
+  {
+    "id": "r3h051",
+    "start": 9273.2,
+    "end": 9296.7,
+    "category": "kissing",
+    "confidence": 0.56,
+    "action": "blur",
+    "source": "auto",
+    "review": "pending",
+    "intensity": 3
+  },
+  {
+    "id": "r3h052",
+    "start": 9415.7,
+    "end": 9459.300000000001,
+    "category": "gore",
+    "confidence": 0.96,
+    "action": "skip",
+    "source": "auto",
+    "review": "pending",
+    "intensity": 1,
+    "signals": {
+      "frames": 0.28,
+      "subtitles": 0.64
+    }
+  },
+  {
+    "id": "r3h053",
+    "start": 9598.7,
+    "end": 9648,
+    "category": "nudity",
+    "confidence": 0.8,
+    "action": "skip",
+    "source": "auto",
+    "review": "approved",
+    "intensity": 1
+  },
+  {
+    "id": "r3h054",
+    "start": 9744.5,
+    "end": 9777.2,
+    "category": "sex",
+    "confidence": 0.4,
+    "action": "skip",
+    "source": "auto",
+    "review": "approved",
+    "intensity": 3,
+    "cutStart": 9744.5,
+    "cutEnd": 9777.2
+  },
+  {
+    "id": "r3h055",
+    "start": 9908.2,
+    "end": 9915.900000000001,
+    "category": "kissing",
+    "confidence": 0.97,
+    "action": "blur",
+    "source": "auto",
+    "review": "approved",
+    "intensity": 3,
+    "cutStart": 9908.2,
+    "cutEnd": 9915.900000000001
+  },
+  {
+    "id": "r3h056",
+    "start": 10190.3,
+    "end": 10209.199999999999,
+    "category": "kissing",
+    "confidence": 0.51,
+    "action": "blur",
+    "source": "auto",
+    "review": "pending",
+    "intensity": 1
+  },
+  {
+    "id": "r3h057",
+    "start": 10345.1,
+    "end": 10380,
+    "category": "implied",
+    "confidence": 0.54,
+    "action": "hide",
+    "source": "auto",
+    "review": "pending",
+    "intensity": 1,
+    "cutStart": 10345.1,
+    "cutEnd": 10380
+  },
+  {
+    "id": "r3h058",
+    "start": 10485,
+    "end": 10498.5,
+    "category": "gore",
+    "confidence": 0.79,
+    "action": "skip",
+    "source": "auto",
+    "review": "pending",
+    "intensity": 3
+  },
+  {
+    "id": "r3h059",
+    "start": 10636.8,
+    "end": 10683.599999999999,
+    "category": "language",
+    "confidence": 0.59,
+    "action": "mute",
+    "source": "auto",
+    "review": "approved",
+    "intensity": 1,
+    "signals": {
+      "frames": 0.73,
+      "subtitles": 0.07
+    }
+  }
+]
