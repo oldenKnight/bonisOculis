@@ -1,0 +1,158 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://bonisoculis.local/spec/skipfile.schema.json",
+  "title": "bonis oculis skip file, format version 1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["format", "version", "id", "created", "modified", "generator", "media", "ranges"],
+  "properties": {
+    "format": { "const": "bonis-oculis-skip" },
+    "version": { "const": 1 },
+    "id": { "type": "string", "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$" },
+    "created": { "type": "string", "format": "date-time" },
+    "modified": { "type": "string", "format": "date-time" },
+    "generator": {
+      "type": "object", "additionalProperties": false,
+      "required": ["app", "appVersion"],
+      "properties": {
+        "app": { "type": "string" },
+        "appVersion": { "type": "string" },
+        "analyzerVersion": { "type": "string" },
+        "modelSet": { "type": "string" }
+      }
+    },
+    "media": {
+      "type": "object", "additionalProperties": false,
+      "required": ["title", "duration", "fingerprint"],
+      "properties": {
+        "title": { "type": "string", "maxLength": 500 },
+        "year": { "type": "integer", "minimum": 1880, "maximum": 2200 },
+        "duration": { "type": "number", "minimum": 0 },
+        "filename": { "type": "string", "maxLength": 1024 },
+        "offset": { "type": "number", "default": 0,
+          "description": "Seconds added to every range start/end when this file is applied to the media it is attached to. Used for other editions." },
+        "fingerprint": {
+          "type": "object", "additionalProperties": false,
+          "required": ["size", "oshash"],
+          "properties": {
+            "size": { "type": "integer", "minimum": 0, "description": "File size in bytes." },
+            "oshash": { "type": "string", "pattern": "^[0-9a-f]{16}$",
+              "description": "OpenSubtitles-style 64-bit hash: size + sum of first and last 64 KiB as little-endian uint64 words, hex." },
+            "headSha256": { "type": "string", "pattern": "^[0-9a-f]{64}$", "description": "SHA-256 of the first 1 MiB." },
+            "sceneCuts": { "type": "array", "items": { "type": "number", "minimum": 0 }, "maxItems": 20000,
+              "description": "Sorted scene-cut timestamps (seconds) from the scan; used to compute offset against other editions." }
+          }
+        }
+      }
+    },
+    "language": { "type": "string", "pattern": "^[a-z]{2}(-[A-Z]{2})?$", "description": "Language of notes." },
+    "ranges": {
+      "type": "array",
+      "items": { "$ref": "#/definitions/range" }
+    },
+    "scan": {
+      "type": "object", "additionalProperties": false,
+      "properties": {
+        "status": { "enum": ["none", "partial", "complete"] },
+        "startedAt": { "type": "string", "format": "date-time" },
+        "finishedAt": { "type": "string", "format": "date-time" },
+        "stages": {
+          "type": "object", "additionalProperties": false,
+          "properties": {
+            "subtitles": { "$ref": "#/definitions/stage" },
+            "frames": { "$ref": "#/definitions/stage" },
+            "audio": { "$ref": "#/definitions/stage" },
+            "speech": { "$ref": "#/definitions/stage" },
+            "captions": { "$ref": "#/definitions/stage" },
+            "fusion": { "$ref": "#/definitions/stage" }
+          }
+        },
+        "levels": { "$ref": "#/definitions/levels", "description": "Protection levels in force when the ranges' default actions were computed." },
+        "device": { "type": "string" },
+        "warnings": { "type": "array", "items": { "type": "string", "maxLength": 500 }, "maxItems": 100 }
+      }
+    },
+    "summary": {
+      "type": "object", "additionalProperties": false,
+      "description": "Derived, regenerated on save. Counts per category of approved+pending ranges.",
+      "patternProperties": {
+        "^(nudity|sex|implied|kissing|gore|language|other)$": {
+          "type": "object", "additionalProperties": false,
+          "properties": {
+            "count": { "type": "integer", "minimum": 0 },
+            "seconds": { "type": "number", "minimum": 0 },
+            "maxIntensity": { "type": "integer", "minimum": 0, "maximum": 3 }
+          }
+        }
+      }
+    },
+    "history": {
+      "type": "array", "maxItems": 2000,
+      "description": "Append-only audit trail of parent decisions. Never contains scene content.",
+      "items": {
+        "type": "object", "additionalProperties": false,
+        "required": ["at", "event"],
+        "properties": {
+          "at": { "type": "string", "format": "date-time" },
+          "event": { "enum": ["created", "scanned", "approved", "rejected", "edited", "added", "deleted", "imported", "exported", "panic", "offsetChanged"] },
+          "rangeId": { "type": "string" },
+          "detail": { "type": "string", "maxLength": 200 }
+        }
+      }
+    }
+  },
+  "definitions": {
+    "category": { "enum": ["nudity", "sex", "implied", "kissing", "gore", "language", "other"] },
+    "action": { "enum": ["skip", "hide", "blur", "mute", "none"],
+      "description": "skip = jump over. hide = black screen + mute, zero decode cost. blur = pixelate + mute, best effort, falls back to hide. mute = audio only. none = show (rejected or informational)." },
+    "range": {
+      "type": "object", "additionalProperties": false,
+      "required": ["id", "start", "end", "category", "confidence", "action", "source", "review"],
+      "properties": {
+        "id": { "type": "string", "pattern": "^r[0-9a-z]{4,16}$" },
+        "start": { "type": "number", "minimum": 0, "description": "Seconds in the media's own timeline (before offset). Includes lead-in padding." },
+        "end": { "type": "number", "minimum": 0, "description": "Exclusive end, seconds. Must be > start." },
+        "category": { "$ref": "#/definitions/category" },
+        "confidence": { "type": "number", "minimum": 0, "maximum": 1, "description": "1.0 for manual and panic marks." },
+        "intensity": { "type": "integer", "minimum": 1, "maximum": 3, "description": "1 mild, 2 moderate, 3 strong. Drives level mapping and the parents card." },
+        "action": { "$ref": "#/definitions/action" },
+        "source": { "enum": ["auto", "manual", "panic", "imported"] },
+        "review": { "enum": ["pending", "approved", "rejected"] },
+        "locked": { "type": "boolean", "default": false, "description": "A parent edited this range; rescans must not touch it." },
+        "signals": {
+          "type": "object", "additionalProperties": false,
+          "description": "Per-signal peak score inside the range, 0..1. For the review screen and evaluation only.",
+          "properties": {
+            "frames": { "type": "number", "minimum": 0, "maximum": 1 },
+            "subtitles": { "type": "number", "minimum": 0, "maximum": 1 },
+            "audio": { "type": "number", "minimum": 0, "maximum": 1 },
+            "speech": { "type": "number", "minimum": 0, "maximum": 1 },
+            "captions": { "type": "number", "minimum": 0, "maximum": 1 }
+          }
+        },
+        "note": { "type": "string", "maxLength": 300,
+          "description": "Non-graphic, template-generated or parent-written description. Never raw captions or dialogue." },
+        "cutStart": { "type": "number", "minimum": 0, "description": "Scene cut the start was snapped to, if any." },
+        "cutEnd": { "type": "number", "minimum": 0 }
+      }
+    },
+    "stage": {
+      "type": "object", "additionalProperties": false,
+      "required": ["status"],
+      "properties": {
+        "status": { "enum": ["pending", "running", "done", "skipped", "failed"] },
+        "progress": { "type": "number", "minimum": 0, "maximum": 1 },
+        "resumeAt": { "type": "number", "minimum": 0, "description": "Media timestamp to resume from after an interruption." },
+        "detail": { "type": "string", "maxLength": 300 },
+        "model": { "type": "string" },
+        "seconds": { "type": "number", "minimum": 0, "description": "Wall-clock seconds spent." }
+      }
+    },
+    "levels": {
+      "type": "object", "additionalProperties": false,
+      "patternProperties": {
+        "^(nudity|sex|implied|kissing|gore|language)$": { "enum": ["off", "light", "moderate", "strict"] }
+      }
+    }
+  }
+}

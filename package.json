@@ -1,0 +1,17 @@
+{
+  "name": "bonis-oculis",
+  "version": "0.1.0",
+  "description": "bonis oculis — scans movies once, writes a skip file, and lets any player obey it. Offline, for families.",
+  "main": "desktop/main/main.js",
+  "private": true,
+  "scripts": {
+    "start": "electron .",
+    "test": "node --test shared/test desktop/test player/test",
+    "test:shared": "node --test shared/test",
+    "test:player": "node --test player/test",
+    "test:desktop": "node --test desktop/test",
+    "lint": "node tools/lint-es5.js"
+  },
+  "engines": { "node": ">=20" },
+  "devDependencies": {}
+}

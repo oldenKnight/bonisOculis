@@ -3,9 +3,10 @@
 READ THIS FIRST on any restart. Then docs/BRIEF.md (the owner's spec). Do not re-derive context.
 
 ## Current phase
-SPECIFICATION / Q&A. Implementation NOT yet approved by the owner (brief rule 6.2).
-Next step once the owner answers the open questions below: write docs/PLAN.md (architecture + UX),
-then build order step 1 (skip-file format + EDL export + player with marking hotkey).
+IMPLEMENTATION. On 2026-10-12 the owner granted full authority: "treat my prompt as a suggestion...
+you have full authority to fulfill my needs, essential vision, and quality standards". Open
+questions were decided by the planner (see "Decisions on open questions"). docs/PLAN.md is binding.
+Active milestones: M1 (design, Sonnet), M2 (spec + shared lib), M3 (player). Agents run in parallel.
 
 ## Timeline
 - 2026-10-12  Session 1 (Fable 5.1). Repo was empty. Researched models/licences, mpv EDL, Fire TV,
@@ -80,7 +81,20 @@ D17 PIN is a deterrent, not a security boundary; hashed properly; settings tampe
 - Non-technical parent: set-up once, anyone presses play; no jargon; Spanish (MX) and English (US);
   errors say what to do next; nothing ever requires a terminal.
 
-## Open questions to the owner (asked 2026-10-12, unanswered)
+## Decisions on open questions (planner, 2026-10-12, owner delegated)
+Q1 No LICENSE file added (owner's legal call; GPL binaries stay separate executables). Build
+   unsigned; help gets a first-launch page for Gatekeeper/SmartScreen. Revisit when certs exist.
+Q2 Models bundled in the installer. Manifest with sha256; a "lite" build without 640m/Florence is
+   a packaging option.
+Q3 Assume 4 GB: one model at a time, low priority, pause while playing, plugged-in-only default.
+Q4 Actions skip / hide / blur / mute / none as in SKIPFILE.md; hide is the default non-skip action.
+Q5 Extension adapters in order: generic HTML5, YouTube, Netflix, Prime Video, Disney+.
+Q6 Evaluation harness accepts native .bonis.json files as ground truth.
+Q7 Fire TV help: USB + VLC (Appstore) primary; Kodi sideload + EDL as "advanced"; LAN share later.
+Q8 Four active subagents.
+Q9 `language` category exists in the format; default level off; action mute.
+
+## Original open questions (kept for the record; owner may still answer and override)
 Q1 Project licence (open source vs private) and signing certificates (Apple Developer, Windows
    code signing). Without them: "unidentified developer"/SmartScreen warnings on first launch.
 Q2 Models inside the installer (~1 GB, offline from the first second; recommended) or one-time
@@ -97,7 +111,8 @@ Q9 (new) Should "language/profanity" be an optional category? The subtitle pass 
 
 ## Milestones (planned; update status here)
 M0  Ledger + brief in repo ........................................ DONE 2026-10-12
-M1  docs/PLAN.md architecture + UX, Sonnet visual design + logo ... pending approval
+M1a docs/PLAN.md + spec/skipfile.schema.json + SKIPFILE.md ........ DONE 2026-10-12
+M1b Sonnet visual design system + logo (docs/DESIGN.md, tokens.css) in progress
 M2  Skip-file spec v1 + validator + fixtures + EDL export ......... todo
 M3  Player: mpv control, Lua skip script, marking + panic keys .... todo
 M4  Analyzer v1: subtitles + frames, resumable, checkpointed ...... todo
