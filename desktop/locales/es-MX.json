@@ -164,8 +164,6 @@
   "recover.bad": "El código tiene 12 letras y números. Revísalo e inténtalo de nuevo.",
   "recover.wrong": "Ese código no coincide. Revísalo e inténtalo de nuevo.",
   "library.title": "Biblioteca",
-  "library.sub.one": "1 película · {protected} protegidas",
-  "library.sub.other": "{count} películas · {protected} protegidas",
   "library.toReviewSub.one": "1 película tiene escenas esperándote",
   "library.toReviewSub.other": "{count} películas tienen escenas esperándote",
   "library.add": "Agregar una película",
@@ -507,5 +505,10 @@
   "error.badValue.title": "Ese valor no está permitido",
   "error.badValue.text": "Elige una de las opciones que se muestran.",
   "settings.aside.title": "Qué significa",
-  "settings.aside.default": "Señala un tipo de escena a la izquierda para ver qué hace cada nivel."
+  "settings.aside.default": "Señala un tipo de escena a la izquierda para ver qué hace cada nivel.",
+  "library.sub": "{movies} · {protected}",
+  "library.movies.one": "1 película",
+  "library.movies.other": "{count} películas",
+  "library.protected.one": "1 protegida",
+  "library.protected.other": "{count} protegidas"
 }

@@ -806,7 +806,9 @@ class Scan:
         if m == 0:
             self._skip(name, t0, "No shots.")
             return None
-        sel = capsig.select_shots(capsig.shot_priority(shots, self._other_signal()), config.CAPTION_MAX_SHOTS,
+        budget = getattr(self.a, "caption_budget", None) or (
+            config.CAPTION_MAX_SHOTS_THOROUGH if getattr(self.a, "thorough", False) else config.CAPTION_MAX_SHOTS)
+        sel = capsig.select_shots(capsig.shot_priority(shots, self._other_signal()), int(budget),
                                   config.CAPTION_PRIORITY)
         cats = capsig.CAPTION_CATEGORIES
         starts = np.asarray([a for a, _ in shots], dtype=np.float64)

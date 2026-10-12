@@ -13,9 +13,17 @@ var BASE = path.join(process.env.BONIS_TEST_DIR || os.tmpdir(), 'bonis-desktop-t
 
 function haveFfmpeg() { return fs.existsSync(FFMPEG) && fs.existsSync(FFPROBE); }
 
+var made = [];
+process.on('exit', function () {
+  if (process.env.BONIS_KEEP_TEST_DIRS) { return; }
+  made.forEach(function (d) { try { fs.rmSync(d, { recursive: true, force: true }); } catch (e) { /* best effort */ } });
+});
+
+// A fresh folder, removed when the test process exits (BONIS_KEEP_TEST_DIRS=1 keeps it).
 function tmpDir(name) {
   var d = path.join(BASE, name + '-' + process.pid + '-' + Math.random().toString(36).slice(2, 8));
   fs.mkdirSync(d, { recursive: true });
+  made.push(d);
   return d;
 }
 

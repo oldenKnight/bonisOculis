@@ -164,8 +164,6 @@
   "recover.bad": "The code has 12 letters and digits. Check it and try again.",
   "recover.wrong": "That code does not match. Check it and try again.",
   "library.title": "Library",
-  "library.sub.one": "1 movie · {protected} protected",
-  "library.sub.other": "{count} movies · {protected} protected",
   "library.toReviewSub.one": "1 movie has scenes waiting for you",
   "library.toReviewSub.other": "{count} movies have scenes waiting for you",
   "library.add": "Add a movie",
@@ -507,5 +505,10 @@
   "error.badValue.title": "That value is not allowed",
   "error.badValue.text": "Pick one of the choices shown.",
   "settings.aside.title": "What this means",
-  "settings.aside.default": "Point at a kind of scene on the left to see what each level does."
+  "settings.aside.default": "Point at a kind of scene on the left to see what each level does.",
+  "library.sub": "{movies} · {protected}",
+  "library.movies.one": "1 movie",
+  "library.movies.other": "{count} movies",
+  "library.protected.one": "1 protected",
+  "library.protected.other": "{count} protected"
 }

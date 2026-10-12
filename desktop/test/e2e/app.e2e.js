@@ -122,6 +122,31 @@ function noHorizontalScroll(label) {
   };
 }
 
+function noModal() {
+  return function () {
+    return page.$('.bo-modal').then(function (m) { assert.strictEqual(m, null, 'Escape closes the modal'); });
+  };
+}
+
+// D8 / D18: nothing but blurred thumbnails (and a sharp poster only for a Protected, clean frame) on disk.
+function imagesOnDisk() {
+  var found = [];
+  (function walk(d) {
+    fs.readdirSync(d).forEach(function (n) {
+      var f = path.join(d, n);
+      var st = fs.lstatSync(f);
+      if (st.isSymbolicLink()) { return; }
+      if (st.isDirectory()) { walk(f); } else if (/\.(png|jpe?g|bmp|webp)$/i.test(n)) { found.push(path.relative(UD, f)); }
+    });
+  }(UD));
+  found.forEach(function (f) {
+    assert.ok(/^work\/[0-9a-f]{16}\/(thumbs\/r[0-9a-z]+\.jpg|strip\/\d+-\d+\.jpg|poster-blur\.jpg|poster-clear\.jpg)$/.test(f.replace(/\\/g, '/')), 'unexpected image on disk: ' + f);
+    if (/poster-clear/.test(f)) { assert.ok(f.indexOf(ids['Family Picnic']) >= 0, 'sharp poster only for the protected title'); }
+  });
+  assert.ok(!found.some(function (f) { return /\.png$/.test(f); }), 'peek frames are never written');
+  return found.length;
+}
+
 function setLang(lang) {
   return function () {
     return page.evaluate(function (l) {
@@ -333,7 +358,7 @@ function main() {
       steps.push(go('help'), sleep(400), shot(p + 'help'), noHorizontalScroll(p + 'help'));
       steps.push(go('help', { anchor: 'tv' }), sleep(300), shot(p + 'help-tv'));
       steps.push(evaluate(function () { document.documentElement.setAttribute('data-mode', 'kid'); window.BO.router.go('kid'); }), sleep(600), shot(p + 'kid'), noHorizontalScroll(p + 'kid'));
-      steps.push(evaluate(function () { window.BO.pinPad.ask({ purpose: 'peek' }, function () {}); }), sleep(300), shot(p + 'kid-pin'), press('Escape'));
+      steps.push(evaluate(function () { window.BO.pinPad.ask({ purpose: 'peek' }, function () {}); }), sleep(300), shot(p + 'kid-pin'), press('Escape'), sleep(100), noModal());
       steps.push(evaluate(function () { document.documentElement.removeAttribute('data-mode'); window.BO.router.go('library'); }), sleep(200));
     });
   });
@@ -373,6 +398,7 @@ function main() {
     click('[data-act="stop"]'),
     waitSel('[data-view="kid"]:not([hidden])', { timeout: 20000 }),
     invoke('player:status', {}, function (r) { assert.strictEqual(r.data.state, 'idle', 'mpv stopped'); }),
+    function () { log('images on disk, all blurred or proven clean: ' + imagesOnDisk()); },
     function () { return app.close(); }
   );
 

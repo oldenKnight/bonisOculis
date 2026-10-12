@@ -225,7 +225,8 @@ WHISPER_CLI_ENV = "BONIS_WHISPER_CLI"   # optional whisper-cli executable (fallb
 # scene captions (Florence-2 base-ft q4f16, ONNX Runtime)
 # --------------------------------------------------------------------------
 
-CAPTION_MAX_SHOTS = 1500
+CAPTION_MAX_SHOTS = 300          # default budget (~20-25 min on an i5 CPU); --thorough raises it
+CAPTION_MAX_SHOTS_THOROUGH = 1500
 CAPTION_PRIORITY = 0.20      # shots where any other signal reaches this are always captioned
 CAPTION_MAX_SHOT = 20.0      # longer shots are split so a static 3-minute shot gets several keyframes
 CAPTION_NO_CUTS_STEP = 10.0  # shot length when no scene cuts are known (frames stage not run)

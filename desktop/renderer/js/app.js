@@ -128,7 +128,11 @@
     });
     BO.on('scan:progress', function (s) { BO.store.set('scan', s); });
     BO.on('player:event', function (ev) { BO.views.player.onEvent(ev); });
-    BO.on('toast', function (ev) { BO.toast.fromMain(ev); });
+    BO.on('toast', function (ev) {
+      // Kid mode stays quiet about scans; player and data-safety messages still show.
+      if (BO.store.get('locked') && ev && /^toast\.scan/.test(ev.key || '')) { return; }
+      BO.toast.fromMain(ev);
+    });
     BO.on('app:locked', function (ev) {
       setKidMode(ev && ev.locked);
       if (ev && ev.locked) {

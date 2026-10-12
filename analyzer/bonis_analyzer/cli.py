@@ -47,6 +47,10 @@ def build_parser() -> argparse.ArgumentParser:
                    help="run speech-to-text even when subtitles were found")
     s.add_argument("--whisper-cli", dest="whisper_cli", default=None,
                    help="whisper.cpp command-line executable (fallback when the Python binding is missing)")
+    s.add_argument("--caption-budget", dest="caption_budget", type=int, default=None,
+                   help="max shots sent to the caption model (default %d; --thorough = %d)"
+                        % (config.CAPTION_MAX_SHOTS, config.CAPTION_MAX_SHOTS_THOROUGH))
+    s.add_argument("--thorough", action="store_true", help="caption up to %d shots" % config.CAPTION_MAX_SHOTS_THOROUGH)
     s.add_argument("--profile", action="store_true",
                    help='print a final {"t":"profile"} line: per-stage wall time and peak memory')
     e = sub.add_parser("evaluate", help="compare a predicted skip file with a hand-marked one")

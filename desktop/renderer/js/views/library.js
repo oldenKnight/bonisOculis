@@ -134,7 +134,7 @@
     add.addEventListener('click', function () { BO.app.pickMovies(); });
     header.appendChild(BO.el('div', null, [
       BO.el('h1', { 'class': 'bo-page__title', text: BO.t(filter === 'review' ? 'nav.review' : 'library.title'), attrs: { tabindex: '-1', 'data-view-heading': '' } }),
-      BO.el('p', { 'class': 'bo-page__sub', text: filter === 'review' ? BO.tn('library.toReviewSub', items().length) : BO.t(all.length === 1 ? 'library.sub.one' : 'library.sub.other', { count: all.length, protected: prot }) })
+      BO.el('p', { 'class': 'bo-page__sub', text: filter === 'review' ? BO.tn('library.toReviewSub', items().length) : BO.t('library.sub', { movies: BO.tn('library.movies', all.length), protected: BO.tn('library.protected', prot) }) })
     ]));
     header.appendChild(add);
   }

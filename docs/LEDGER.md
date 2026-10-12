@@ -65,6 +65,7 @@ D18 Peek (review screen): a parent may reveal a flagged frame only behind the PI
     5 min), rendered LIVE from the video into memory (ffmpeg pipe -> data URL), shown while the
     button is held, never written to disk, never available in kid mode. Thumbnails on disk stay
     blurred (overrides the designer's "lighter blur" reading).
+D20 Caption budget default 300 shots (`--caption-budget`, `--thorough`=1500); see findings.
 D19 Design accepted: Atkinson Hyperlegible Next (body) + Fraunces (titles), both OFL, bundled.
     Category colours carry redundant cues (icon, label, pattern); real colour-blind user test
     pending (owner).
@@ -83,6 +84,14 @@ D17 PIN is a deterrent, not a security boundary; hashed properly; settings tampe
 - Kid-mode seeks are intercepted before decoding; the after-the-fact enforcement remains as a
   safety net. A seek to a range end still decodes (and discards) frames from the previous keyframe.
 - Blur fallback to hide is untested under real frame drops (needs a slow machine).
+- Captioning (Florence-2 on CPU) costs 3.5-5.6 s per shot. Planner decision D20: default budget
+  300 shots prioritised by other signals (~20-25 min per film), `--thorough` raises it to 1500.
+- The published Florence-2 merged decoder ONNX does not load in ONNX Runtime 1.29 (If-node
+  output naming); analyzer/signals/onnx_fix.py repairs it in memory; file hash unchanged.
+- whisper small q5_1 on CPU: ~4.5 s per 30 s window at 4 threads => a 2 h film without
+  subtitles needs ~18 min of STT at 4 threads, ~36 min at 2.
+- Audio and caption keyframes are separate ffmpeg passes (D7 relaxed): sharing one pass would
+  break one-model-at-a-time; all still through pipes, nothing on disk.
 - Live tab-audio (extension): YAMNet in wasm costs ~25 ms per 0.96 s window (~5% of a core);
   it reacts ~2 s after a scene starts, so it is a backstop, never the primary protection.
 
@@ -149,7 +158,7 @@ M3  Player: mpv control, Lua skip script, marking + panic keys .... DONE 2026-10
 M4  Analyzer v1: subtitles + frames, resumable, checkpointed ...... DONE 2026-10-12 (reviewed)
 M5  App shell: library, review timeline, PIN, import/export, clean copy  todo
 M6  Extension: subtitle pre-read + skip-file import ............... DONE 2026-10-12 (reviewed)
-M7  Analyzer v2: audio + captions + fusion tuning + measurement .... todo
+M7  Analyzer v2: audio + captions + fusion tuning + profiling ...... DONE 2026-10-12 (reviewed)
 M8  Extension live-audio mode ..................................... DONE 2026-10-12 (reviewed)
 M9  Packaging (Win x64, macOS universal), in-app help (TV paths) .. todo
 
