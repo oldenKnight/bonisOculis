@@ -3,7 +3,7 @@
  *
  * Everything lives in chrome.storage.local, inside this browser profile.
  *   settings                          {levels, lang}
- *   video|<site>|<videoId>            {levels?, offset, subFile?: {name, text}, panic: [{start, end, at}]}
+ *   video|<site>|<videoId>            {levels?, offset, skipOffset, subFile?: {name, text}, panic: [{start, end, at}]}
  *   skip|<site>|<videoId>|<oshash>    {doc, name, importedAt}  (imported .bonis.json)
  * <site> is the adapter id (youtube, netflix, primevideo, disneyplus) or the
  * host name for the generic adapter; <oshash> is the desktop file's
@@ -59,6 +59,7 @@
     local().get(key, function (r) {
       var v = (r && r[key]) || {};
       if (typeof v.offset !== 'number' || !isFinite(v.offset)) { v.offset = 0; }
+      if (typeof v.skipOffset !== 'number' || !isFinite(v.skipOffset)) { v.skipOffset = 0; }
       if (Object.prototype.toString.call(v.panic) !== '[object Array]') { v.panic = []; }
       done(cb)(v);
     });

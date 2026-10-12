@@ -286,6 +286,33 @@
     "message": "0.5 s later",
     "description": "Button"
   },
+  "timingNone": {
+    "message": "Add a subtitle file or a skip file to adjust its timing."
+  },
+  "timingSubLabel": {
+    "message": "Subtitle file"
+  },
+  "timingSkipLabel": {
+    "message": "Skip files"
+  },
+  "sceneCountOne": {
+    "message": "1 scene"
+  },
+  "sceneCountMany": {
+    "message": "$COUNT$ scenes",
+    "placeholders": {
+      "count": {
+        "content": "$1",
+        "example": "3"
+      }
+    }
+  },
+  "subFileOkOne": {
+    "message": "Subtitle file added. We found 1 scene."
+  },
+  "skipFileOkOne": {
+    "message": "Skip file added: 1 scene."
+  },
   "autoSync": {
     "message": "Match timing automatically",
     "description": "Button"
@@ -435,6 +462,9 @@
   },
   "limits3": {
     "message": "It has no PIN. To keep children from changing it, use a supervised Chrome profile for them."
+  },
+  "reloadToStart": {
+    "message": "Turned on. Reload the page with the video to start."
   },
   "forgetTitle": {
     "message": "Start over"

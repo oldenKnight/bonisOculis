@@ -279,3 +279,31 @@ class ProtocolTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+@unittest.skipUnless(S.HAVE_FFMPEG and S.MODELS_DIR and os.path.isdir(S.MODELS_DIR), "BONIS_MODELS_DIR not set")
+class RealModelScanTest(unittest.TestCase):
+    """The real pipeline once on a 4 s random-noise clip: one NudeNet batch, one
+    CLIP batch, at most one LM window. Checks the code path, not accuracy."""
+
+    def test_noise_clip(self) -> None:
+        d = os.path.join(S.tmp_root(), "real")
+        os.makedirs(d, exist_ok=True)
+        v = os.path.join(d, "noise.mp4")
+        S.ffmpeg("-f", "lavfi", "-i", "nullsrc=s=320x180:r=5:d=4,geq=random(1)*255:128:128", "-c:v", "libx264",
+                 "-preset", "ultrafast", "-pix_fmt", "yuv420p", v)
+        with open(os.path.join(d, "noise.en.srt"), "w", encoding="utf-8") as f:
+            f.write("1\n00:00:01,000 --> 00:00:03,000\nPass the salt, please.\n")
+        work, out = os.path.join(d, "w"), os.path.join(d, "noise.bonis.json")
+        t0 = time.monotonic()
+        rc, lines, _, err = S.run_cli("scan", "--input", v, "--work", work, "--out", out, "--lang", "en-US",
+                                      "--threads", "2", "--device", "auto", "--models", S.MODELS_DIR, timeout=300)
+        sys.stderr.write("\n[timing] real-model scan of a 4 s noise clip: %.2f s wall\n" % (time.monotonic() - t0))
+        self.assertEqual(rc, 0, err[-3000:])
+        doc = load(out)
+        self.assertTrue(sf.validate(doc)["ok"])
+        self.assertEqual(doc["scan"]["stages"]["frames"]["model"], "nudenet-320n+clip-vit-b32-int8")
+        self.assertEqual(doc["scan"]["status"], "complete")
+        self.assertEqual(sorted(n for n in os.listdir(work) if n != "thumbs")[-1], "subtitles.npz")
+        stages = {(x["stage"], x["status"]) for x in lines if x["t"] == "stage"}
+        self.assertTrue(("lm", "done") in stages or ("lm", "skipped") in stages)

@@ -1,0 +1,20 @@
+/* bonis oculis popup layout. Tokens: ../css/tokens.css (copy of desktop/renderer/css/tokens.css). */
+.bo-popup { width: 23.75rem; min-height: 10rem; }
+.bo-popup.is-window { width: auto; max-width: 30rem; margin: 0 auto; }
+.bo-head { display: flex; align-items: center; gap: var(--bo-space-2); padding: var(--bo-space-3) var(--bo-space-4); border-bottom: var(--bo-border-width) solid var(--bo-border); background: var(--bo-surface); }
+.bo-head__mark { width: 1.75rem; height: 1.75rem; fill: var(--bo-primary); flex: none; }
+.bo-head__name { font-size: var(--bo-fs-lg); margin-inline-end: auto; }
+.bo-main { padding: var(--bo-space-3) var(--bo-space-3) 0; }
+.bo-stack--loose { gap: var(--bo-space-3); }
+.bo-msg { font-size: var(--bo-fs-md); }
+.bo-status { display: grid; gap: var(--bo-space-2); }
+.bo-status__big { font-size: var(--bo-fs-2xl); }
+.bo-status__sub { color: var(--bo-text-2); font-weight: var(--bo-fw-semibold); }
+.bo-status__source { color: var(--bo-text-2); font-size: var(--bo-fs-sm); overflow-wrap: anywhere; }
+.bo-panic { display: grid; gap: var(--bo-space-2); }
+.bo-file__title { font-family: var(--bo-font-ui); font-size: var(--bo-fs-md); font-weight: var(--bo-fw-bold); letter-spacing: 0; }
+.bo-filebtn { justify-self: start; }
+.bo-offset { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); align-items: center; gap: var(--bo-space-2); }
+.bo-offset__value { min-width: 4.5rem; text-align: center; font-weight: var(--bo-fw-bold); font-variant-numeric: tabular-nums; }
+.bo-foot { padding: var(--bo-space-2) var(--bo-space-4) var(--bo-space-3); }
+.bo-offset__label { font-weight: var(--bo-fw-semibold); font-size: var(--bo-fs-sm); }

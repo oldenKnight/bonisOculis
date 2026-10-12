@@ -8,7 +8,6 @@ stderr; tracebacks never reach stdout. Exit codes: 0 ok, 2 bad input,
 from __future__ import annotations
 
 import argparse
-import json
 import logging
 import os
 import sys

@@ -286,6 +286,33 @@
     "message": "0.5 s después",
     "description": "Button"
   },
+  "timingNone": {
+    "message": "Agrega un archivo de subtítulos o de escenas para ajustar su sincronía."
+  },
+  "timingSubLabel": {
+    "message": "Archivo de subtítulos"
+  },
+  "timingSkipLabel": {
+    "message": "Archivos de escenas"
+  },
+  "sceneCountOne": {
+    "message": "1 escena"
+  },
+  "sceneCountMany": {
+    "message": "$COUNT$ escenas",
+    "placeholders": {
+      "count": {
+        "content": "$1",
+        "example": "3"
+      }
+    }
+  },
+  "subFileOkOne": {
+    "message": "Agregamos el archivo de subtítulos. Encontramos 1 escena."
+  },
+  "skipFileOkOne": {
+    "message": "Agregamos el archivo de escenas: 1 escena."
+  },
   "autoSync": {
     "message": "Ajustar la sincronía automáticamente",
     "description": "Button"
@@ -435,6 +462,9 @@
   },
   "limits3": {
     "message": "No tiene PIN. Para que los niños no lo cambien, usa para ellos un perfil de Chrome supervisado."
+  },
+  "reloadToStart": {
+    "message": "Activado. Vuelve a cargar la página del video para empezar."
   },
   "forgetTitle": {
     "message": "Empezar de nuevo"

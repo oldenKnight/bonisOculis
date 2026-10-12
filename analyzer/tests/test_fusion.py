@@ -12,7 +12,7 @@ import numpy as np
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-import _support  # noqa: E402, F401
+import _support  # noqa: E402, F401  (puts the analyzer on sys.path)
 
 from bonis_analyzer import config, fusion, notes  # noqa: E402
 from bonis_analyzer import skipfile as sf  # noqa: E402

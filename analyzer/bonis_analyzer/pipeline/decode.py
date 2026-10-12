@@ -16,7 +16,7 @@ import re
 import subprocess
 import threading
 from collections import deque
-from typing import Any, Callable, Deque, Dict, Iterator, List, Optional, Tuple
+from typing import Any, Callable, Deque, Iterator, List, Optional, Tuple
 
 import numpy as np
 

@@ -11,7 +11,7 @@ import gc
 
 import os
 import tarfile
-from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple
+from typing import Any, Callable, Dict, List, Sequence, Tuple
 
 import numpy as np
 

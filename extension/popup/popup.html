@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="en-US">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>bonis oculis</title>
+<link rel="stylesheet" href="../css/tokens.css">
+<link rel="stylesheet" href="../css/ui.css">
+<link rel="stylesheet" href="popup.css">
+</head>
+<body class="bo-popup">
+<!-- Icon sprite: symbols pasted from desktop/renderer/assets/icons (DESIGN section 9). -->
+<svg class="bo-sr-only" width="0" height="0" aria-hidden="true" focusable="false"><symbol id="bo-i-cat-nudity" viewBox="0 0 24 24"><circle cx="12" cy="7.5" r="3.5"/><path d="M5 20.5c.5-4.5 3.2-7 7-7s6.5 2.5 7 7"/></symbol><symbol id="bo-i-cat-sex" viewBox="0 0 24 24"><circle cx="9" cy="12" r="5.5"/><circle cx="15" cy="12" r="5.5"/></symbol><symbol id="bo-i-cat-implied" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" stroke-dasharray="3.2 3.1"/><path d="M8.5 12h.1M12 12h.1M15.5 12h.1"/></symbol><symbol id="bo-i-cat-kissing" viewBox="0 0 24 24"><path d="M12 20s-7.5-4.4-7.5-10.2A4.3 4.3 0 0 1 12 7.2a4.3 4.3 0 0 1 7.5 2.6C19.5 15.6 12 20 12 20z"/></symbol><symbol id="bo-i-cat-gore" viewBox="0 0 24 24"><path d="M12 3.5s6 6.3 6 10.7a6 6 0 0 1-12 0C6 9.8 12 3.5 12 3.5z"/></symbol><symbol id="bo-i-cat-language" viewBox="0 0 24 24"><path d="M5 4.5h14a1.5 1.5 0 0 1 1.5 1.5v9a1.5 1.5 0 0 1-1.5 1.5h-7L8 20.5v-4H5A1.5 1.5 0 0 1 3.5 15V6A1.5 1.5 0 0 1 5 4.5z"/><path d="M12 8v3.2M12 13.5v.1"/></symbol><symbol id="bo-i-cat-other" viewBox="0 0 24 24"><path d="M12.5 3.5h7v7L11 19a2 2 0 0 1-2.8 0l-3.7-3.7a2 2 0 0 1 0-2.8z"/><path d="M16 8v.1"/></symbol><symbol id="bo-i-panic" viewBox="0 0 24 24"><path d="M8.5 3.5h7l5 5v7l-5 5h-7l-5-5v-7z"/><path d="M8.5 12h7"/></symbol><symbol id="bo-i-upload" viewBox="0 0 24 24"><path d="M12 15V4M7.5 8.5L12 4l4.5 4.5M5 19.5h14"/></symbol><symbol id="bo-i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v5.5M12 7.8v.1"/></symbol><symbol id="bo-i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.2 2"/></symbol><symbol id="bo-i-settings" viewBox="0 0 24 24"><path d="M4 7h9M17 7h3M4 17h3M11 17h9"/><circle cx="15" cy="7" r="2"/><circle cx="9" cy="17" r="2"/></symbol><symbol id="bo-i-globe" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.8 2.6 4 5.6 4 9s-1.2 6.4-4 9c-2.8-2.6-4-5.6-4-9s1.2-6.4 4-9z"/></symbol><symbol id="bo-i-trash" viewBox="0 0 24 24"><path d="M4.5 6.5h15M9.5 6.5v-2h5v2M6.5 6.5l.8 12.5a1.5 1.5 0 0 0 1.5 1.5h6.4a1.5 1.5 0 0 0 1.5-1.5l.8-12.5M10 10.5v6M14 10.5v6"/></symbol><symbol id="bo-i-shield-check" viewBox="0 0 24 24"><path d="M12 3.5l7 2.5v5.5c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6z"/><path d="M9 12l2.2 2.2L15.5 10"/></symbol><symbol id="bo-i-eye-off" viewBox="0 0 24 24"><path d="M9.5 5.8a9 9 0 0 1 2.5-.3c6 0 9.5 6.5 9.5 6.5a16 16 0 0 1-2.8 3.6M6.3 7.5A16 16 0 0 0 2.5 12S6 18.5 12 18.5a9 9 0 0 0 3.6-.8"/><path d="M9.9 9.9a3 3 0 0 0 4.2 4.2M4 4l16 16"/></symbol><symbol id="bo-i-alert" viewBox="0 0 24 24"><path d="M12 4L2.8 19.5h18.4z"/><path d="M12 10v4.5M12 17.3v.1"/></symbol><symbol id="bo-i-check" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></symbol><symbol id="bo-i-keyboard" viewBox="0 0 24 24"><rect x="2.5" y="6" width="19" height="12" rx="2.5"/><path d="M6.5 10h.1M10 10h.1M14 10h.1M17.5 10h.1M7.5 14h9"/></symbol><symbol id="bo-i-lock" viewBox="0 0 24 24"><rect x="5" y="10.5" width="14" height="10" rx="2.5"/><path d="M8.5 10.5V8a3.5 3.5 0 0 1 7 0v2.5M12 14.5v2"/></symbol></svg>
+<header class="bo-head">
+  <svg class="bo-head__mark" viewBox="0 0 32 32" aria-hidden="true"><path fill-rule="evenodd" d="M1 16C6 4 26 4 31 16C26 28 6 28 1 16ZM16 9.4a6.6 6.6 0 1 0 0 13.2a6.6 6.6 0 1 0 0-13.2ZM16 12.9a3.1 3.1 0 1 0 0 6.2a3.1 3.1 0 1 0 0-6.2ZM17.6 13.7a1.05 1.05 0 1 0 0 2.1a1.05 1.05 0 1 0 0-2.1Z"/></svg>
+  <h1 class="bo-head__name">bonis oculis</h1>
+  <span class="bo-tag" data-i18n="betaTag">Beta</span>
+  <div class="bo-lang" role="group" aria-labelledby="langLabel">
+    <span id="langLabel" class="bo-sr-only" data-i18n="languageLabel">Language</span>
+    <button type="button" class="bo-lang__opt" data-lang="en" lang="en" aria-pressed="false">EN</button>
+    <button type="button" class="bo-lang__opt" data-lang="es" lang="es" aria-pressed="false">ES</button>
+  </div>
+</header>
+
+<main id="main" class="bo-main">
+  <section id="msg" class="bo-card bo-stack" hidden>
+    <p id="msgText" class="bo-msg"></p>
+    <div id="msgActions" class="bo-stack" hidden>
+      <button type="button" id="protectTab" class="bo-button bo-button--primary bo-button--block">
+        <svg class="bo-icon" aria-hidden="true"><use href="#bo-i-shield-check"/></svg><span data-i18n="protectThisTab">Protect this tab</span>
+      </button>
+      <p class="bo-hint" data-i18n="protectThisTabHelp"></p>
+      <button type="button" id="allowAll" class="bo-button bo-button--secondary bo-button--block">
+        <svg class="bo-icon" aria-hidden="true"><use href="#bo-i-globe"/></svg><span data-i18n="allowAllSites">Turn on for all websites</span>
+      </button>
+      <p class="bo-hint" data-i18n="allowAllSitesHelp"></p>
+    </div>
+  </section>
+
+  <div id="ready" class="bo-stack bo-stack--loose" hidden>
+    <section class="bo-card bo-status" aria-labelledby="scenesLine">
+      <p class="bo-overline"><svg class="bo-icon" aria-hidden="true"><use href="#bo-i-globe"/></svg><span data-i18n="statusLabel">On this tab</span>: <span id="siteName"></span></p>
+      <p id="scenesLine" class="bo-status__big bo-display" aria-live="polite"></p>
+      <p id="mutesLine" class="bo-status__sub" hidden></p>
+      <ul id="catChips" class="bo-chips" hidden></ul>
+      <p class="bo-status__source"><span data-i18n="sourceLabel">Reading from</span>: <span id="sourceText"></span></p>
+      <div id="noTrack" class="bo-note" hidden>
+        <svg class="bo-icon" aria-hidden="true"><use href="#bo-i-info"/></svg>
+        <div class="bo-stack"><p id="noTrackText"></p>
+          <button type="button" id="readCaptions" class="bo-button bo-button--secondary bo-button--sm" hidden><span data-i18n="readCaptions">Read this video's captions</span></button>
+        </div>
+      </div>
+      <p id="drmNote" class="bo-note" hidden><svg class="bo-icon" aria-hidden="true"><use href="#bo-i-eye-off"/></svg><span data-i18n="drmNote"></span></p>
+      <p id="rollingNote" class="bo-note" hidden><svg class="bo-icon" aria-hidden="true"><use href="#bo-i-clock"/></svg><span data-i18n="rollingNote"></span></p>
+      <p id="adNote" class="bo-note" hidden><svg class="bo-icon" aria-hidden="true"><use href="#bo-i-info"/></svg><span data-i18n="adNote"></span></p>
+    </section>
+
+    <section class="bo-panic">
+      <button type="button" id="panicBtn" class="bo-button bo-button--secondary bo-button--lg bo-button--block" aria-pressed="false">
+        <svg class="bo-icon" aria-hidden="true"><use href="#bo-i-panic"/></svg><span id="panicLabel"></span>
+      </button>
+      <p id="panicHint" class="bo-hint"></p>
+    </section>
+
+    <details id="levelsBox" class="bo-card bo-section">
+      <summary data-i18n="levelsTitle">What to skip on this video</summary>
+      <div class="bo-section__body">
+        <div id="levels"></div>
+        <p class="bo-hint" data-i18n="languageMuteNote"></p>
+        <p id="levelsSkipNote" class="bo-hint" data-i18n="levelsFromSkipFile" hidden></p>
+        <button type="button" id="resetLevels" class="bo-button bo-button--ghost bo-button--sm" hidden><span data-i18n="resetLevels">Use my defaults</span></button>
+      </div>
+    </details>
+
+    <details id="filesBox" class="bo-card bo-section">
+      <summary data-i18n="filesTitle">Your files</summary>
+      <div class="bo-section__body">
+        <div class="bo-stack">
+          <h2 class="bo-file__title" data-i18n="useSubFile">Use a subtitle file</h2>
+          <p class="bo-hint" data-i18n="useSubFileHelp"></p>
+          <ul id="subList" class="bo-filelist"></ul>
+          <label id="subLabel" class="bo-button bo-button--secondary bo-button--sm bo-filebtn" hidden>
+            <svg class="bo-icon" aria-hidden="true"><use href="#bo-i-upload"/></svg><span data-i18n="chooseFile">Choose a file</span>
+            <input type="file" id="subInput" class="bo-sr-only" accept=".srt,.vtt,text/vtt,application/x-subrip">
+          </label>
+          <button type="button" id="subWindow" class="bo-button bo-button--secondary bo-button--sm bo-filebtn">
+            <svg class="bo-icon" aria-hidden="true"><use href="#bo-i-upload"/></svg><span data-i18n="chooseFile">Choose a file</span>
+          </button>
+        </div>
+        <div class="bo-stack">
+          <h2 class="bo-file__title" data-i18n="importSkip">Import a skip file</h2>
+          <p class="bo-hint" data-i18n="importSkipHelp"></p>
+          <ul id="skipList" class="bo-filelist"></ul>
+          <label id="skipLabel" class="bo-button bo-button--secondary bo-button--sm bo-filebtn" hidden>
+            <svg class="bo-icon" aria-hidden="true"><use href="#bo-i-upload"/></svg><span data-i18n="chooseFile">Choose a file</span>
+            <input type="file" id="skipInput" class="bo-sr-only" accept=".json,application/json">
+          </label>
+          <button type="button" id="skipWindow" class="bo-button bo-button--secondary bo-button--sm bo-filebtn">
+            <svg class="bo-icon" aria-hidden="true"><use href="#bo-i-upload"/></svg><span data-i18n="chooseFile">Choose a file</span>
+          </button>
+        </div>
+        <p id="fileWindowNote" class="bo-hint" data-i18n="fileWindowNote"></p>
+      </div>
+    </details>
+
+    <details id="timingBox" class="bo-card bo-section">
+      <summary data-i18n="timingTitle">Timing</summary>
+      <div class="bo-section__body">
+        <p class="bo-hint" data-i18n="timingHelp"></p>
+        <div id="timingRows" class="bo-stack bo-stack--loose"></div>
+        <p id="timingNone" class="bo-hint" data-i18n="timingNone"></p>
+      </div>
+    </details>
+  </div>
+</main>
+
+<footer class="bo-foot">
+  <button type="button" id="openOptions" class="bo-link"><svg class="bo-icon" aria-hidden="true"><use href="#bo-i-settings"/></svg><span data-i18n="openOptions">Settings and privacy</span></button>
+</footer>
+<div id="toast" class="bo-toast" role="status" aria-live="polite" hidden></div>
+
+<script src="../shared/skipfile.js"></script>
+<script src="../common/i18n.js"></script>
+<script src="../common/store.js"></script>
+<script src="../common/ui.js"></script>
+<script src="popup.js"></script>
+</body>
+</html>

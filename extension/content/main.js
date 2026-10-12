@@ -7,7 +7,8 @@
  * 4. Plan = ranges from the page's subtitles (subscan) + the parent's own
  *    subtitle file (shifted by the offset) + imported skip files (offset) +
  *    moments hidden with the panic key. All are enforced together (catch
- *    too much rather than too little).
+ *    too much rather than too little). The subtitle file and the skip files
+ *    each have their own offset (they may come from different editions).
  * 5. Report the number of planned scenes to the service worker (badge) and
  *    answer the popup.
  */
@@ -27,7 +28,7 @@
   var uiLang = 'en';
   var site = adapter.id === 'generic' ? location.hostname || 'file' : adapter.id;
   var videoId = '';
-  var record = { offset: 0, panic: [] };
+  var record = { offset: 0, skipOffset: 0, panic: [] };
   var skipFiles = [];
   var plan = [];
   var summary = { scenes: 0, mutes: 0, byCategory: {} };
@@ -151,7 +152,7 @@
   }
 
   function buildPlan() {
-    var lv = levels(), out = [], tracks = pageTracks(), scores = [], i, list, j, r, off = record.offset || 0, d = duration();
+    var lv = levels(), out = [], tracks = pageTracks(), scores = [], i, list, j, r, off = record.offset || 0, skipOff = record.skipOffset || 0, d = duration();
     if (!lexicons) { return []; }
     for (i = 0; i < tracks.length; i++) {
       scores.push(sub.score(tracks[i].cues, lexFor(tracks[i].lang, tracks[i].cues), { duration: d }));
@@ -164,8 +165,8 @@
       list = BO.skipfile.enforced(skipFiles[i].doc);
       for (j = 0; j < list.length; j++) {
         r = list[j];
-        r.start = Math.max(0, r.start + off);
-        r.end = r.end + off;
+        r.start = Math.max(0, r.start + skipOff);
+        r.end = r.end + skipOff;
         r.source = r.source || 'imported';
         if (r.end > r.start) { out.push(r); }
       }
@@ -243,6 +244,7 @@
       levels: levels(),
       customLevels: !!record.levels,
       offset: record.offset || 0,
+      skipOffset: record.skipOffset || 0,
       panic: enforcer.isPanic(),
       blocked: es.blocked,
       scenes: summary.scenes,
@@ -323,8 +325,10 @@
         return true;
       case 'setOffset':
         d = Number(msg.seconds);
-        if (!isFinite(d)) { reply(state()); return false; }
-        saveRecord({ offset: Math.round(d * 100) / 100 }, function () { reply(state()); });
+        if (!isFinite(d) || Math.abs(d) > 36000) { reply(state()); return false; }
+        res = {};
+        res[msg.which === 'skip' ? 'skipOffset' : 'offset'] = Math.round(d * 100) / 100;
+        saveRecord(res, function () { reply(state()); });
         return true;
       case 'autoSync':
         cues = fileCues();

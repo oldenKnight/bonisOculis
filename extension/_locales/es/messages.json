@@ -1,0 +1,490 @@
+{
+  "extName": {
+    "message": "bonis oculis",
+    "description": "Extension name"
+  },
+  "extDescription": {
+    "message": "Omite las escenas que elegiste evitar en videos en línea, usando los subtítulos del propio video. Nada sale de tu computadora.",
+    "description": "Store description"
+  },
+  "cmdPanic": {
+    "message": "Ocultar el video ahora (presiona otra vez para mostrarlo)",
+    "description": "Keyboard command"
+  },
+  "betaTag": {
+    "message": "Beta"
+  },
+  "siteGeneric": {
+    "message": "Esta página",
+    "description": "Adapter name"
+  },
+  "siteYoutube": {
+    "message": "YouTube"
+  },
+  "siteNetflix": {
+    "message": "Netflix"
+  },
+  "sitePrimevideo": {
+    "message": "Prime Video"
+  },
+  "siteDisneyplus": {
+    "message": "Disney+"
+  },
+  "statusLabel": {
+    "message": "En esta pestaña"
+  },
+  "noVideo": {
+    "message": "Aún no encontramos un video en esta página. Inicia el video y vuelve a abrir esto."
+  },
+  "notSetUp": {
+    "message": "bonis oculis no está activado para este sitio."
+  },
+  "protectThisTab": {
+    "message": "Proteger esta pestaña",
+    "description": "Button"
+  },
+  "protectThisTabHelp": {
+    "message": "Funciona hasta que cierres la pestaña. Podemos perder subtítulos que la página ya cargó; vuelve a iniciar el video después."
+  },
+  "allowAllSites": {
+    "message": "Activar en todos los sitios",
+    "description": "Button"
+  },
+  "allowAllSitesHelp": {
+    "message": "Chrome te lo pregunta una vez. Aun así solo leemos subtítulos, nunca la imagen."
+  },
+  "unsupportedPage": {
+    "message": "Abre una página con un video para usar bonis oculis."
+  },
+  "sourceLabel": {
+    "message": "Leyendo de"
+  },
+  "sourcePage": {
+    "message": "Subtítulos de esta página"
+  },
+  "sourceFile": {
+    "message": "Tu archivo de subtítulos: $NAME$",
+    "placeholders": {
+      "name": {
+        "content": "$1",
+        "example": "3"
+      }
+    }
+  },
+  "sourceSkip": {
+    "message": "Archivo de escenas: $TITLE$",
+    "placeholders": {
+      "title": {
+        "content": "$1",
+        "example": "3"
+      }
+    }
+  },
+  "sourceMarks": {
+    "message": "Momentos que ocultaste: $COUNT$",
+    "placeholders": {
+      "count": {
+        "content": "$1",
+        "example": "3"
+      }
+    }
+  },
+  "sourceNone": {
+    "message": "Aún no hay subtítulos"
+  },
+  "scenesOne": {
+    "message": "Se omitirá 1 escena"
+  },
+  "scenesMany": {
+    "message": "Se omitirán $COUNT$ escenas",
+    "placeholders": {
+      "count": {
+        "content": "$1",
+        "example": "3"
+      }
+    }
+  },
+  "scenesNone": {
+    "message": "Por ahora no hay escenas que omitir"
+  },
+  "scenesWaiting": {
+    "message": "Esperando los subtítulos"
+  },
+  "muteOne": {
+    "message": "Se silenciará 1 momento"
+  },
+  "muteMany": {
+    "message": "Se silenciarán $COUNT$ momentos",
+    "placeholders": {
+      "count": {
+        "content": "$1",
+        "example": "3"
+      }
+    }
+  },
+  "noTrackGeneric": {
+    "message": "Aún no pudimos leer subtítulos en esta página. Activa los subtítulos del video (CC) un momento, o usa un archivo de subtítulos que tengas."
+  },
+  "noTrackYoutube": {
+    "message": "Activa los subtítulos (CC) una vez para que podamos leerlos. Después puedes apagarlos."
+  },
+  "readCaptions": {
+    "message": "Leer los subtítulos de este video",
+    "description": "Button"
+  },
+  "noTrackStreaming": {
+    "message": "Activa los subtítulos en el reproductor una vez para que podamos leerlos. Después puedes apagarlos."
+  },
+  "rollingNote": {
+    "message": "Este sitio envía los subtítulos poco a poco, así que las escenas aparecen poco antes de reproducirse."
+  },
+  "drmNote": {
+    "message": "En este sitio no siempre podemos adelantar. Cuando no se puede, tapamos la imagen y quitamos el sonido hasta que termine la escena."
+  },
+  "adNote": {
+    "message": "Se está reproduciendo un anuncio. Las escenas se revisan otra vez cuando siga el video."
+  },
+  "levelsTitle": {
+    "message": "Qué omitir en este video"
+  },
+  "levelsDefaultsTitle": {
+    "message": "Qué omitir de forma predeterminada"
+  },
+  "levelsFromSkipFile": {
+    "message": "Las escenas de un archivo de escenas siguen lo que elegiste en tu computadora."
+  },
+  "resetLevels": {
+    "message": "Usar mis valores predeterminados",
+    "description": "Button"
+  },
+  "catNudity": {
+    "message": "Desnudez"
+  },
+  "catSex": {
+    "message": "Sexo"
+  },
+  "catImplied": {
+    "message": "Insinuado"
+  },
+  "catKissing": {
+    "message": "Besos"
+  },
+  "catGore": {
+    "message": "Gore"
+  },
+  "catLanguage": {
+    "message": "Lenguaje"
+  },
+  "catOther": {
+    "message": "Otro"
+  },
+  "levelOff": {
+    "message": "Apagado"
+  },
+  "levelLight": {
+    "message": "Ligero"
+  },
+  "levelModerate": {
+    "message": "Moderado"
+  },
+  "levelStrict": {
+    "message": "Estricto"
+  },
+  "levelOffDesc": {
+    "message": "No se omite nada de esto."
+  },
+  "levelLightDesc": {
+    "message": "Omite solo las escenas de las que estamos muy seguros."
+  },
+  "levelModerateDesc": {
+    "message": "Omite las escenas claras y casi todas las dudosas."
+  },
+  "levelStrictDesc": {
+    "message": "Omite todo lo que podría serlo, aun con dudas. Ideal para niños pequeños."
+  },
+  "languageMuteNote": {
+    "message": "El lenguaje fuerte se silencia, no se omite."
+  },
+  "filesTitle": {
+    "message": "Tus archivos"
+  },
+  "useSubFile": {
+    "message": "Usar un archivo de subtítulos",
+    "description": "Button"
+  },
+  "useSubFileHelp": {
+    "message": "¿Tienes un archivo .srt o .vtt de este video? Lo leemos para encontrar escenas. Se queda en este navegador."
+  },
+  "importSkip": {
+    "message": "Importar un archivo de escenas",
+    "description": "Button"
+  },
+  "importSkipHelp": {
+    "message": "Un archivo hecho por bonis oculis en tu computadora (.bonis.json)."
+  },
+  "chooseFile": {
+    "message": "Elegir un archivo",
+    "description": "Button"
+  },
+  "fileWindowNote": {
+    "message": "Los archivos se abren en una ventana pequeña para que Chrome no cierre este panel."
+  },
+  "subFileOk": {
+    "message": "Agregamos el archivo de subtítulos. Encontramos $COUNT$ escenas.",
+    "placeholders": {
+      "count": {
+        "content": "$1",
+        "example": "3"
+      }
+    }
+  },
+  "subFileEmpty": {
+    "message": "No encontramos subtítulos en ese archivo. Elige un archivo de subtítulos .srt o .vtt e inténtalo de nuevo."
+  },
+  "skipFileOk": {
+    "message": "Agregamos el archivo de escenas: $COUNT$ escenas.",
+    "placeholders": {
+      "count": {
+        "content": "$1",
+        "example": "3"
+      }
+    }
+  },
+  "skipFileInvalid": {
+    "message": "No pudimos usar ese archivo de escenas. Expórtalo otra vez desde bonis oculis en tu computadora e inténtalo de nuevo."
+  },
+  "fileTooBig": {
+    "message": "Ese archivo es demasiado grande para ser de subtítulos o de escenas. Elige otro archivo."
+  },
+  "remove": {
+    "message": "Quitar",
+    "description": "Button"
+  },
+  "removed": {
+    "message": "Se quitó."
+  },
+  "timingTitle": {
+    "message": "Sincronía"
+  },
+  "timingHelp": {
+    "message": "Si las escenas se omiten muy pronto o muy tarde, mueve la sincronía de tus archivos."
+  },
+  "timingValue": {
+    "message": "$SECONDS$ s",
+    "placeholders": {
+      "seconds": {
+        "content": "$1",
+        "example": "3"
+      }
+    }
+  },
+  "timingEarlier": {
+    "message": "0.5 s antes",
+    "description": "Button"
+  },
+  "timingLater": {
+    "message": "0.5 s después",
+    "description": "Button"
+  },
+  "timingNone": {
+    "message": "Agrega un archivo de subtítulos o de escenas para ajustar su sincronía."
+  },
+  "timingSubLabel": {
+    "message": "Archivo de subtítulos"
+  },
+  "timingSkipLabel": {
+    "message": "Archivos de escenas"
+  },
+  "sceneCountOne": {
+    "message": "1 escena"
+  },
+  "sceneCountMany": {
+    "message": "$COUNT$ escenas",
+    "placeholders": {
+      "count": {
+        "content": "$1",
+        "example": "3"
+      }
+    }
+  },
+  "subFileOkOne": {
+    "message": "Agregamos el archivo de subtítulos. Encontramos 1 escena."
+  },
+  "skipFileOkOne": {
+    "message": "Agregamos el archivo de escenas: 1 escena."
+  },
+  "autoSync": {
+    "message": "Ajustar la sincronía automáticamente",
+    "description": "Button"
+  },
+  "autoSyncOk": {
+    "message": "Sincronía ajustada: $SECONDS$ s.",
+    "placeholders": {
+      "seconds": {
+        "content": "$1",
+        "example": "3"
+      }
+    }
+  },
+  "autoSyncFail": {
+    "message": "No pudimos ajustar la sincronía. Activa los subtítulos del sitio un minuto e inténtalo de nuevo."
+  },
+  "autoSyncNeedFile": {
+    "message": "Primero agrega un archivo de subtítulos y luego ajusta la sincronía."
+  },
+  "panicButton": {
+    "message": "Ocultar el video ahora",
+    "description": "Button"
+  },
+  "panicRestore": {
+    "message": "Mostrar el video otra vez",
+    "description": "Button"
+  },
+  "panicHelp": {
+    "message": "Atajo: $KEYS$. El momento se guarda y se omite la próxima vez.",
+    "placeholders": {
+      "keys": {
+        "content": "$1",
+        "example": "3"
+      }
+    }
+  },
+  "forgetMarks": {
+    "message": "Olvidar mis momentos ocultos",
+    "description": "Button"
+  },
+  "languageLabel": {
+    "message": "Idioma"
+  },
+  "langEnglish": {
+    "message": "English"
+  },
+  "langSpanish": {
+    "message": "Español"
+  },
+  "openOptions": {
+    "message": "Ajustes y privacidad",
+    "description": "Link"
+  },
+  "overlaySkipped": {
+    "message": "Escena omitida"
+  },
+  "overlayHidden": {
+    "message": "Oculto"
+  },
+  "overlayHiddenHint": {
+    "message": "Presiona $KEYS$ para mostrar el video otra vez.",
+    "placeholders": {
+      "keys": {
+        "content": "$1",
+        "example": "3"
+      }
+    }
+  },
+  "somethingWrong": {
+    "message": "No pudimos comunicarnos con esta pestaña. Vuelve a cargar la página e inténtalo de nuevo."
+  },
+  "optionsTitle": {
+    "message": "Ajustes de bonis oculis"
+  },
+  "defaultsHelp": {
+    "message": "Estas opciones se aplican a cada video nuevo. Puedes cambiarlas para un video desde el botón de la barra."
+  },
+  "presetLittle": {
+    "message": "Niños pequeños",
+    "description": "Button"
+  },
+  "presetTeens": {
+    "message": "Adolescentes",
+    "description": "Button"
+  },
+  "saved": {
+    "message": "Guardado."
+  },
+  "sitesTitle": {
+    "message": "Sitios web"
+  },
+  "sitesBuiltIn": {
+    "message": "Siempre activo en YouTube, Netflix, Prime Video y Disney+."
+  },
+  "sitesAllOn": {
+    "message": "También activo en cualquier otro sitio con video."
+  },
+  "sitesAllOff": {
+    "message": "No está activo en otros sitios. Usa Proteger esta pestaña o actívalo en todos los sitios."
+  },
+  "sitesTurnOff": {
+    "message": "Desactivar en otros sitios",
+    "description": "Button"
+  },
+  "shortcutTitle": {
+    "message": "Atajo de teclado"
+  },
+  "shortcutHelp": {
+    "message": "Presiona $KEYS$ para ocultar el video de inmediato. Presiónalo otra vez para mostrarlo.",
+    "placeholders": {
+      "keys": {
+        "content": "$1",
+        "example": "3"
+      }
+    }
+  },
+  "shortcutNotSet": {
+    "message": "sin asignar"
+  },
+  "openShortcuts": {
+    "message": "Cambiar el atajo",
+    "description": "Button"
+  },
+  "privacyTitle": {
+    "message": "Privacidad"
+  },
+  "privacy1": {
+    "message": "bonis oculis nunca envía nada a ningún lado. No tiene cuenta, ni estadísticas, ni ajustes remotos."
+  },
+  "privacy2": {
+    "message": "Nunca mira la imagen. Solo lee el texto de los subtítulos que la propia página descarga, o un archivo que tú eliges."
+  },
+  "privacy3": {
+    "message": "Tus opciones, archivos y momentos ocultos se guardan solo en este navegador. Al quitar la extensión, se borran."
+  },
+  "privacy4": {
+    "message": "No descarga ni descifra video protegido, y nunca graba la pantalla ni el sonido."
+  },
+  "limitsTitle": {
+    "message": "Qué puede y qué no puede hacer"
+  },
+  "limits1": {
+    "message": "Encuentra escenas solo por los subtítulos, así que puede pasar por alto escenas sin palabras ni señales de sonido. Puedes ocultar cualquier momento con el atajo."
+  },
+  "limits2": {
+    "message": "En Netflix, Prime Video y Disney+ quizá no pueda adelantar. Entonces tapa la imagen y quita el sonido hasta que termine la escena."
+  },
+  "limits3": {
+    "message": "No tiene PIN. Para que los niños no lo cambien, usa para ellos un perfil de Chrome supervisado."
+  },
+  "reloadToStart": {
+    "message": "Activado. Vuelve a cargar la página del video para empezar."
+  },
+  "forgetTitle": {
+    "message": "Empezar de nuevo"
+  },
+  "forgetAll": {
+    "message": "Olvidar todo",
+    "description": "Button"
+  },
+  "forgetAllHelp": {
+    "message": "Quita de este navegador tus archivos importados, momentos ocultos y opciones."
+  },
+  "forgetAllConfirm": {
+    "message": "Sí, olvidar todo",
+    "description": "Button"
+  },
+  "keepIt": {
+    "message": "Conservarlo",
+    "description": "Button"
+  },
+  "forgetAllDone": {
+    "message": "Se quitó todo de este navegador."
+  }
+}

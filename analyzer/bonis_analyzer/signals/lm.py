@@ -11,7 +11,7 @@ from __future__ import annotations
 import json
 import math
 import re
-from typing import Any, Callable, Dict, List, Optional, Sequence
+from typing import Callable, Dict, List, Optional, Sequence
 
 import numpy as np
 
@@ -63,6 +63,8 @@ def build_prompt(text: str) -> str:
 def available() -> bool:
     try:
         import llama_cpp  # noqa: F401, PLC0415
+
+        del llama_cpp
     except Exception:  # noqa: BLE001
         return False
     return True
@@ -98,15 +100,19 @@ class LlamaLM:
     """Real scorer. Construct once per stage; call ``close()`` (then gc) after.
     The constant few-shot prefix stays in llama.cpp's KV cache between windows."""
 
-    def __init__(self, model_path: str, threads: int = 2, gpu: bool = False, n_ctx: int = 2048) -> None:
+    def __init__(self, model_path: str, threads: int = 2, gpu: bool = False, n_ctx: int = 1536) -> None:
         from llama_cpp import Llama  # noqa: PLC0415
 
-        self.llm = Llama(model_path=model_path, n_ctx=n_ctx, n_threads=max(1, threads), n_batch=512,
+        self.n_ctx = n_ctx
+        self.llm = Llama(model_path=model_path, n_ctx=n_ctx, n_threads=max(1, threads), n_batch=128,
                          n_gpu_layers=-1 if gpu else 0, seed=0, verbose=False)
 
     def score(self, text: str) -> Dict[str, float]:
-        res = self.llm.create_completion(build_prompt(text), max_tokens=48, temperature=0.0, top_k=1,
-                                         stop=["}"], seed=0)
+        prompt = build_prompt(text)
+        while len(self.llm.tokenize(prompt.encode("utf-8"), special=True)) > self.n_ctx - 64 and len(text) > 40:
+            text = text[: len(text) // 2]
+            prompt = build_prompt(text)
+        res = self.llm.create_completion(prompt, max_tokens=48, temperature=0.0, top_k=1, stop=["}"], seed=0)
         return parse_answer(ANSWER_PREFIX + (res["choices"][0].get("text") or "") + "}", scale10=True)
 
     def close(self) -> None:

@@ -71,6 +71,19 @@ D19 Design accepted: Atkinson Hyperlegible Next (body) + Fraunces (titles), both
 D17 PIN is a deterrent, not a security boundary; hashed properly; settings tamper-evident; help says
     so plainly.
 
+## Honest findings so far (brief 6.5)
+- Qwen3-0.6B scores SDH-only windows such as "[moaning]" as 0; the lexicon carries that signal.
+  Keep 0.6B for memory; re-evaluate 1.7B once the owner's hand-marked files give numbers.
+- CLIP zero-shot flagged "gore" on a synthetic colour test pattern (red areas). Expect false
+  alarms on real footage until thresholds are tuned against hand-marked movies. Catch-too-much
+  is the brief's rule, but the review screen must make rejecting easy (it does: one click).
+- Measured on this 4-core container, CPU only: NudeNet 54 ms/frame, CLIP 117 ms/frame,
+  LM 1.1 s per 60 s dialogue window, vision stage peak 238 MB, LM stage peak 0.93 GB.
+  A 2 h film at 1 fps: ~20 min vision + ~3 min LM + decode time, before audio/captions.
+- Kid-mode seeks are intercepted before decoding; the after-the-fact enforcement remains as a
+  safety net. A seek to a range end still decodes (and discards) frames from the previous keyframe.
+- Blur fallback to hide is untested under real frame drops (needs a slow machine).
+
 ## Quality board (brief 5.2 + 5.2b) — what each reviewer will demand
 - mpv/VLC engineer: no decode-path cost at playback; frame-accurate seeks landing on keyframes with
   lead-in; HEVC/AC3/DTS passthrough; no IPC race on skip; clean-copy via stream copy.
@@ -123,8 +136,8 @@ M0  Ledger + brief in repo ........................................ DONE 2026-10
 M1a docs/PLAN.md + spec/skipfile.schema.json + SKIPFILE.md ........ DONE 2026-10-12
 M1b Sonnet visual design system + logo (docs/DESIGN.md, tokens.css) DONE 2026-10-12 (reviewed)
 M2  Skip-file spec v1 + validator + fixtures + EDL export ......... DONE 2026-10-12 (reviewed)
-M3  Player: mpv control, Lua skip script, marking + panic keys .... todo
-M4  Analyzer v1: subtitles + frames, resumable, checkpointed ...... todo
+M3  Player: mpv control, Lua skip script, marking + panic keys .... DONE 2026-10-12 (reviewed)
+M4  Analyzer v1: subtitles + frames, resumable, checkpointed ...... DONE 2026-10-12 (reviewed)
 M5  App shell: library, review timeline, PIN, import/export, clean copy  todo
 M6  Extension: subtitle pre-read + skip-file import ............... todo
 M7  Analyzer v2: audio + captions + fusion tuning + measurement .... todo

@@ -1,0 +1,11 @@
+/* bonis oculis options page layout. Tokens: ../css/tokens.css (copy of desktop/renderer/css/tokens.css). */
+.bo-ohead { display: flex; align-items: center; gap: var(--bo-space-3); flex-wrap: wrap; max-width: 46rem; margin: 0 auto; padding: var(--bo-space-7) var(--bo-gutter, var(--bo-space-5)) var(--bo-space-5); }
+.bo-ohead__mark { width: 2.5rem; height: 2.5rem; fill: var(--bo-primary); flex: none; }
+.bo-ohead h1 { font-size: var(--bo-fs-3xl); margin-inline-end: auto; }
+.bo-omain { display: grid; gap: var(--bo-space-5); max-width: 46rem; margin: 0 auto; padding: 0 var(--bo-gutter, var(--bo-space-5)) var(--bo-space-9); }
+.bo-osec { display: grid; gap: var(--bo-space-3); padding: var(--bo-space-6); }
+.bo-osec h2 { font-size: var(--bo-fs-xl); }
+.bo-presets, .bo-row { display: flex; flex-wrap: wrap; gap: var(--bo-space-2); }
+.bo-points { display: grid; gap: var(--bo-space-3); }
+.bo-points li { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: var(--bo-space-3); align-items: start; }
+.bo-points .bo-icon { color: var(--bo-primary); margin-top: 0.15em; }

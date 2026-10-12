@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="en-US">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>bonis oculis</title>
+<link rel="stylesheet" href="../css/tokens.css">
+<link rel="stylesheet" href="../css/ui.css">
+<link rel="stylesheet" href="options.css">
+</head>
+<body class="bo-options">
+<!-- Icon sprite: symbols pasted from desktop/renderer/assets/icons (DESIGN section 9). -->
+<svg class="bo-sr-only" width="0" height="0" aria-hidden="true" focusable="false"><symbol id="bo-i-cat-nudity" viewBox="0 0 24 24"><circle cx="12" cy="7.5" r="3.5"/><path d="M5 20.5c.5-4.5 3.2-7 7-7s6.5 2.5 7 7"/></symbol><symbol id="bo-i-cat-sex" viewBox="0 0 24 24"><circle cx="9" cy="12" r="5.5"/><circle cx="15" cy="12" r="5.5"/></symbol><symbol id="bo-i-cat-implied" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" stroke-dasharray="3.2 3.1"/><path d="M8.5 12h.1M12 12h.1M15.5 12h.1"/></symbol><symbol id="bo-i-cat-kissing" viewBox="0 0 24 24"><path d="M12 20s-7.5-4.4-7.5-10.2A4.3 4.3 0 0 1 12 7.2a4.3 4.3 0 0 1 7.5 2.6C19.5 15.6 12 20 12 20z"/></symbol><symbol id="bo-i-cat-gore" viewBox="0 0 24 24"><path d="M12 3.5s6 6.3 6 10.7a6 6 0 0 1-12 0C6 9.8 12 3.5 12 3.5z"/></symbol><symbol id="bo-i-cat-language" viewBox="0 0 24 24"><path d="M5 4.5h14a1.5 1.5 0 0 1 1.5 1.5v9a1.5 1.5 0 0 1-1.5 1.5h-7L8 20.5v-4H5A1.5 1.5 0 0 1 3.5 15V6A1.5 1.5 0 0 1 5 4.5z"/><path d="M12 8v3.2M12 13.5v.1"/></symbol><symbol id="bo-i-cat-other" viewBox="0 0 24 24"><path d="M12.5 3.5h7v7L11 19a2 2 0 0 1-2.8 0l-3.7-3.7a2 2 0 0 1 0-2.8z"/><path d="M16 8v.1"/></symbol><symbol id="bo-i-panic" viewBox="0 0 24 24"><path d="M8.5 3.5h7l5 5v7l-5 5h-7l-5-5v-7z"/><path d="M8.5 12h7"/></symbol><symbol id="bo-i-upload" viewBox="0 0 24 24"><path d="M12 15V4M7.5 8.5L12 4l4.5 4.5M5 19.5h14"/></symbol><symbol id="bo-i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v5.5M12 7.8v.1"/></symbol><symbol id="bo-i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.2 2"/></symbol><symbol id="bo-i-settings" viewBox="0 0 24 24"><path d="M4 7h9M17 7h3M4 17h3M11 17h9"/><circle cx="15" cy="7" r="2"/><circle cx="9" cy="17" r="2"/></symbol><symbol id="bo-i-globe" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.8 2.6 4 5.6 4 9s-1.2 6.4-4 9c-2.8-2.6-4-5.6-4-9s1.2-6.4 4-9z"/></symbol><symbol id="bo-i-trash" viewBox="0 0 24 24"><path d="M4.5 6.5h15M9.5 6.5v-2h5v2M6.5 6.5l.8 12.5a1.5 1.5 0 0 0 1.5 1.5h6.4a1.5 1.5 0 0 0 1.5-1.5l.8-12.5M10 10.5v6M14 10.5v6"/></symbol><symbol id="bo-i-shield-check" viewBox="0 0 24 24"><path d="M12 3.5l7 2.5v5.5c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6z"/><path d="M9 12l2.2 2.2L15.5 10"/></symbol><symbol id="bo-i-eye-off" viewBox="0 0 24 24"><path d="M9.5 5.8a9 9 0 0 1 2.5-.3c6 0 9.5 6.5 9.5 6.5a16 16 0 0 1-2.8 3.6M6.3 7.5A16 16 0 0 0 2.5 12S6 18.5 12 18.5a9 9 0 0 0 3.6-.8"/><path d="M9.9 9.9a3 3 0 0 0 4.2 4.2M4 4l16 16"/></symbol><symbol id="bo-i-alert" viewBox="0 0 24 24"><path d="M12 4L2.8 19.5h18.4z"/><path d="M12 10v4.5M12 17.3v.1"/></symbol><symbol id="bo-i-check" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></symbol><symbol id="bo-i-keyboard" viewBox="0 0 24 24"><rect x="2.5" y="6" width="19" height="12" rx="2.5"/><path d="M6.5 10h.1M10 10h.1M14 10h.1M17.5 10h.1M7.5 14h9"/></symbol><symbol id="bo-i-lock" viewBox="0 0 24 24"><rect x="5" y="10.5" width="14" height="10" rx="2.5"/><path d="M8.5 10.5V8a3.5 3.5 0 0 1 7 0v2.5M12 14.5v2"/></symbol></svg>
+<header class="bo-ohead">
+  <svg class="bo-ohead__mark" viewBox="0 0 32 32" aria-hidden="true"><path fill-rule="evenodd" d="M1 16C6 4 26 4 31 16C26 28 6 28 1 16ZM16 9.4a6.6 6.6 0 1 0 0 13.2a6.6 6.6 0 1 0 0-13.2ZM16 12.9a3.1 3.1 0 1 0 0 6.2a3.1 3.1 0 1 0 0-6.2ZM17.6 13.7a1.05 1.05 0 1 0 0 2.1a1.05 1.05 0 1 0 0-2.1Z"/></svg>
+  <h1 data-i18n="optionsTitle">bonis oculis settings</h1>
+  <span class="bo-tag" data-i18n="betaTag">Beta</span>
+  <div class="bo-lang" role="group" aria-labelledby="langLabel">
+    <span id="langLabel" class="bo-sr-only" data-i18n="languageLabel">Language</span>
+    <button type="button" class="bo-lang__opt" data-lang="en" lang="en" aria-pressed="false">EN</button>
+    <button type="button" class="bo-lang__opt" data-lang="es" lang="es" aria-pressed="false">ES</button>
+  </div>
+</header>
+<main class="bo-omain">
+  <section class="bo-card bo-osec" aria-labelledby="defaultsTitle">
+    <h2 id="defaultsTitle" data-i18n="levelsDefaultsTitle">What to skip by default</h2>
+    <p class="bo-hint" data-i18n="defaultsHelp"></p>
+    <div class="bo-presets">
+      <button type="button" id="presetLittle" class="bo-button bo-button--secondary bo-button--sm"><span data-i18n="presetLittle">Little kids</span></button>
+      <button type="button" id="presetTeens" class="bo-button bo-button--secondary bo-button--sm"><span data-i18n="presetTeens">Teens</span></button>
+    </div>
+    <div id="levels"></div>
+    <p class="bo-hint" data-i18n="languageMuteNote"></p>
+  </section>
+
+  <section class="bo-card bo-osec" aria-labelledby="sitesTitle">
+    <h2 id="sitesTitle" data-i18n="sitesTitle">Websites</h2>
+    <p data-i18n="sitesBuiltIn"></p>
+    <p id="sitesStatus" class="bo-hint"></p>
+    <div class="bo-row">
+      <button type="button" id="sitesOn" class="bo-button bo-button--secondary bo-button--sm"><svg class="bo-icon" aria-hidden="true"><use href="#bo-i-globe"/></svg><span data-i18n="allowAllSites">Turn on for all websites</span></button>
+      <button type="button" id="sitesOff" class="bo-button bo-button--ghost bo-button--sm"><span data-i18n="sitesTurnOff">Turn off for other websites</span></button>
+    </div>
+  </section>
+
+  <section class="bo-card bo-osec" aria-labelledby="shortcutTitle">
+    <h2 id="shortcutTitle" data-i18n="shortcutTitle">Keyboard shortcut</h2>
+    <p id="shortcutText"></p>
+    <div class="bo-row"><button type="button" id="openShortcuts" class="bo-button bo-button--secondary bo-button--sm"><svg class="bo-icon" aria-hidden="true"><use href="#bo-i-keyboard"/></svg><span data-i18n="openShortcuts">Change the shortcut</span></button></div>
+  </section>
+
+  <section class="bo-card bo-osec" aria-labelledby="privacyTitle">
+    <h2 id="privacyTitle" data-i18n="privacyTitle">Privacy</h2>
+    <ul class="bo-points">
+      <li><svg class="bo-icon" aria-hidden="true"><use href="#bo-i-lock"/></svg><span data-i18n="privacy1"></span></li>
+      <li><svg class="bo-icon" aria-hidden="true"><use href="#bo-i-eye-off"/></svg><span data-i18n="privacy2"></span></li>
+      <li><svg class="bo-icon" aria-hidden="true"><use href="#bo-i-shield-check"/></svg><span data-i18n="privacy3"></span></li>
+      <li><svg class="bo-icon" aria-hidden="true"><use href="#bo-i-check"/></svg><span data-i18n="privacy4"></span></li>
+    </ul>
+  </section>
+
+  <section class="bo-card bo-osec" aria-labelledby="limitsTitle">
+    <h2 id="limitsTitle" data-i18n="limitsTitle">What it can and cannot do</h2>
+    <ul class="bo-points">
+      <li><svg class="bo-icon" aria-hidden="true"><use href="#bo-i-info"/></svg><span data-i18n="limits1"></span></li>
+      <li><svg class="bo-icon" aria-hidden="true"><use href="#bo-i-info"/></svg><span data-i18n="limits2"></span></li>
+      <li><svg class="bo-icon" aria-hidden="true"><use href="#bo-i-info"/></svg><span data-i18n="limits3"></span></li>
+    </ul>
+  </section>
+
+  <section class="bo-card bo-osec" aria-labelledby="forgetTitle">
+    <h2 id="forgetTitle" data-i18n="forgetTitle">Start over</h2>
+    <p class="bo-hint" data-i18n="forgetAllHelp"></p>
+    <div class="bo-row">
+      <button type="button" id="forget" class="bo-button bo-button--secondary bo-button--sm"><svg class="bo-icon" aria-hidden="true"><use href="#bo-i-trash"/></svg><span data-i18n="forgetAll">Forget everything</span></button>
+    </div>
+    <div id="forgetConfirm" class="bo-row" hidden>
+      <button type="button" id="forgetYes" class="bo-button bo-button--danger bo-button--sm"><span data-i18n="forgetAllConfirm">Yes, forget everything</span></button>
+      <button type="button" id="forgetNo" class="bo-button bo-button--primary bo-button--sm"><span data-i18n="keepIt">Keep it</span></button>
+    </div>
+  </section>
+</main>
+<div id="toast" class="bo-toast" role="status" aria-live="polite" hidden></div>
+<script src="../common/i18n.js"></script>
+<script src="../common/store.js"></script>
+<script src="../common/ui.js"></script>
+<script src="options.js"></script>
+</body>
+</html>

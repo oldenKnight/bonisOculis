@@ -1,0 +1,7 @@
+# bonis oculis analyzer - runtime dependencies (Python 3.11+). Nothing else is imported at runtime.
+numpy>=1.26
+onnxruntime>=1.17 ; sys_platform != "win32"
+onnxruntime-directml>=1.17 ; sys_platform == "win32"
+# Optional: dialogue LM stage (Qwen3-0.6B GGUF via llama.cpp). When it is missing the scan
+# continues with the keyword/SDH scorer alone and emits a warning.
+llama-cpp-python>=0.3.2

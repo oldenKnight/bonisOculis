@@ -303,7 +303,7 @@ class Scan:
         arrays = {c: (prev[c].astype(np.float32) if prev is not None else np.zeros(n, np.float32))
                   for c in config.VISUAL_CATEGORIES}
         cuts: List[float] = [float(c) for c in (prev or {}).get("cuts", []) if float(c) < resume_at]
-        scorer = self._frame_scorer()
+        models = {"scorer": self._frame_scorer()}  # dropped in finally (one stage, one model set)
         t0 = self._stage_begin(name, resumeAt=resume_at)
         if resume_at > 0:
             log.info("frames: resuming at %.0f s", resume_at)
@@ -321,7 +321,7 @@ class Scan:
         def score_pending() -> None:
             if not batch:
                 return
-            res = scorer.score_batch(batch)
+            res = models["scorer"].score_batch(batch)
             for (t, _), sc in zip(batch, res):
                 i = int(round(t))
                 if 0 <= i < n:
@@ -363,8 +363,8 @@ class Scan:
         finally:
             self.pauser.on_pause = None
             dec.close()
-            scorer.close()
-            del scorer
+            models["scorer"].close()
+            models["scorer"] = None
             gc.collect()
         allc = sorted(set(cuts) | set(dec.sorted_cuts()))
         final_cuts: List[float] = []
