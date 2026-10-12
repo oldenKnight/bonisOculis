@@ -1,0 +1,231 @@
+'use strict';
+// Test harness for the real mpv + bonis.lua + controller stack. Synthetic media only: a 60 s
+// colour-bar video generated with ffmpeg into a scratch directory, plus fixture skip files.
+
+var childProcess = require('child_process');
+var fs = require('fs');
+var os = require('os');
+var path = require('path');
+
+var controller = require('../../desktop/main/player-controller.js');
+
+var MPV = process.env.BONIS_MPV || '/usr/bin/mpv';
+var FFMPEG = process.env.BONIS_FFMPEG || '/usr/bin/ffmpeg';
+var SCRATCH = process.env.BONIS_TEST_DIR || path.join(os.tmpdir(), 'bonis-oculis-test');
+var VIDEO = path.join(SCRATCH, 'bars-60s.mp4');
+
+var counter = 0;
+
+function available() {
+  return fs.existsSync(MPV) && fs.existsSync(FFMPEG);
+}
+
+function ensureScratch() {
+  fs.mkdirSync(SCRATCH, { recursive: true });
+  return SCRATCH;
+}
+
+// 60 s, 320x180, 25 fps colour bars with a 440 Hz tone; keyframe every second.
+function ensureVideo() {
+  ensureScratch();
+  if (fs.existsSync(VIDEO) && fs.statSync(VIDEO).size > 100000) { return VIDEO; }
+  var tmp = VIDEO + '.' + process.pid + '.tmp.mp4';
+  childProcess.execFileSync(FFMPEG, [
+    '-hide_banner', '-loglevel', 'error', '-y',
+    '-f', 'lavfi', '-i', 'testsrc2=size=320x180:rate=25',
+    '-f', 'lavfi', '-i', 'sine=frequency=440:sample_rate=48000',
+    '-t', '60', '-c:v', 'libx264', '-preset', 'ultrafast', '-g', '25',
+    '-c:a', 'aac', '-shortest', tmp
+  ], { stdio: 'ignore' });
+  fs.renameSync(tmp, VIDEO);
+  return VIDEO;
+}
+
+function uniqueName(base) {
+  counter += 1;
+  return path.join(SCRATCH, base + '-' + process.pid + '-' + counter);
+}
+
+function range(id, start, end, action, extra) {
+  var r = {
+    id: id, start: start, end: end, category: 'nudity', confidence: 0.9,
+    action: action, source: 'auto', review: 'pending'
+  };
+  var k;
+  for (k in (extra || {})) { if (Object.prototype.hasOwnProperty.call(extra, k)) { r[k] = extra[k]; } }
+  return r;
+}
+
+function skipDoc(ranges, opts) {
+  var o = opts || {};
+  var media = {
+    title: 'Colour bars', duration: 60,
+    fingerprint: { size: 1, oshash: '0000000000000001' }
+  };
+  if (o.offset !== undefined) { media.offset = o.offset; }
+  return {
+    format: 'bonis-oculis-skip', version: 1,
+    id: '00000000-0000-4000-8000-000000000001',
+    created: '2026-10-12T00:00:00Z', modified: '2026-10-12T00:00:00Z',
+    generator: { app: 'bonis-oculis-test', appVersion: '0.0.0' },
+    media: media,
+    scan: { status: o.scanStatus || 'complete' },
+    ranges: ranges
+  };
+}
+
+function writeSkip(base, ranges, opts) {
+  ensureScratch();
+  var p = uniqueName(base) + '.bonis.json';
+  fs.writeFileSync(p, JSON.stringify(skipDoc(ranges, opts), null, 2));
+  return p;
+}
+
+function writeRaw(base, text) {
+  ensureScratch();
+  var p = uniqueName(base) + '.bonis.json';
+  fs.writeFileSync(p, text);
+  return p;
+}
+
+// The standard fixture: skip 10-15, hide 20-25, mute 30-33, blur 40-43, rejected skip 45-50.
+function standardRanges() {
+  return [
+    range('rskip0001', 10, 15, 'skip'),
+    range('rhide0001', 20, 25, 'hide'),
+    range('rmute0001', 30, 33, 'mute', { category: 'language' }),
+    range('rblur0001', 40, 43, 'blur'),
+    range('rrejected1', 45, 50, 'skip', { review: 'rejected' }),
+    range('rnone00001', 52, 54, 'none')
+  ];
+}
+
+// A controller wired for tests plus a recorder of everything it emits. Each time-pos sample
+// carries a snapshot of the watched properties at that moment.
+function startRecorder(extra) {
+  var e = extra || {};
+  var player = controller.createPlayer({
+    mpvPath: MPV,
+    vo: 'null',
+    ao: 'null',
+    savePosition: false,
+    timeposHz: e.timeposHz || 1000,
+    observe: ['mute', 'vf', 'user-data/bonis'],
+    extraArgs: ['--really-quiet', '--speed=' + (e.speed || 10)].concat(e.extraArgs || [])
+  });
+  var rec = {
+    player: player, events: [], samples: [], state: { mute: null, vf: null, bonis: null },
+    waiters: []
+  };
+  function check() {
+    var i;
+    for (i = rec.waiters.length - 1; i >= 0; i--) {
+      var w = rec.waiters[i];
+      var hit = false;
+      try { hit = w.pred(rec); } catch (err) { hit = false; }
+      if (hit) {
+        rec.waiters.splice(i, 1);
+        clearTimeout(w.timer);
+        w.resolve(rec);
+      }
+    }
+  }
+  ['ready', 'mark', 'panic', 'skipped', 'timepos', 'ended', 'crashed', 'error'].forEach(function (name) {
+    player.on(name, function (payload) {
+      rec.events.push({ name: name, data: payload, at: Date.now() });
+      check();
+    });
+  });
+  player.on('property', function (p) {
+    if (p.name === 'mute') { rec.state.mute = p.data; }
+    if (p.name === 'vf') { rec.state.vf = p.data; }
+    if (p.name === 'user-data/bonis') { rec.state.bonis = p.data; }
+    // Samples start once every watched property has reported its initial value.
+    if (p.name === 'time-pos' && typeof p.data === 'number' && rec.state.mute !== null &&
+        rec.state.vf !== null && rec.state.bonis !== null) {
+      var b = rec.state.bonis || {};
+      rec.samples.push({
+        t: p.data, mute: rec.state.mute, vf: rec.state.vf,
+        black: !!b.black, blur: !!b.blur, panic: !!b.panic, at: Date.now()
+      });
+    }
+    check();
+  });
+  rec.waitFor = function (pred, ms, label) {
+    return new Promise(function (resolve, reject) {
+      var w = { pred: pred, resolve: resolve };
+      w.timer = setTimeout(function () {
+        var idx = rec.waiters.indexOf(w);
+        if (idx >= 0) { rec.waiters.splice(idx, 1); }
+        reject(new Error('timeout waiting for ' + (label || 'condition') + '; last t=' +
+          (rec.samples.length ? rec.samples[rec.samples.length - 1].t : 'none') +
+          ' events=' + rec.events.filter(function (ev) { return ev.name !== 'timepos'; })
+            .map(function (ev) { return ev.name; }).join(',')));
+      }, ms || 10000);
+      rec.waiters.push(w);
+      check();
+    });
+  };
+  rec.waitTime = function (t, ms) {
+    return rec.waitFor(function (r) {
+      return r.samples.length > 0 && r.samples[r.samples.length - 1].t >= t;
+    }, ms, 'time-pos >= ' + t);
+  };
+  rec.waitEvent = function (name, ms, filter) {
+    return rec.waitFor(function (r) {
+      return r.events.some(function (ev) { return ev.name === name && (!filter || filter(ev.data)); });
+    }, ms, 'event ' + name);
+  };
+  rec.eventsOf = function (name) {
+    return rec.events.filter(function (ev) { return ev.name === name; }).map(function (ev) { return ev.data; });
+  };
+  rec.play = function (media, skip, options) {
+    return new Promise(function (resolve, reject) {
+      player.play(media, skip, options || {}, function (err) {
+        if (err) { reject(err); } else { resolve(rec); }
+      });
+    });
+  };
+  rec.cmd = function (args) {
+    return new Promise(function (resolve, reject) {
+      player.command(args, function (err, data) { if (err) { reject(err); } else { resolve(data); } });
+    });
+  };
+  rec.stop = function () {
+    return new Promise(function (resolve) { player.stop(function () { resolve(); }); });
+  };
+  // Waits for a sample, recorded after index `from`, that satisfies pred.
+  rec.waitSampleAfter = function (from, pred, ms, label) {
+    return rec.waitFor(function (r) { return r.samples.slice(from).some(pred); }, ms, label);
+  };
+  rec.between = function (lo, hi) {
+    return rec.samples.filter(function (s) { return s.t >= lo && s.t < hi; });
+  };
+  return rec;
+}
+
+function readLines(file) {
+  if (!fs.existsSync(file)) { return []; }
+  return fs.readFileSync(file, 'utf8').split('\n').filter(Boolean).map(function (l) { return JSON.parse(l); });
+}
+
+function delay(ms) {
+  return new Promise(function (resolve) { setTimeout(resolve, ms); });
+}
+
+module.exports = {
+  MPV: MPV,
+  FFMPEG: FFMPEG,
+  SCRATCH: SCRATCH,
+  available: available,
+  ensureVideo: ensureVideo,
+  uniqueName: uniqueName,
+  range: range,
+  skipDoc: skipDoc,
+  writeSkip: writeSkip,
+  writeRaw: writeRaw,
+  standardRanges: standardRanges,
+  startRecorder: startRecorder,
+  readLines: readLines,
+  delay: delay
+};

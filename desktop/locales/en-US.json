@@ -1,0 +1,21 @@
+{
+  "player.nowPlaying": "Now playing",
+  "player.protectedScenes": "{count} scenes protected",
+  "player.stop": "Stop",
+  "player.hotkeys": "Keys",
+  "player.key.panic": "{key} or Ctrl+Space: hide the screen right now. Press it again (or Enter) to come back. That scene is saved and skipped next time.",
+  "player.key.panicRight": "Right arrow while hidden: jump ahead 10 seconds",
+  "player.key.markIn": "{key}: mark where a scene starts",
+  "player.key.markOut": "{key}: mark where it ends",
+  "player.key.undo": "{key}: undo the last mark",
+  "player.markAdded": "Scene marked {start} - {end}. It is waiting for your review.",
+  "player.markUndone": "Last mark removed.",
+  "player.panicSaved": "Scene hidden and saved. It will be skipped from now on.",
+  "player.crashedRelaunch": "The player closed unexpectedly. Opening it again where you left off.",
+  "player.crashedFinal": "The player closed again. Your marks are safe. Try once more, or restart the computer if it keeps happening.",
+  "player.kidRefused": "This movie is not ready for kid mode. Scan and review it first, then try again.",
+  "player.skipfileError": "The protection list for this movie could not be read. It played without protection. Rescan the movie to fix it.",
+  "player.startFailed": "The movie could not be opened. Check that the file is still there and try again.",
+  "player.notFound": "The player is missing. Reinstall bonis oculis to fix it.",
+  "player.ended": "Finished"
+}

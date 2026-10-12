@@ -1,0 +1,21 @@
+{
+  "player.nowPlaying": "Reproduciendo",
+  "player.protectedScenes": "{count} escenas protegidas",
+  "player.stop": "Detener",
+  "player.hotkeys": "Teclas",
+  "player.key.panic": "{key} o Ctrl+Espacio: oculta la pantalla de inmediato. Presiónala otra vez (o Enter) para volver. Esa escena se guarda y se omite la próxima vez.",
+  "player.key.panicRight": "Flecha derecha con la pantalla oculta: adelanta 10 segundos",
+  "player.key.markIn": "{key}: marca dónde empieza una escena",
+  "player.key.markOut": "{key}: marca dónde termina",
+  "player.key.undo": "{key}: deshace la última marca",
+  "player.markAdded": "Escena marcada {start} - {end}. Queda pendiente de tu revisión.",
+  "player.markUndone": "Se quitó la última marca.",
+  "player.panicSaved": "Escena oculta y guardada. Se omitirá a partir de ahora.",
+  "player.crashedRelaunch": "El reproductor se cerró de forma inesperada. Se abre de nuevo donde te quedaste.",
+  "player.crashedFinal": "El reproductor se cerró otra vez. Tus marcas están a salvo. Inténtalo una vez más o reinicia la computadora si sigue pasando.",
+  "player.kidRefused": "Esta película no está lista para el modo infantil. Analízala y revísala primero, y vuelve a intentarlo.",
+  "player.skipfileError": "No se pudo leer la lista de protección de esta película. Se reprodujo sin protección. Vuelve a analizar la película para corregirlo.",
+  "player.startFailed": "No se pudo abrir la película. Revisa que el archivo siga ahí y vuelve a intentarlo.",
+  "player.notFound": "Falta el reproductor. Reinstala bonis oculis para corregirlo.",
+  "player.ended": "Terminó"
+}

@@ -1,0 +1,144 @@
+/* bonis oculis base styles: fonts, reset, document defaults, headings, focus, motion.
+ * Load order: tokens.css, base.css, components.css. Spec: docs/DESIGN.md sections 4, 7, 8. */
+
+/* ---- 1. Fonts (bundled, OFL 1.1, variable, latin subset covers Spanish: a e i o u n u, inverted ? and !) ----
+ * Download list and licences: docs/DESIGN.md section 4.1. No italic files are bundled; do not use italics. */
+@font-face {
+  font-family: "Atkinson Hyperlegible Next";
+  font-style: normal;
+  font-weight: 200 800;
+  font-display: swap;
+  src: url("../assets/fonts/atkinson-hyperlegible-next-latin-wght-normal.woff2") format("woff2");
+}
+@font-face {
+  font-family: "Fraunces";
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url("../assets/fonts/fraunces-latin-wght-normal.woff2") format("woff2");
+}
+
+/* ---- 2. Reset ---- */
+*,
+*::before,
+*::after { box-sizing: border-box; }
+
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+  font-size: 100%;               /* 1rem = 16px; kid mode scales through tokens, never through html */
+  height: 100%;
+}
+
+body, h1, h2, h3, h4, h5, h6, p, figure, blockquote, dl, dd, ul, ol, fieldset { margin: 0; }
+ul, ol { padding: 0; list-style: none; }
+fieldset { padding: 0; border: 0; min-width: 0; }
+legend { padding: 0; }
+img, svg, video, canvas { display: block; max-width: 100%; }
+button, input, select, textarea { font: inherit; color: inherit; letter-spacing: inherit; }
+button { cursor: pointer; }
+button:disabled, [aria-disabled="true"] { cursor: not-allowed; }
+a { color: var(--bo-link); }
+table { border-collapse: collapse; border-spacing: 0; }
+[hidden] { display: none !important; }
+
+/* ---- 3. Document ---- */
+body {
+  min-height: 100%;
+  background: var(--bo-bg);
+  color: var(--bo-text);
+  font-family: var(--bo-font-ui);
+  font-size: var(--bo-fs-md);
+  font-weight: var(--bo-fw-regular);
+  line-height: var(--bo-lh-normal);
+  font-synthesis: none;
+  font-kerning: normal;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  overflow-wrap: break-word;       /* long Spanish words and file names never push the layout */
+  hyphens: manual;
+}
+
+::selection { background: var(--bo-selection); color: var(--bo-text); }
+
+/* ---- 4. Headings and text helpers ---- */
+h1, h2, h3 { font-family: var(--bo-font-display); font-weight: var(--bo-fw-semibold); letter-spacing: var(--bo-ls-display); color: var(--bo-text); text-wrap: balance; }
+h1 { font-size: var(--bo-fs-4xl); line-height: var(--bo-lh-tight); }
+h2 { font-size: var(--bo-fs-3xl); line-height: var(--bo-lh-tight); }
+h3 { font-size: var(--bo-fs-2xl); line-height: var(--bo-lh-snug); }
+h4, h5, h6 { font-family: var(--bo-font-ui); font-weight: var(--bo-fw-bold); color: var(--bo-text); line-height: var(--bo-lh-snug); }
+h4 { font-size: var(--bo-fs-xl); }
+h5 { font-size: var(--bo-fs-lg); }
+h6 { font-size: var(--bo-fs-md); }
+p { text-wrap: pretty; max-width: 68ch; }
+strong, b { font-weight: var(--bo-fw-bold); }
+em, i { font-style: normal; font-weight: var(--bo-fw-semibold); }
+small { font-size: var(--bo-fs-sm); }
+hr { border: 0; border-top: var(--bo-border-width) solid var(--bo-border); margin: var(--bo-space-6) 0; }
+
+.bo-display { font-family: var(--bo-font-display); font-weight: var(--bo-fw-semibold); font-size: var(--bo-fs-5xl); line-height: var(--bo-lh-tight); letter-spacing: var(--bo-ls-display); }
+.bo-lead { font-size: var(--bo-fs-lg); line-height: var(--bo-lh-loose); color: var(--bo-text-2); }
+.bo-body-2 { color: var(--bo-text-2); }
+.bo-caption { font-size: var(--bo-fs-sm); line-height: var(--bo-lh-snug); color: var(--bo-text-3); }
+.bo-overline { font-size: var(--bo-fs-xs); font-weight: var(--bo-fw-bold); letter-spacing: var(--bo-ls-caps); text-transform: uppercase; color: var(--bo-text-3); }
+.bo-num { font-variant-numeric: tabular-nums; font-feature-settings: "tnum" 1; }
+
+kbd, .bo-kbd-text { font-family: var(--bo-font-ui); font-weight: var(--bo-fw-bold); }
+
+/* ---- 5. Utilities that every screen needs ---- */
+.bo-sr-only {
+  position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden;
+  clip: rect(0 0 0 0); clip-path: inset(50%); white-space: nowrap; border: 0;
+}
+.bo-skip-link {
+  position: absolute; inset-inline-start: var(--bo-space-4); inset-block-start: var(--bo-space-4);
+  transform: translateY(-200%); z-index: calc(var(--bo-z-toast) + 1);
+  padding: var(--bo-space-3) var(--bo-space-5); border-radius: var(--bo-radius-sm);
+  background: var(--bo-surface); color: var(--bo-text); font-weight: var(--bo-fw-bold);
+  box-shadow: var(--bo-shadow-3);
+}
+.bo-skip-link:focus { transform: none; }
+
+/* ---- 6. Keyboard focus ring ----
+ * Two rings: a gap in the page colour, then a 3px ring in --bo-focus (kid mode 4px).
+ * The ring has at least 3:1 against both bg and surface in all themes. It is shown for keyboard users only
+ * (:focus-visible) and never removed. components.css re-applies the gap shadow with a higher priority. */
+:focus { outline: none; }
+:focus-visible {
+  outline: var(--bo-focus-width) solid var(--bo-focus);
+  outline-offset: var(--bo-focus-gap);
+  box-shadow: 0 0 0 var(--bo-focus-gap) var(--bo-bg);
+}
+input:focus-visible, select:focus-visible, textarea:focus-visible { box-shadow: 0 0 0 var(--bo-focus-gap) var(--bo-bg); }
+
+/* ---- 7. Scrollbars (thin, quiet) ---- */
+* { scrollbar-width: thin; scrollbar-color: var(--bo-border-strong) transparent; }
+
+/* ---- 8. Reduced motion ----
+ * Honour the OS setting and the in-app switch (settings > Playback > Reduce motion sets data-motion="reduce").
+ * Meaning is never carried by motion alone: spinners become a static arc, shakes become a coloured message. */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    animation-delay: 0s !important;
+    transition-duration: 0.001ms !important;
+    transition-delay: 0s !important;
+    scroll-behavior: auto !important;
+  }
+}
+:root[data-motion="reduce"] *,
+:root[data-motion="reduce"] *::before,
+:root[data-motion="reduce"] *::after {
+  animation-duration: 0.001ms !important;
+  animation-iteration-count: 1 !important;
+  animation-delay: 0s !important;
+  transition-duration: 0.001ms !important;
+  transition-delay: 0s !important;
+  scroll-behavior: auto !important;
+}
+
+/* ---- 9. Windows high-contrast mode ---- */
+@media (forced-colors: active) {
+  :focus-visible { outline: 3px solid Highlight; box-shadow: none; }
+}

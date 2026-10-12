@@ -1,0 +1,473 @@
+/* bonis oculis design tokens. Source of truth: docs/DESIGN.md. Tokens only, no component CSS.
+ *
+ * Theme selection
+ *   default                      follows the OS (prefers-color-scheme)
+ *   :root[data-theme="light"]    forces light      :root[data-theme="dark"]   forces dark
+ *   any element with data-theme  re-scopes the tokens for its subtree (used by design-preview.html)
+ *   :root[data-mode="kid"]       kid mode: larger type and targets, higher contrast (any element may carry it,
+ *                                an element that also carries data-theme gets the matching kid colours)
+ * All text pairs meet WCAG 2.2 AA (4.5:1); body text (--bo-text, --bo-text-2) meets AAA (7:1).
+ * Contrast ratios are listed in docs/DESIGN.md section 3. */
+
+/* 1. Theme-independent tokens (type, space, shape, motion, layout) */
+:root {
+  /* Typography: bundled OFL fonts, see base.css */
+  --bo-font-ui: "Atkinson Hyperlegible Next", "Segoe UI", system-ui, -apple-system, "Helvetica Neue", Arial, sans-serif;
+  --bo-font-display: "Fraunces", "Iowan Old Style", "Palatino Linotype", Georgia, serif;
+  --bo-fw-regular: 400;
+  --bo-fw-medium: 500;
+  --bo-fw-semibold: 600;
+  --bo-fw-bold: 700;
+  --bo-fs-2xs: 0.75rem;    /* 12px  timecodes, keycap hints (never body copy) */
+  --bo-fs-xs: 0.8125rem;   /* 13px  pills, captions */
+  --bo-fs-sm: 0.875rem;    /* 14px  secondary text, table cells */
+  --bo-fs-md: 1rem;        /* 16px  body */
+  --bo-fs-lg: 1.125rem;    /* 18px  lead text, button large */
+  --bo-fs-xl: 1.25rem;     /* 20px  h4, card titles */
+  --bo-fs-2xl: 1.5rem;     /* 24px  h3 */
+  --bo-fs-3xl: 1.875rem;   /* 30px  h2 */
+  --bo-fs-4xl: 2.375rem;   /* 38px  h1 */
+  --bo-fs-5xl: 3rem;       /* 48px  first-run and kid-mode display */
+  --bo-lh-tight: 1.15;
+  --bo-lh-snug: 1.3;
+  --bo-lh-normal: 1.5;
+  --bo-lh-loose: 1.65;
+  --bo-ls-display: -0.012em;
+  --bo-ls-caps: 0.06em;
+
+  /* Spacing, 4px base */
+  --bo-space-0: 0;
+  --bo-space-1: 0.25rem;
+  --bo-space-2: 0.5rem;
+  --bo-space-3: 0.75rem;
+  --bo-space-4: 1rem;
+  --bo-space-5: 1.25rem;
+  --bo-space-6: 1.5rem;
+  --bo-space-7: 2rem;
+  --bo-space-8: 2.5rem;
+  --bo-space-9: 3rem;
+  --bo-space-10: 4rem;
+  --bo-space-11: 5rem;
+
+  /* Radii */
+  --bo-radius-xs: 0.25rem;
+  --bo-radius-sm: 0.5rem;
+  --bo-radius-md: 0.75rem;
+  --bo-radius-lg: 1rem;
+  --bo-radius-xl: 1.5rem;
+  --bo-radius-pill: 999px;
+
+  /* Borders and focus */
+  --bo-border-width: 1px;
+  --bo-border-width-strong: 2px;
+  --bo-focus-width: 3px;
+  --bo-focus-gap: 2px;
+
+  /* Targets and layout */
+  --bo-target-sm: 2rem;      /* 32px  dense toolbars only, at least 8px apart */
+  --bo-target: 2.75rem;      /* 44px  default hit area */
+  --bo-target-lg: 3.5rem;    /* 56px  primary actions */
+  --bo-icon-sm: 1rem;
+  --bo-icon-md: 1.25rem;
+  --bo-icon-lg: 1.5rem;
+  --bo-icon-xl: 2.5rem;
+  --bo-gutter: 1.5rem;
+  --bo-sidebar-w: 15rem;
+  --bo-panel-w: 22.5rem;
+  --bo-content-max: 90rem;
+  --bo-tile-min: 15rem;
+  --bo-drawer-h: 4rem;
+
+  /* Motion */
+  --bo-dur-instant: 80ms;
+  --bo-dur-fast: 120ms;
+  --bo-dur-base: 200ms;
+  --bo-dur-slow: 320ms;
+  --bo-dur-toast: 400ms;
+  --bo-ease-standard: cubic-bezier(0.2, 0, 0, 1);
+  --bo-ease-enter: cubic-bezier(0, 0, 0.2, 1);
+  --bo-ease-exit: cubic-bezier(0.4, 0, 1, 1);
+
+  /* Layers */
+  --bo-z-drawer: 20;
+  --bo-z-panel: 30;
+  --bo-z-modal: 50;
+  --bo-z-toast: 60;
+
+  /* Never-show-the-scene rule (docs/DESIGN.md section 12) */
+  --bo-blur-thumb: 14px;     /* CSS blur on top of an already box-blurred 160px source */
+  --bo-blur-strip: 10px;
+  --bo-blur-peek: 5px;       /* strongest reveal the UI offers: shapes and colour only */
+  --bo-thumb-scale: 1.2;     /* scale up so blurred edges never show a halo */
+  --bo-thumb-saturate: 0.85;
+}
+
+/* 2. Light theme (default) */
+:root,
+[data-theme="light"] {
+  color-scheme: light;
+  --bo-bg: #FAF8F4;
+  --bo-surface: #FFFFFF;
+  --bo-surface-2: #F3EFE8;
+  --bo-surface-3: #E8E2D6;
+  --bo-scrim: rgb(30 26 18 / 0.52);
+  --bo-border: #DDD6C8;
+  --bo-border-strong: #8C8576;
+  --bo-text: #1E1B16;
+  --bo-text-2: #433E34;
+  --bo-text-3: #655F52;
+  --bo-text-on-primary: #FFFFFF;
+  --bo-link: #0B555D;
+  --bo-primary: #0B555D;
+  --bo-primary-hover: #09444B;
+  --bo-primary-active: #06353A;
+  --bo-primary-soft: #D9EEF0;
+  --bo-primary-ink: #07484E;
+  --bo-danger: #A52A2A;
+  --bo-danger-hover: #8A2020;
+  --bo-danger-soft: #FBE4E1;
+  --bo-danger-ink: #7A1C1C;
+  --bo-text-on-danger: #FFFFFF;
+  --bo-focus: #1D4ED8;
+  --bo-disabled-bg: #ECE7DD;
+  --bo-disabled-text: #8C8576;
+  --bo-selection: #BFE3E7;
+  --bo-thumb-base: #2A2620;
+  --bo-on-cat: #FFFFFF;
+  --bo-pattern-ink: rgb(255 255 255 / 0.40);
+  --bo-status-not-scanned-bg: #ECE7DD;
+  --bo-status-not-scanned-fg: #3B362D;
+  --bo-status-not-scanned-border: #CFC7B6;
+  --bo-status-not-scanned-solid: #8C8576;
+  --bo-status-scanning-bg: #E1EBFA;
+  --bo-status-scanning-fg: #17408F;
+  --bo-status-scanning-border: #B5CBEF;
+  --bo-status-scanning-solid: #2F6FD0;
+  --bo-status-review-bg: #FBE9C4;
+  --bo-status-review-fg: #6B3F00;
+  --bo-status-review-border: #EBC77B;
+  --bo-status-review-solid: #BF7600;
+  --bo-status-protected-bg: #DCF0E2;
+  --bo-status-protected-fg: #14573A;
+  --bo-status-protected-border: #A9D5B8;
+  --bo-status-protected-solid: #2E8B57;
+  --bo-status-attention-bg: #FBE0DC;
+  --bo-status-attention-fg: #8B1D1D;
+  --bo-status-attention-border: #EDB0A8;
+  --bo-status-attention-solid: #C03A2B;
+  --bo-cat-nudity: #C2410C;
+  --bo-cat-nudity-soft: #F8E8E2;
+  --bo-cat-nudity-ink: #882E08;
+  --bo-cat-nudity-veil: rgb(194 65 12 / 0.46);
+  --bo-cat-sex: #A21F7A;
+  --bo-cat-sex-soft: #F4E4EF;
+  --bo-cat-sex-ink: #881A66;
+  --bo-cat-sex-veil: rgb(162 31 122 / 0.46);
+  --bo-cat-implied: #1F6FB5;
+  --bo-cat-implied-soft: #E4EEF6;
+  --bo-cat-implied-ink: #165082;
+  --bo-cat-implied-veil: rgb(31 111 181 / 0.46);
+  --bo-cat-kissing: #D9558D;
+  --bo-cat-kissing-soft: #FAEBF1;
+  --bo-cat-kissing-ink: #823355;
+  --bo-cat-kissing-veil: rgb(217 85 141 / 0.46);
+  --bo-cat-gore: #6B1218;
+  --bo-cat-gore-soft: #EDE3E3;
+  --bo-cat-gore-ink: #6B1218;
+  --bo-cat-gore-veil: rgb(107 18 24 / 0.46);
+  --bo-cat-language: #5A7D2A;
+  --bo-cat-language-soft: #EBEFE5;
+  --bo-cat-language-ink: #3D551D;
+  --bo-cat-language-veil: rgb(90 125 42 / 0.46);
+  --bo-cat-other: #6B6558;
+  --bo-cat-other-soft: #EDEDEB;
+  --bo-cat-other-ink: #514D43;
+  --bo-cat-other-veil: rgb(107 101 88 / 0.46);
+  --bo-shadow-1: 0 1px 2px rgb(60 45 20 / 0.08), 0 1px 1px rgb(60 45 20 / 0.05);
+  --bo-shadow-2: 0 2px 6px rgb(60 45 20 / 0.10), 0 1px 2px rgb(60 45 20 / 0.06);
+  --bo-shadow-3: 0 8px 24px rgb(60 45 20 / 0.14), 0 2px 6px rgb(60 45 20 / 0.08);
+  --bo-shadow-4: 0 24px 64px rgb(40 30 10 / 0.24), 0 4px 12px rgb(40 30 10 / 0.10);
+  --bo-shadow-inset: inset 0 1px 2px rgb(60 45 20 / 0.12);
+}
+
+/* 3. Dark theme: OS-driven unless the page forces light */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --bo-bg: #12110E;
+    --bo-surface: #1C1A16;
+    --bo-surface-2: #25221C;
+    --bo-surface-3: #302C24;
+    --bo-scrim: rgb(0 0 0 / 0.64);
+    --bo-border: #3A352B;
+    --bo-border-strong: #8A8373;
+    --bo-text: #F3EFE6;
+    --bo-text-2: #D2CBBB;
+    --bo-text-3: #A9A292;
+    --bo-text-on-primary: #06282C;
+    --bo-link: #5BBFC8;
+    --bo-primary: #5BBFC8;
+    --bo-primary-hover: #7ACFD6;
+    --bo-primary-active: #9BDDE2;
+    --bo-primary-soft: #12353A;
+    --bo-primary-ink: #A8E3E8;
+    --bo-danger: #F28B82;
+    --bo-danger-hover: #F5A59E;
+    --bo-danger-soft: #3F1714;
+    --bo-danger-ink: #FFB4AA;
+    --bo-text-on-danger: #2A0A08;
+    --bo-focus: #9DBBFF;
+    --bo-disabled-bg: #25221C;
+    --bo-disabled-text: #6F695C;
+    --bo-selection: #1E4A50;
+    --bo-thumb-base: #0B0A08;
+    --bo-on-cat: #14110D;
+    --bo-pattern-ink: rgb(0 0 0 / 0.34);
+    --bo-status-not-scanned-bg: #2B2821;
+    --bo-status-not-scanned-fg: #D2CBBB;
+    --bo-status-not-scanned-border: #4A443A;
+    --bo-status-not-scanned-solid: #9A9384;
+    --bo-status-scanning-bg: #15294A;
+    --bo-status-scanning-fg: #A9C6FF;
+    --bo-status-scanning-border: #2C4A82;
+    --bo-status-scanning-solid: #6FA3FF;
+    --bo-status-review-bg: #3B2A0A;
+    --bo-status-review-fg: #FFD27A;
+    --bo-status-review-border: #6B4D12;
+    --bo-status-review-solid: #F2B13C;
+    --bo-status-protected-bg: #123425;
+    --bo-status-protected-fg: #9BE0B4;
+    --bo-status-protected-border: #25593F;
+    --bo-status-protected-solid: #4CC38A;
+    --bo-status-attention-bg: #3F1714;
+    --bo-status-attention-fg: #FFB4AA;
+    --bo-status-attention-border: #7A2B25;
+    --bo-status-attention-solid: #F2705F;
+    --bo-cat-nudity: #F0904A;
+    --bo-cat-nudity-soft: #4E3825;
+    --bo-cat-nudity-ink: #F7C5A1;
+    --bo-cat-nudity-veil: rgb(240 144 74 / 0.42);
+    --bo-cat-sex: #B86CD6;
+    --bo-cat-sex-soft: #423141;
+    --bo-cat-sex-ink: #DEBBEC;
+    --bo-cat-sex-veil: rgb(184 108 214 / 0.42);
+    --bo-cat-implied: #4DB6E8;
+    --bo-cat-implied-soft: #2D4045;
+    --bo-cat-implied-ink: #9FD8F3;
+    --bo-cat-implied-veil: rgb(77 182 232 / 0.42);
+    --bo-cat-kissing: #F27BAE;
+    --bo-cat-kissing-soft: #4E3439;
+    --bo-cat-kissing-ink: #F8BDD6;
+    --bo-cat-kissing-veil: rgb(242 123 174 / 0.42);
+    --bo-cat-gore: #D23A44;
+    --bo-cat-gore-soft: #482724;
+    --bo-cat-gore-ink: #EDB0B4;
+    --bo-cat-gore-veil: rgb(210 58 68 / 0.42);
+    --bo-cat-language: #8DB04A;
+    --bo-cat-language-soft: #3A3E25;
+    --bo-cat-language-ink: #C4D6A1;
+    --bo-cat-language-veil: rgb(141 176 74 / 0.42);
+    --bo-cat-other: #8F8B82;
+    --bo-cat-other-soft: #3A3730;
+    --bo-cat-other-ink: #C9C7C3;
+    --bo-cat-other-veil: rgb(143 139 130 / 0.42);
+    --bo-shadow-1: 0 1px 2px rgb(0 0 0 / 0.40), 0 0 0 1px rgb(255 255 255 / 0.03);
+    --bo-shadow-2: 0 2px 8px rgb(0 0 0 / 0.45), 0 0 0 1px rgb(255 255 255 / 0.04);
+    --bo-shadow-3: 0 8px 28px rgb(0 0 0 / 0.55), 0 0 0 1px rgb(255 255 255 / 0.05);
+    --bo-shadow-4: 0 24px 72px rgb(0 0 0 / 0.70), 0 0 0 1px rgb(255 255 255 / 0.06);
+    --bo-shadow-inset: inset 0 1px 3px rgb(0 0 0 / 0.55);
+  }
+}
+
+/* 4. Dark theme: forced (and re-scoping on any element) */
+:root[data-theme="dark"],
+[data-theme="dark"] {
+  color-scheme: dark;
+  --bo-bg: #12110E;
+  --bo-surface: #1C1A16;
+  --bo-surface-2: #25221C;
+  --bo-surface-3: #302C24;
+  --bo-scrim: rgb(0 0 0 / 0.64);
+  --bo-border: #3A352B;
+  --bo-border-strong: #8A8373;
+  --bo-text: #F3EFE6;
+  --bo-text-2: #D2CBBB;
+  --bo-text-3: #A9A292;
+  --bo-text-on-primary: #06282C;
+  --bo-link: #5BBFC8;
+  --bo-primary: #5BBFC8;
+  --bo-primary-hover: #7ACFD6;
+  --bo-primary-active: #9BDDE2;
+  --bo-primary-soft: #12353A;
+  --bo-primary-ink: #A8E3E8;
+  --bo-danger: #F28B82;
+  --bo-danger-hover: #F5A59E;
+  --bo-danger-soft: #3F1714;
+  --bo-danger-ink: #FFB4AA;
+  --bo-text-on-danger: #2A0A08;
+  --bo-focus: #9DBBFF;
+  --bo-disabled-bg: #25221C;
+  --bo-disabled-text: #6F695C;
+  --bo-selection: #1E4A50;
+  --bo-thumb-base: #0B0A08;
+  --bo-on-cat: #14110D;
+  --bo-pattern-ink: rgb(0 0 0 / 0.34);
+  --bo-status-not-scanned-bg: #2B2821;
+  --bo-status-not-scanned-fg: #D2CBBB;
+  --bo-status-not-scanned-border: #4A443A;
+  --bo-status-not-scanned-solid: #9A9384;
+  --bo-status-scanning-bg: #15294A;
+  --bo-status-scanning-fg: #A9C6FF;
+  --bo-status-scanning-border: #2C4A82;
+  --bo-status-scanning-solid: #6FA3FF;
+  --bo-status-review-bg: #3B2A0A;
+  --bo-status-review-fg: #FFD27A;
+  --bo-status-review-border: #6B4D12;
+  --bo-status-review-solid: #F2B13C;
+  --bo-status-protected-bg: #123425;
+  --bo-status-protected-fg: #9BE0B4;
+  --bo-status-protected-border: #25593F;
+  --bo-status-protected-solid: #4CC38A;
+  --bo-status-attention-bg: #3F1714;
+  --bo-status-attention-fg: #FFB4AA;
+  --bo-status-attention-border: #7A2B25;
+  --bo-status-attention-solid: #F2705F;
+  --bo-cat-nudity: #F0904A;
+  --bo-cat-nudity-soft: #4E3825;
+  --bo-cat-nudity-ink: #F7C5A1;
+  --bo-cat-nudity-veil: rgb(240 144 74 / 0.42);
+  --bo-cat-sex: #B86CD6;
+  --bo-cat-sex-soft: #423141;
+  --bo-cat-sex-ink: #DEBBEC;
+  --bo-cat-sex-veil: rgb(184 108 214 / 0.42);
+  --bo-cat-implied: #4DB6E8;
+  --bo-cat-implied-soft: #2D4045;
+  --bo-cat-implied-ink: #9FD8F3;
+  --bo-cat-implied-veil: rgb(77 182 232 / 0.42);
+  --bo-cat-kissing: #F27BAE;
+  --bo-cat-kissing-soft: #4E3439;
+  --bo-cat-kissing-ink: #F8BDD6;
+  --bo-cat-kissing-veil: rgb(242 123 174 / 0.42);
+  --bo-cat-gore: #D23A44;
+  --bo-cat-gore-soft: #482724;
+  --bo-cat-gore-ink: #EDB0B4;
+  --bo-cat-gore-veil: rgb(210 58 68 / 0.42);
+  --bo-cat-language: #8DB04A;
+  --bo-cat-language-soft: #3A3E25;
+  --bo-cat-language-ink: #C4D6A1;
+  --bo-cat-language-veil: rgb(141 176 74 / 0.42);
+  --bo-cat-other: #8F8B82;
+  --bo-cat-other-soft: #3A3730;
+  --bo-cat-other-ink: #C9C7C3;
+  --bo-cat-other-veil: rgb(143 139 130 / 0.42);
+  --bo-shadow-1: 0 1px 2px rgb(0 0 0 / 0.40), 0 0 0 1px rgb(255 255 255 / 0.03);
+  --bo-shadow-2: 0 2px 8px rgb(0 0 0 / 0.45), 0 0 0 1px rgb(255 255 255 / 0.04);
+  --bo-shadow-3: 0 8px 28px rgb(0 0 0 / 0.55), 0 0 0 1px rgb(255 255 255 / 0.05);
+  --bo-shadow-4: 0 24px 72px rgb(0 0 0 / 0.70), 0 0 0 1px rgb(255 255 255 / 0.06);
+  --bo-shadow-inset: inset 0 1px 3px rgb(0 0 0 / 0.55);
+}
+
+/* 5. Kid mode: scale (larger type, larger targets, rounder, thicker focus) */
+:root[data-mode="kid"],
+[data-mode="kid"] {
+  --bo-fs-2xs: 0.9375rem;
+  --bo-fs-xs: 1rem;
+  --bo-fs-sm: 1.125rem;
+  --bo-fs-md: 1.25rem;
+  --bo-fs-lg: 1.5rem;
+  --bo-fs-xl: 1.75rem;
+  --bo-fs-2xl: 2.125rem;
+  --bo-fs-3xl: 2.625rem;
+  --bo-fs-4xl: 3.25rem;
+  --bo-fs-5xl: 4rem;
+  --bo-lh-normal: 1.55;
+  --bo-target-sm: 3rem;
+  --bo-target: 4rem;
+  --bo-target-lg: 5rem;
+  --bo-icon-sm: 1.5rem;
+  --bo-icon-md: 1.75rem;
+  --bo-icon-lg: 2.25rem;
+  --bo-icon-xl: 3.5rem;
+  --bo-radius-sm: 0.75rem;
+  --bo-radius-md: 1rem;
+  --bo-radius-lg: 1.5rem;
+  --bo-radius-xl: 2rem;
+  --bo-border-width: 2px;
+  --bo-border-width-strong: 3px;
+  --bo-focus-width: 4px;
+  --bo-focus-gap: 3px;
+  --bo-gutter: 2rem;
+  --bo-tile-min: 20rem;
+  --bo-space-3: 1rem;
+  --bo-space-4: 1.25rem;
+  --bo-space-5: 1.75rem;
+  --bo-space-6: 2rem;
+}
+
+/* 6. Kid mode: higher-contrast colours, light */
+:root[data-mode="kid"]:not([data-theme="dark"]),
+[data-mode="kid"][data-theme="light"] {
+  --bo-text: #0E0C09;
+  --bo-text-2: #26221B;
+  --bo-text-3: #3A352C;
+  --bo-border: #B3AB9A;
+  --bo-border-strong: #4F493D;
+  --bo-primary: #094A50;
+  --bo-primary-hover: #073C41;
+  --bo-primary-active: #052E32;
+  --bo-link: #094A50;
+  --bo-primary-ink: #043A3F;
+  --bo-danger: #8F1F1F;
+  --bo-danger-ink: #5E1212;
+  --bo-focus: #1537B0;
+  --bo-status-not-scanned-fg: #26221B;
+  --bo-status-scanning-fg: #0F2F6B;
+  --bo-status-review-fg: #4D2D00;
+  --bo-status-protected-fg: #0D4029;
+  --bo-status-attention-fg: #6B1212;
+}
+
+/* 7. Kid mode: higher-contrast colours, dark */
+@media (prefers-color-scheme: dark) {
+  :root[data-mode="kid"]:not([data-theme="light"]) {
+    --bo-text: #FFFFFF;
+    --bo-text-2: #EDE8DB;
+    --bo-text-3: #D8D1C1;
+    --bo-border: #625C4F;
+    --bo-border-strong: #BDB5A3;
+    --bo-primary: #86DAE2;
+    --bo-primary-hover: #A3E5EB;
+    --bo-primary-active: #BCEEF2;
+    --bo-link: #86DAE2;
+    --bo-primary-ink: #C2EEF2;
+    --bo-danger: #FF9C94;
+    --bo-danger-ink: #FFD0CB;
+    --bo-focus: #BDD0FF;
+    --bo-status-not-scanned-fg: #EDE8DB;
+    --bo-status-scanning-fg: #CFE0FF;
+    --bo-status-review-fg: #FFE3A6;
+    --bo-status-protected-fg: #BCEECF;
+    --bo-status-attention-fg: #FFD0CB;
+  }
+}
+:root[data-mode="kid"][data-theme="dark"],
+[data-mode="kid"][data-theme="dark"] {
+  --bo-text: #FFFFFF;
+  --bo-text-2: #EDE8DB;
+  --bo-text-3: #D8D1C1;
+  --bo-border: #625C4F;
+  --bo-border-strong: #BDB5A3;
+  --bo-primary: #86DAE2;
+  --bo-primary-hover: #A3E5EB;
+  --bo-primary-active: #BCEEF2;
+  --bo-link: #86DAE2;
+  --bo-primary-ink: #C2EEF2;
+  --bo-danger: #FF9C94;
+  --bo-danger-ink: #FFD0CB;
+  --bo-focus: #BDD0FF;
+  --bo-status-not-scanned-fg: #EDE8DB;
+  --bo-status-scanning-fg: #CFE0FF;
+  --bo-status-review-fg: #FFE3A6;
+  --bo-status-protected-fg: #BCEECF;
+  --bo-status-attention-fg: #FFD0CB;
+}
