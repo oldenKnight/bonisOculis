@@ -146,6 +146,9 @@ class LiveCli:
         rc = self.proc.wait(timeout=timeout)
         self._t.join(timeout=5)
         self._e.join(timeout=5)
+        for st in (self.proc.stdout, self.proc.stderr):
+            if st is not None:
+                st.close()
         return rc
 
     def kill(self) -> None:

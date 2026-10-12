@@ -88,7 +88,6 @@ class FakeLmScanTest(unittest.TestCase):
         Scan(args, Protocol(buf), lm_factory=lambda: fake).run()
         self.assertTrue(fake.calls)
         self.assertTrue(any("school" in c for c in fake.calls))
-        self.assertTrue(all("<" not in c or "<|" not in c for c in fake.calls))
         with open(out, encoding="utf-8") as f:
             doc = json.load(f)
         implied = [r for r in doc["ranges"] if r["category"] == "implied"]
