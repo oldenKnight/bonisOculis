@@ -65,6 +65,11 @@ D18 Peek (review screen): a parent may reveal a flagged frame only behind the PI
     5 min), rendered LIVE from the video into memory (ffmpeg pipe -> data URL), shown while the
     button is held, never written to disk, never available in kid mode. Thumbnails on disk stay
     blurred (overrides the designer's "lighter blur" reading).
+D21 App-shell decisions accepted from M5: 12-character recovery code (not 12 words); levels
+    re-applied at playback to unreviewed auto ranges without a rescan; clean copy also cuts mute
+    ranges (stream copy cannot mute; fail closed); skip-file integrity kept in the HMAC-signed
+    library index so exported sidecars stay clean; lock-on-start only after setup completes;
+    unscanned title in parent mode plays only after an explicit confirmation, never in kid mode.
 D20 Caption budget default 300 shots (`--caption-budget`, `--thorough`=1500); see findings.
 D19 Design accepted: Atkinson Hyperlegible Next (body) + Fraunces (titles), both OFL, bundled.
     Category colours carry redundant cues (icon, label, pattern); real colour-blind user test
@@ -156,7 +161,7 @@ M1b Sonnet visual design system + logo (docs/DESIGN.md, tokens.css) DONE 2026-10
 M2  Skip-file spec v1 + validator + fixtures + EDL export ......... DONE 2026-10-12 (reviewed)
 M3  Player: mpv control, Lua skip script, marking + panic keys .... DONE 2026-10-12 (reviewed)
 M4  Analyzer v1: subtitles + frames, resumable, checkpointed ...... DONE 2026-10-12 (reviewed)
-M5  App shell: library, review timeline, PIN, import/export, clean copy  todo
+M5  App shell: library, review timeline, PIN, import/export, clean copy  DONE 2026-10-12 (reviewed)
 M6  Extension: subtitle pre-read + skip-file import ............... DONE 2026-10-12 (reviewed)
 M7  Analyzer v2: audio + captions + fusion tuning + profiling ...... DONE 2026-10-12 (reviewed)
 M8  Extension live-audio mode ..................................... DONE 2026-10-12 (reviewed)
