@@ -218,7 +218,7 @@ local function parse_skipfile(path)
     if doc.format ~= FORMAT then
         return nil, "wrong format"
     end
-    if doc.version ~= 1 then
+    if type(doc.version) ~= "number" or doc.version < 1 or doc.version ~= math.floor(doc.version) then
         return nil, "unsupported version"
     end
     if type(doc.ranges) ~= "table" then
@@ -327,6 +327,7 @@ local function publish()
         kid = kid,
         loaded = loaded,
         enforced = #ranges,
+        at = mp.get_property_number("time-pos"),   -- playback position when this took effect
     })
 end
 
@@ -417,7 +418,8 @@ local function seek_to(target, why)
     if own_seek and math.abs(own_seek.target - target) < 0.001 and now - own_seek.at < SEEK_GUARD then
         return false
     end
-    own_seek = { target = target, at = now, why = why }
+    own_seek = { target = target, at = now, why = why, pending = true }
+    msg.debug(string.format("seek %s -> %.3f", why, target))
     mp.commandv("seek", string.format("%.3f", target), "absolute+exact")
     return true
 end
@@ -474,9 +476,8 @@ local function evaluate_inner(t, origin)
             want.black = true
             want.mute = true
         elseif r.action == "blur" then
-            if t >= r.start - LEAD then
-                want.mute = true
-            end
+            -- muted from the pre-arm point too: never late, at the cost of 0.5 s of early silence
+            want.mute = true
             want.blur = true
         elseif r.action == "mute" then
             want.mute = true
@@ -535,6 +536,7 @@ mp.observe_property("time-pos", "number", function(_, t)
     -- The new position of a seek can arrive here before the "seek" event does. A backward
     -- jump that is not our own seek is handled as a seek so the direction rules apply.
     if last_t ~= nil and t < last_t - 0.5 and not (own_seek and math.abs(own_seek.target - t) < 0.05) then
+        msg.debug(string.format("backward jump %.3f -> %.3f", last_t, t))
         pre_seek_t = last_t
         in_seek = true
         seek_started = mp.get_time()
@@ -547,6 +549,7 @@ end)
 
 mp.register_event("seek", function()
     local t = mp.get_property_number("time-pos")
+    msg.debug(string.format("event seek t=%s last=%s in_seek=%s", tostring(t), tostring(last_t), tostring(in_seek)))
     if not in_seek then
         pre_seek_t = last_t
         seek_started = mp.get_time()
@@ -565,8 +568,19 @@ end)
 mp.register_event("playback-restart", function()
     in_seek = false
     local t = mp.get_property_number("time-pos")
+    msg.debug(string.format("event restart t=%s pre=%s", tostring(t), tostring(pre_seek_t)))
     if t == nil then
         return
+    end
+    -- A restart from an earlier (user) seek can arrive after we issued our own corrective seek.
+    -- Ignore it while ours is on its way, or it would be judged again and override ours.
+    if own_seek and own_seek.pending then
+        if math.abs(own_seek.target - t) < 0.1 or mp.get_time() - own_seek.at > 1.0 then
+            own_seek.pending = false
+        else
+            in_seek = true
+            return
+        end
     end
     skip_pending = false
     evaluate(t, "restart")

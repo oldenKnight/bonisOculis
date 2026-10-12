@@ -1,0 +1,288 @@
+{
+ "file": "clip_prompts.npz",
+ "dim": 512,
+ "count": 68,
+ "textModel": "clip-vit-b32-text_quantized.onnx",
+ "textModelSha256": "73baab855d406190da9faa498cfedf65f15cf309f4cc7385b7b032e6d08e5c3a",
+ "groups": [
+  "sex",
+  "kissing",
+  "implied",
+  "gore",
+  "safe"
+ ],
+ "prompts": [
+  {
+   "group": "sex",
+   "text": "a movie still of two people having sex in bed"
+  },
+  {
+   "group": "sex",
+   "text": "a film scene of a couple making love under the sheets"
+  },
+  {
+   "group": "sex",
+   "text": "a sex scene from a movie"
+  },
+  {
+   "group": "sex",
+   "text": "a couple in an intimate sexual embrace without clothes"
+  },
+  {
+   "group": "sex",
+   "text": "two lovers moving together in bed in a romantic film"
+  },
+  {
+   "group": "sex",
+   "text": "an erotic scene from an adult drama"
+  },
+  {
+   "group": "sex",
+   "text": "a couple in bed in a passionate love scene"
+  },
+  {
+   "group": "sex",
+   "text": "a steamy love scene in a movie"
+  },
+  {
+   "group": "sex",
+   "text": "a man and a woman in a sexual situation"
+  },
+  {
+   "group": "sex",
+   "text": "a passionate intimate scene on a bed"
+  },
+  {
+   "group": "kissing",
+   "text": "a couple kissing passionately in a movie"
+  },
+  {
+   "group": "kissing",
+   "text": "two people in a long romantic kiss"
+  },
+  {
+   "group": "kissing",
+   "text": "a close-up of a couple kissing on the lips"
+  },
+  {
+   "group": "kissing",
+   "text": "a passionate kiss between two lovers"
+  },
+  {
+   "group": "kissing",
+   "text": "two people making out on a couch"
+  },
+  {
+   "group": "kissing",
+   "text": "a couple kissing against a wall"
+  },
+  {
+   "group": "kissing",
+   "text": "a romantic kiss scene in a film"
+  },
+  {
+   "group": "kissing",
+   "text": "two people kissing in the rain"
+  },
+  {
+   "group": "implied",
+   "text": "a couple lying in bed together under the sheets after spending the night"
+  },
+  {
+   "group": "implied",
+   "text": "two people undressing each other in a bedroom"
+  },
+  {
+   "group": "implied",
+   "text": "a woman in a bedroom wearing only a sheet"
+  },
+  {
+   "group": "implied",
+   "text": "a man and a woman waking up in bed together"
+  },
+  {
+   "group": "implied",
+   "text": "clothes scattered on a bedroom floor"
+  },
+  {
+   "group": "implied",
+   "text": "a seductive person in lingerie in a bedroom"
+  },
+  {
+   "group": "implied",
+   "text": "a couple falling onto a bed while embracing"
+  },
+  {
+   "group": "implied",
+   "text": "a person taking off their shirt in a dim bedroom"
+  },
+  {
+   "group": "implied",
+   "text": "a couple in a bathtub together"
+  },
+  {
+   "group": "implied",
+   "text": "a shirtless couple embracing in bed"
+  },
+  {
+   "group": "gore",
+   "text": "a bloody wound in a horror movie"
+  },
+  {
+   "group": "gore",
+   "text": "a person covered in blood"
+  },
+  {
+   "group": "gore",
+   "text": "a gory scene with blood splattered on the wall"
+  },
+  {
+   "group": "gore",
+   "text": "a severed limb in a horror film"
+  },
+  {
+   "group": "gore",
+   "text": "a graphic injury with a lot of blood"
+  },
+  {
+   "group": "gore",
+   "text": "a dead body lying in a pool of blood"
+  },
+  {
+   "group": "gore",
+   "text": "a violent stabbing scene with blood"
+  },
+  {
+   "group": "gore",
+   "text": "a gruesome corpse in a horror movie"
+  },
+  {
+   "group": "gore",
+   "text": "a close-up of a deep bleeding cut"
+  },
+  {
+   "group": "gore",
+   "text": "blood spraying in a violent fight scene"
+  },
+  {
+   "group": "gore",
+   "text": "a zombie with a torn bloody face"
+  },
+  {
+   "group": "gore",
+   "text": "a surgical scene with open flesh and blood"
+  },
+  {
+   "group": "safe",
+   "text": "people talking at a dinner table"
+  },
+  {
+   "group": "safe",
+   "text": "a family sitting on a couch watching television"
+  },
+  {
+   "group": "safe",
+   "text": "two people having a conversation in an office"
+  },
+  {
+   "group": "safe",
+   "text": "a landscape with mountains and a lake"
+  },
+  {
+   "group": "safe",
+   "text": "a city street with cars and pedestrians"
+  },
+  {
+   "group": "safe",
+   "text": "a person cooking in a kitchen"
+  },
+  {
+   "group": "safe",
+   "text": "children playing in a park"
+  },
+  {
+   "group": "safe",
+   "text": "a soccer match in a stadium"
+  },
+  {
+   "group": "safe",
+   "text": "a basketball game"
+  },
+  {
+   "group": "safe",
+   "text": "a car chase on a highway"
+  },
+  {
+   "group": "safe",
+   "text": "an action scene with an explosion and no blood"
+  },
+  {
+   "group": "safe",
+   "text": "two people fighting with swords without blood"
+  },
+  {
+   "group": "safe",
+   "text": "a person walking on the beach"
+  },
+  {
+   "group": "safe",
+   "text": "a cartoon animation scene"
+  },
+  {
+   "group": "safe",
+   "text": "a classroom with students and a teacher"
+  },
+  {
+   "group": "safe",
+   "text": "people dancing at a party"
+  },
+  {
+   "group": "safe",
+   "text": "a person reading a book in a library"
+  },
+  {
+   "group": "safe",
+   "text": "a dog running in a field"
+  },
+  {
+   "group": "safe",
+   "text": "a close-up of a person's face talking"
+  },
+  {
+   "group": "safe",
+   "text": "a spaceship flying in outer space"
+  },
+  {
+   "group": "safe",
+   "text": "a forest at night"
+  },
+  {
+   "group": "safe",
+   "text": "a colourful test pattern"
+  },
+  {
+   "group": "safe",
+   "text": "a plain black screen"
+  },
+  {
+   "group": "safe",
+   "text": "text titles on a screen"
+  },
+  {
+   "group": "safe",
+   "text": "a hug between a parent and a child"
+  },
+  {
+   "group": "safe",
+   "text": "a couple holding hands while walking"
+  },
+  {
+   "group": "safe",
+   "text": "people swimming at a public pool in swimsuits"
+  },
+  {
+   "group": "safe",
+   "text": "a doctor talking to a patient in a hospital"
+  }
+ ]
+}

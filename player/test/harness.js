@@ -41,10 +41,28 @@ function ensureVideo() {
   return VIDEO;
 }
 
+var created = [];
+
+// Every per-test file is named <base>-<pid>-<n>*; all of them are removed when the process exits.
 function uniqueName(base) {
   counter += 1;
-  return path.join(SCRATCH, base + '-' + process.pid + '-' + counter);
+  var p = path.join(SCRATCH, base + '-' + process.pid + '-' + counter);
+  created.push(p);
+  return p;
 }
+
+process.on('exit', function () {
+  var names;
+  try { names = fs.readdirSync(SCRATCH); } catch (e) { return; }
+  created.forEach(function (p) {
+    var base = path.basename(p);
+    names.forEach(function (n) {
+      if (n === base || n.indexOf(base + '.') === 0) {
+        try { fs.rmSync(path.join(SCRATCH, n), { recursive: true, force: true }); } catch (e2) { /* ignore */ }
+      }
+    });
+  });
+});
 
 function range(id, start, end, action, extra) {
   var r = {
@@ -114,7 +132,8 @@ function startRecorder(extra) {
     extraArgs: ['--really-quiet', '--speed=' + (e.speed || 10)].concat(e.extraArgs || [])
   });
   var rec = {
-    player: player, events: [], samples: [], state: { mute: null, vf: null, bonis: null },
+    player: player, events: [], samples: [], transitions: [],
+    state: { mute: null, vf: null, bonis: null },
     waiters: []
   };
   function check() {
@@ -139,7 +158,10 @@ function startRecorder(extra) {
   player.on('property', function (p) {
     if (p.name === 'mute') { rec.state.mute = p.data; }
     if (p.name === 'vf') { rec.state.vf = p.data; }
-    if (p.name === 'user-data/bonis') { rec.state.bonis = p.data; }
+    if (p.name === 'user-data/bonis') {
+      rec.state.bonis = p.data;
+      if (p.data) { rec.transitions.push(p.data); }
+    }
     // Samples start once every watched property has reported its initial value.
     if (p.name === 'time-pos' && typeof p.data === 'number' && rec.state.mute !== null &&
         rec.state.vf !== null && rec.state.bonis !== null) {
@@ -197,6 +219,16 @@ function startRecorder(extra) {
   // Waits for a sample, recorded after index `from`, that satisfies pred.
   rec.waitSampleAfter = function (from, pred, ms, label) {
     return rec.waitFor(function (r) { return r.samples.slice(from).some(pred); }, ms, label);
+  };
+  // Script-side truth: the user-data/bonis state in force at playback position t (each change
+  // carries the position at which it took effect, so IPC delivery lag does not matter).
+  rec.stateAt = function (t) {
+    var i;
+    var found = null;
+    for (i = 0; i < rec.transitions.length; i++) {
+      if (typeof rec.transitions[i].at === 'number' && rec.transitions[i].at <= t) { found = rec.transitions[i]; }
+    }
+    return found;
   };
   rec.between = function (lo, hi) {
     return rec.samples.filter(function (s) { return s.t >= lo && s.t < hi; });

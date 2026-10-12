@@ -1,0 +1,11 @@
+{"wireMagic":"pb3","events":[{"tStartMs":0,"dDurationMs":60000,"id":1,"wpWinPosId":1},
+{"tStartMs":1000,"dDurationMs":2500,"segs":[{"utf8":"Good evening,"},{"utf8":"\neveryone."}]},
+{"tStartMs":10000,"dDurationMs":2000,"segs":[{"utf8":"[moaning]"}]},
+{"tStartMs":11500,"dDurationMs":1500,"segs":[{"utf8":"Overlapping line"}]},
+{"tStartMs":20000,"dDurationMs":2250,"segs":[{"utf8":"I think they will "},{"utf8":"kiss now.","tOffsetMs":1000}]},
+{"tStartMs":30000,"dDurationMs":2000,"segs":[{"utf8":"Oh, crap. Damn it."}]},
+{"tStartMs":35000,"dDurationMs":1000,"segs":[{"utf8":"\n"}]},
+{"tStartMs":40000,"dDurationMs":1000,"segs":[{"utf8":"<Hello> & goodbye"}]},
+{"tStartMs":45000,"dDurationMs":2000,"segs":[{"utf8":"[kissing]"}]},
+{"tStartMs":50000,"dDurationMs":2000,"segs":[{"utf8":"♪ Kiss me, kiss me ♪"}]},
+{"tStartMs":55000,"dDurationMs":2000,"segs":[{"utf8":"- ¿Qué BESO?"}]}]}

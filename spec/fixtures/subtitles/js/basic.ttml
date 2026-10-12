@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<tt xmlns="http://www.w3.org/ns/ttml" xmlns:ttp="http://www.w3.org/ns/ttml#parameter" ttp:tickRate="10000000" xml:lang="en">
+<body><div>
+<p begin="10000000t" end="35000000t" xml:id="s1">Good evening,<br/>everyone.</p>
+<p begin="100000000t" end="120000000t"><span style="i">[moaning]</span></p>
+<p begin="00:00:11.500" end="00:00:13.000">Overlapping line</p>
+<p begin="20s" dur="2250ms">I think they will kiss now.</p>
+<p begin="00:00:30.000" end="00:00:32.000">Oh, crap. Damn it.</p>
+<p begin="00:00:40.000" end="00:00:41.000">&lt;Hello&gt; &amp; goodbye</p>
+<p begin="00:00:45.000" end="00:00:47.000">[kissing]</p>
+<p begin="00:00:50.000" end="00:00:52.000">♪ Kiss me, kiss me ♪</p>
+<p begin="00:00:55.000" end="00:00:57.000">- ¿Qué BESO?</p>
+</div></body></tt>

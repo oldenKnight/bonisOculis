@@ -1,0 +1,622 @@
+{
+ "language": "es",
+ "version": 1,
+ "notes": "Spanish (Mexico first). Shared by the analyzer and the browser extension. Matching rules: spec/lexicon/README.md.",
+ "sdh": [
+  {
+   "pattern": "gemid",
+   "category": "sex",
+   "weight": 0.85
+  },
+  {
+   "pattern": "gime",
+   "category": "sex",
+   "weight": 0.85
+  },
+  {
+   "pattern": "jadea",
+   "category": "sex",
+   "weight": 0.45
+  },
+  {
+   "pattern": "jadeo",
+   "category": "sex",
+   "weight": 0.45
+  },
+  {
+   "pattern": "respiracion agitada",
+   "category": "sex",
+   "weight": 0.45
+  },
+  {
+   "pattern": "cama rechin",
+   "category": "sex",
+   "weight": 0.7
+  },
+  {
+   "pattern": "rechina la cama",
+   "category": "sex",
+   "weight": 0.7
+  },
+  {
+   "pattern": "sexual",
+   "category": "sex",
+   "weight": 0.8
+  },
+  {
+   "pattern": "orgasm",
+   "category": "sex",
+   "weight": 0.9
+  },
+  {
+   "pattern": "beso",
+   "category": "kissing",
+   "weight": 0.85
+  },
+  {
+   "pattern": "besa",
+   "category": "kissing",
+   "weight": 0.85
+  },
+  {
+   "pattern": "desvist",
+   "category": "implied",
+   "weight": 0.5
+  },
+  {
+   "pattern": "desvist",
+   "category": "nudity",
+   "weight": 0.4
+  },
+  {
+   "pattern": "cremallera",
+   "category": "implied",
+   "weight": 0.3
+  },
+  {
+   "pattern": "cierre",
+   "category": "implied",
+   "weight": 0.25
+  },
+  {
+   "pattern": "suspir",
+   "category": "implied",
+   "weight": 0.15
+  },
+  {
+   "pattern": "grit",
+   "category": "gore",
+   "weight": 0.3
+  },
+  {
+   "pattern": "disparo",
+   "category": "gore",
+   "weight": 0.3
+  },
+  {
+   "pattern": "balazo",
+   "category": "gore",
+   "weight": 0.3
+  },
+  {
+   "pattern": "balacera",
+   "category": "gore",
+   "weight": 0.25
+  },
+  {
+   "pattern": "sangre",
+   "category": "gore",
+   "weight": 0.7
+  },
+  {
+   "pattern": "apunal",
+   "category": "gore",
+   "weight": 0.7
+  },
+  {
+   "pattern": "hueso",
+   "category": "gore",
+   "weight": 0.5
+  },
+  {
+   "pattern": "cruj",
+   "category": "gore",
+   "weight": 0.4
+  },
+  {
+   "pattern": "salpica",
+   "category": "gore",
+   "weight": 0.5
+  },
+  {
+   "pattern": "gorgote",
+   "category": "gore",
+   "weight": 0.5
+  },
+  {
+   "pattern": "motosierra",
+   "category": "gore",
+   "weight": 0.5
+  },
+  {
+   "pattern": "carne desgarr",
+   "category": "gore",
+   "weight": 0.6
+  }
+ ],
+ "keywords": [
+  {
+   "term": "desnud",
+   "category": "nudity",
+   "weight": 0.6,
+   "stem": true
+  },
+  {
+   "term": "sin ropa",
+   "category": "nudity",
+   "weight": 0.45,
+   "stem": false
+  },
+  {
+   "term": "topless",
+   "category": "nudity",
+   "weight": 0.7,
+   "stem": false
+  },
+  {
+   "term": "quitate la ropa",
+   "category": "nudity",
+   "weight": 0.6,
+   "stem": false
+  },
+  {
+   "term": "desvist",
+   "category": "nudity",
+   "weight": 0.45,
+   "stem": true
+  },
+  {
+   "term": "encuerad",
+   "category": "nudity",
+   "weight": 0.6,
+   "stem": true
+  },
+  {
+   "term": "bichi",
+   "category": "nudity",
+   "weight": 0.4,
+   "stem": false
+  },
+  {
+   "term": "stripper",
+   "category": "nudity",
+   "weight": 0.5,
+   "stem": true
+  },
+  {
+   "term": "sexo",
+   "category": "sex",
+   "weight": 0.45,
+   "stem": false
+  },
+  {
+   "term": "sexy",
+   "category": "sex",
+   "weight": 0.25,
+   "stem": false
+  },
+  {
+   "term": "hacer el amor",
+   "category": "sex",
+   "weight": 0.6,
+   "stem": false
+  },
+  {
+   "term": "hicimos el amor",
+   "category": "sex",
+   "weight": 0.6,
+   "stem": false
+  },
+  {
+   "term": "haciendo el amor",
+   "category": "sex",
+   "weight": 0.6,
+   "stem": false
+  },
+  {
+   "term": "hagamos el amor",
+   "category": "sex",
+   "weight": 0.6,
+   "stem": false
+  },
+  {
+   "term": "acostarse con",
+   "category": "sex",
+   "weight": 0.45,
+   "stem": false
+  },
+  {
+   "term": "acostarme con",
+   "category": "sex",
+   "weight": 0.45,
+   "stem": false
+  },
+  {
+   "term": "me acoste con",
+   "category": "sex",
+   "weight": 0.45,
+   "stem": false
+  },
+  {
+   "term": "se acosto con",
+   "category": "sex",
+   "weight": 0.45,
+   "stem": false
+  },
+  {
+   "term": "te acostaste con",
+   "category": "sex",
+   "weight": 0.45,
+   "stem": false
+  },
+  {
+   "term": "dormir con",
+   "category": "sex",
+   "weight": 0.35,
+   "stem": false
+  },
+  {
+   "term": "orgasm",
+   "category": "sex",
+   "weight": 0.7,
+   "stem": true
+  },
+  {
+   "term": "condon",
+   "category": "sex",
+   "weight": 0.4,
+   "stem": true
+  },
+  {
+   "term": "cachond",
+   "category": "sex",
+   "weight": 0.5,
+   "stem": true
+  },
+  {
+   "term": "excitad",
+   "category": "sex",
+   "weight": 0.35,
+   "stem": true
+  },
+  {
+   "term": "seduc",
+   "category": "sex",
+   "weight": 0.4,
+   "stem": true
+  },
+  {
+   "term": "coger",
+   "category": "sex",
+   "weight": 0.35,
+   "stem": false
+  },
+  {
+   "term": "cogiendo",
+   "category": "sex",
+   "weight": 0.4,
+   "stem": false
+  },
+  {
+   "term": "cogimos",
+   "category": "sex",
+   "weight": 0.4,
+   "stem": false
+  },
+  {
+   "term": "pasar la noche",
+   "category": "implied",
+   "weight": 0.35,
+   "stem": false
+  },
+  {
+   "term": "quedate esta noche",
+   "category": "implied",
+   "weight": 0.3,
+   "stem": false
+  },
+  {
+   "term": "ven a la cama",
+   "category": "implied",
+   "weight": 0.45,
+   "stem": false
+  },
+  {
+   "term": "en la cama",
+   "category": "implied",
+   "weight": 0.2,
+   "stem": false
+  },
+  {
+   "term": "cierra la puerta",
+   "category": "implied",
+   "weight": 0.2,
+   "stem": false
+  },
+  {
+   "term": "beso",
+   "category": "kissing",
+   "weight": 0.45,
+   "stem": true
+  },
+  {
+   "term": "besa",
+   "category": "kissing",
+   "weight": 0.45,
+   "stem": true
+  },
+  {
+   "term": "bese",
+   "category": "kissing",
+   "weight": 0.45,
+   "stem": true
+  },
+  {
+   "term": "fajar",
+   "category": "kissing",
+   "weight": 0.5,
+   "stem": false
+  },
+  {
+   "term": "fajando",
+   "category": "kissing",
+   "weight": 0.5,
+   "stem": false
+  },
+  {
+   "term": "fajamos",
+   "category": "kissing",
+   "weight": 0.5,
+   "stem": false
+  },
+  {
+   "term": "sangr",
+   "category": "gore",
+   "weight": 0.4,
+   "stem": true
+  },
+  {
+   "term": "desangr",
+   "category": "gore",
+   "weight": 0.5,
+   "stem": true
+  },
+  {
+   "term": "decapit",
+   "category": "gore",
+   "weight": 0.8,
+   "stem": true
+  },
+  {
+   "term": "desmembr",
+   "category": "gore",
+   "weight": 0.8,
+   "stem": true
+  },
+  {
+   "term": "mutil",
+   "category": "gore",
+   "weight": 0.8,
+   "stem": true
+  },
+  {
+   "term": "cadaver",
+   "category": "gore",
+   "weight": 0.4,
+   "stem": true
+  },
+  {
+   "term": "apunal",
+   "category": "gore",
+   "weight": 0.5,
+   "stem": true
+  },
+  {
+   "term": "herid",
+   "category": "gore",
+   "weight": 0.35,
+   "stem": true
+  },
+  {
+   "term": "tortur",
+   "category": "gore",
+   "weight": 0.5,
+   "stem": true
+  },
+  {
+   "term": "masacre",
+   "category": "gore",
+   "weight": 0.5,
+   "stem": false
+  },
+  {
+   "term": "tripas",
+   "category": "gore",
+   "weight": 0.4,
+   "stem": false
+  },
+  {
+   "term": "entranas",
+   "category": "gore",
+   "weight": 0.6,
+   "stem": false
+  },
+  {
+   "term": "sesos",
+   "category": "gore",
+   "weight": 0.4,
+   "stem": false
+  },
+  {
+   "term": "degoll",
+   "category": "gore",
+   "weight": 0.7,
+   "stem": true
+  }
+ ],
+ "profanity": [
+  {
+   "term": "pendejo",
+   "weight": 0.75
+  },
+  {
+   "term": "pendeja",
+   "weight": 0.75
+  },
+  {
+   "term": "pendejos",
+   "weight": 0.75
+  },
+  {
+   "term": "pendejas",
+   "weight": 0.75
+  },
+  {
+   "term": "pendejada",
+   "weight": 0.65
+  },
+  {
+   "term": "cabron",
+   "weight": 0.75
+  },
+  {
+   "term": "cabrona",
+   "weight": 0.75
+  },
+  {
+   "term": "cabrones",
+   "weight": 0.75
+  },
+  {
+   "term": "chingar",
+   "weight": 0.85
+  },
+  {
+   "term": "chinga",
+   "weight": 0.85
+  },
+  {
+   "term": "chingada",
+   "weight": 0.85
+  },
+  {
+   "term": "chingado",
+   "weight": 0.85
+  },
+  {
+   "term": "chingados",
+   "weight": 0.85
+  },
+  {
+   "term": "chingadera",
+   "weight": 0.8
+  },
+  {
+   "term": "chingon",
+   "weight": 0.5
+  },
+  {
+   "term": "verga",
+   "weight": 0.85
+  },
+  {
+   "term": "mierda",
+   "weight": 0.7
+  },
+  {
+   "term": "puta",
+   "weight": 0.85
+  },
+  {
+   "term": "puto",
+   "weight": 0.85
+  },
+  {
+   "term": "putas",
+   "weight": 0.85
+  },
+  {
+   "term": "putos",
+   "weight": 0.85
+  },
+  {
+   "term": "culero",
+   "weight": 0.8
+  },
+  {
+   "term": "culera",
+   "weight": 0.8
+  },
+  {
+   "term": "pinche",
+   "weight": 0.6
+  },
+  {
+   "term": "pinches",
+   "weight": 0.6
+  },
+  {
+   "term": "joder",
+   "weight": 0.75
+  },
+  {
+   "term": "jodido",
+   "weight": 0.65
+  },
+  {
+   "term": "jodida",
+   "weight": 0.65
+  },
+  {
+   "term": "cono",
+   "weight": 0.8
+  },
+  {
+   "term": "carajo",
+   "weight": 0.55
+  },
+  {
+   "term": "mamon",
+   "weight": 0.6
+  },
+  {
+   "term": "mamada",
+   "weight": 0.7
+  },
+  {
+   "term": "ojete",
+   "weight": 0.7
+  },
+  {
+   "term": "culo",
+   "weight": 0.6
+  },
+  {
+   "term": "huevon",
+   "weight": 0.5
+  },
+  {
+   "term": "guey",
+   "weight": 0.1
+  },
+  {
+   "term": "zorra",
+   "weight": 0.5
+  }
+ ],
+ "ignore": [
+  "♪",
+  "♫",
+  "#"
+ ]
+}

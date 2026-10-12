@@ -6,10 +6,10 @@
   "private": true,
   "scripts": {
     "start": "electron .",
-    "test": "node --test shared/test desktop/test player/test",
-    "test:shared": "node --test shared/test",
-    "test:player": "node --test player/test",
-    "test:desktop": "node --test desktop/test",
+    "test": "node --test \"shared/test/**/*.test.js\" \"desktop/test/**/*.test.js\" \"player/test/**/*.test.js\"",
+    "test:shared": "node --test \"shared/test/**/*.test.js\"",
+    "test:player": "node --test \"player/test/**/*.test.js\"",
+    "test:desktop": "node --test \"desktop/test/**/*.test.js\"",
     "lint": "node tools/lint-es5.js"
   },
   "engines": { "node": ">=20" },

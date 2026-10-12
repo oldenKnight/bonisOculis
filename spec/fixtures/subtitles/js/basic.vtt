@@ -1,0 +1,35 @@
+WEBVTT - test track
+
+NOTE
+This block is a comment and must be ignored.
+
+STYLE
+::cue { color: white; }
+
+intro
+00:01.000 --> 00:03.500 align:start position:10%
+<v Narrator>Good evening, everyone.</v>
+
+00:00:10.000 --> 00:00:12.000 line:0
+<c.sdh>[moaning]</c>
+
+00:00:11.500 --> 00:00:13.000
+Overlapping line
+
+00:00:20.000 --> 00:00:22.250
+I think they will <00:00:21.000>kiss now.
+
+00:00:30.000 --> 00:00:32.000
+Oh, crap. Damn it.
+
+00:00:40.000 --> 00:00:41.000
+&lt;Hello&gt; &amp; goodbye
+
+00:00:45.000 --> 00:00:47.000
+[kissing]
+
+00:00:50.000 --> 00:00:52.000
+♪ Kiss me, kiss me ♪
+
+00:00:55.000 --> 00:00:57.000
+- ¿Qué BESO?

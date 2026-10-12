@@ -37,7 +37,7 @@ because adding a filter re-initialises the video chain) until `end` (exclusive).
 |---|---|---|
 | `skip` | screen covered + muted, `seek <end> absolute+exact`, OSD "Scene skipped" | when playback restarts outside |
 | `hide` | full-window black ASS overlay + `mute=yes` + subtitles hidden | at `end` |
-| `blur` | `vf add @bo-blur:lavfi=[scale=iw/24:-2:flags=area,scale=iw*24:-2:flags=neighbor]` + mute | at `end` (filter removed) |
+| `blur` | `vf add @bo-blur:lavfi=[scale=iw/24:-2:flags=area,scale=iw*24:-2:flags=neighbor]` + mute, both from `start - 0.5 s` | at `end` (filter removed) |
 | `mute` | `mute=yes` | at `end` |
 
 - Enforcement runs on every `time-pos` change, on the `seek` event (at that moment `time-pos`
@@ -95,7 +95,8 @@ gone. The app merges it into the skip file.
 - `hello` — re-sends `ready` (and the last load error), for an app that connected late.
 
 State for tests and the app is also published as the mpv property `user-data/bonis`
-(`{black, mute, blur, panic, kid, loaded, enforced}`).
+(`{black, mute, blur, panic, kid, loaded, enforced, at}`, where `at` is the playback position at
+which the change took effect).
 
 ## Failure modes
 

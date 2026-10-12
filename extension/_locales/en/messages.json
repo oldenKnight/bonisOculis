@@ -1,0 +1,460 @@
+{
+  "extName": {
+    "message": "bonis oculis",
+    "description": "Extension name"
+  },
+  "extDescription": {
+    "message": "Skips the scenes you chose to avoid in online videos, using the video's own subtitles. Nothing leaves your computer.",
+    "description": "Store description"
+  },
+  "cmdPanic": {
+    "message": "Hide the video now (press again to show it)",
+    "description": "Keyboard command"
+  },
+  "betaTag": {
+    "message": "Beta"
+  },
+  "siteGeneric": {
+    "message": "This page",
+    "description": "Adapter name"
+  },
+  "siteYoutube": {
+    "message": "YouTube"
+  },
+  "siteNetflix": {
+    "message": "Netflix"
+  },
+  "sitePrimevideo": {
+    "message": "Prime Video"
+  },
+  "siteDisneyplus": {
+    "message": "Disney+"
+  },
+  "statusLabel": {
+    "message": "On this tab"
+  },
+  "noVideo": {
+    "message": "No video found on this page yet. Start the video, then open this again."
+  },
+  "notSetUp": {
+    "message": "bonis oculis is not turned on for this website."
+  },
+  "protectThisTab": {
+    "message": "Protect this tab",
+    "description": "Button"
+  },
+  "protectThisTabHelp": {
+    "message": "Works until you close the tab. Subtitles the page already loaded may be missed; restart the video after this."
+  },
+  "allowAllSites": {
+    "message": "Turn on for all websites",
+    "description": "Button"
+  },
+  "allowAllSitesHelp": {
+    "message": "Chrome asks you once. We still only read subtitles, never the picture."
+  },
+  "unsupportedPage": {
+    "message": "Open a page with a video to use bonis oculis."
+  },
+  "sourceLabel": {
+    "message": "Reading from"
+  },
+  "sourcePage": {
+    "message": "Subtitles from this page"
+  },
+  "sourceFile": {
+    "message": "Your subtitle file: $NAME$",
+    "placeholders": {
+      "name": {
+        "content": "$1",
+        "example": "3"
+      }
+    }
+  },
+  "sourceSkip": {
+    "message": "Skip file: $TITLE$",
+    "placeholders": {
+      "title": {
+        "content": "$1",
+        "example": "3"
+      }
+    }
+  },
+  "sourceMarks": {
+    "message": "Moments you hid: $COUNT$",
+    "placeholders": {
+      "count": {
+        "content": "$1",
+        "example": "3"
+      }
+    }
+  },
+  "sourceNone": {
+    "message": "No subtitles yet"
+  },
+  "scenesOne": {
+    "message": "1 scene will be skipped"
+  },
+  "scenesMany": {
+    "message": "$COUNT$ scenes will be skipped",
+    "placeholders": {
+      "count": {
+        "content": "$1",
+        "example": "3"
+      }
+    }
+  },
+  "scenesNone": {
+    "message": "No scenes to skip so far"
+  },
+  "scenesWaiting": {
+    "message": "Waiting for subtitles"
+  },
+  "muteOne": {
+    "message": "1 moment will be muted"
+  },
+  "muteMany": {
+    "message": "$COUNT$ moments will be muted",
+    "placeholders": {
+      "count": {
+        "content": "$1",
+        "example": "3"
+      }
+    }
+  },
+  "noTrackGeneric": {
+    "message": "We could not read subtitles on this page yet. Turn on the video's subtitles (CC) for a moment, or use a subtitle file you have."
+  },
+  "noTrackYoutube": {
+    "message": "Turn on captions (CC) once so we can read them. You can turn them off again."
+  },
+  "readCaptions": {
+    "message": "Read this video's captions",
+    "description": "Button"
+  },
+  "noTrackStreaming": {
+    "message": "Turn on subtitles in the player once so we can read them. You can turn them off again."
+  },
+  "rollingNote": {
+    "message": "This site sends subtitles a little at a time, so scenes appear shortly before they play."
+  },
+  "drmNote": {
+    "message": "On this site we cannot always jump ahead. When we cannot, we cover the picture and mute the sound until the scene ends."
+  },
+  "adNote": {
+    "message": "An ad is playing. Scenes are checked again when the video continues."
+  },
+  "levelsTitle": {
+    "message": "What to skip on this video"
+  },
+  "levelsDefaultsTitle": {
+    "message": "What to skip by default"
+  },
+  "levelsFromSkipFile": {
+    "message": "Scenes from a skip file follow the choices made on your computer."
+  },
+  "resetLevels": {
+    "message": "Use my defaults",
+    "description": "Button"
+  },
+  "catNudity": {
+    "message": "Nudity"
+  },
+  "catSex": {
+    "message": "Sex"
+  },
+  "catImplied": {
+    "message": "Implied"
+  },
+  "catKissing": {
+    "message": "Kissing"
+  },
+  "catGore": {
+    "message": "Gore"
+  },
+  "catLanguage": {
+    "message": "Language"
+  },
+  "catOther": {
+    "message": "Other"
+  },
+  "levelOff": {
+    "message": "Off"
+  },
+  "levelLight": {
+    "message": "Light"
+  },
+  "levelModerate": {
+    "message": "Moderate"
+  },
+  "levelStrict": {
+    "message": "Strict"
+  },
+  "levelOffDesc": {
+    "message": "Nothing is skipped for this."
+  },
+  "levelLightDesc": {
+    "message": "Skips only the scenes we are very sure about."
+  },
+  "levelModerateDesc": {
+    "message": "Skips clear scenes and most borderline ones."
+  },
+  "levelStrictDesc": {
+    "message": "Skips anything that might be this, even when unsure. Best for young children."
+  },
+  "languageMuteNote": {
+    "message": "Strong language is muted, not skipped."
+  },
+  "filesTitle": {
+    "message": "Your files"
+  },
+  "useSubFile": {
+    "message": "Use a subtitle file",
+    "description": "Button"
+  },
+  "useSubFileHelp": {
+    "message": "Have an .srt or .vtt file for this video? We read it to find scenes. It stays in this browser."
+  },
+  "importSkip": {
+    "message": "Import a skip file",
+    "description": "Button"
+  },
+  "importSkipHelp": {
+    "message": "A file made by bonis oculis on your computer (.bonis.json)."
+  },
+  "chooseFile": {
+    "message": "Choose a file",
+    "description": "Button"
+  },
+  "fileWindowNote": {
+    "message": "Files open in a small window so Chrome does not close this panel."
+  },
+  "subFileOk": {
+    "message": "Subtitle file added. We found $COUNT$ scenes.",
+    "placeholders": {
+      "count": {
+        "content": "$1",
+        "example": "3"
+      }
+    }
+  },
+  "subFileEmpty": {
+    "message": "We could not find subtitles in that file. Choose an .srt or .vtt subtitle file and try again."
+  },
+  "skipFileOk": {
+    "message": "Skip file added: $COUNT$ scenes.",
+    "placeholders": {
+      "count": {
+        "content": "$1",
+        "example": "3"
+      }
+    }
+  },
+  "skipFileInvalid": {
+    "message": "That skip file could not be used. Export it again from bonis oculis on your computer and try again."
+  },
+  "fileTooBig": {
+    "message": "That file is too big to be a subtitle or skip file. Choose another file."
+  },
+  "remove": {
+    "message": "Remove",
+    "description": "Button"
+  },
+  "removed": {
+    "message": "Removed."
+  },
+  "timingTitle": {
+    "message": "Timing"
+  },
+  "timingHelp": {
+    "message": "If scenes are skipped too early or too late, move the timing of your files."
+  },
+  "timingValue": {
+    "message": "$SECONDS$ s",
+    "placeholders": {
+      "seconds": {
+        "content": "$1",
+        "example": "3"
+      }
+    }
+  },
+  "timingEarlier": {
+    "message": "0.5 s earlier",
+    "description": "Button"
+  },
+  "timingLater": {
+    "message": "0.5 s later",
+    "description": "Button"
+  },
+  "autoSync": {
+    "message": "Match timing automatically",
+    "description": "Button"
+  },
+  "autoSyncOk": {
+    "message": "Timing matched: $SECONDS$ s.",
+    "placeholders": {
+      "seconds": {
+        "content": "$1",
+        "example": "3"
+      }
+    }
+  },
+  "autoSyncFail": {
+    "message": "We could not match the timing. Turn on the site's subtitles for a minute, then try again."
+  },
+  "autoSyncNeedFile": {
+    "message": "Add a subtitle file first, then match the timing."
+  },
+  "panicButton": {
+    "message": "Hide the video now",
+    "description": "Button"
+  },
+  "panicRestore": {
+    "message": "Show the video again",
+    "description": "Button"
+  },
+  "panicHelp": {
+    "message": "Shortcut: $KEYS$. The moment is saved and skipped next time.",
+    "placeholders": {
+      "keys": {
+        "content": "$1",
+        "example": "3"
+      }
+    }
+  },
+  "forgetMarks": {
+    "message": "Forget my hidden moments",
+    "description": "Button"
+  },
+  "languageLabel": {
+    "message": "Language"
+  },
+  "langEnglish": {
+    "message": "English"
+  },
+  "langSpanish": {
+    "message": "Español"
+  },
+  "openOptions": {
+    "message": "Settings and privacy",
+    "description": "Link"
+  },
+  "overlaySkipped": {
+    "message": "Scene skipped"
+  },
+  "overlayHidden": {
+    "message": "Hidden"
+  },
+  "overlayHiddenHint": {
+    "message": "Press $KEYS$ to show the video again.",
+    "placeholders": {
+      "keys": {
+        "content": "$1",
+        "example": "3"
+      }
+    }
+  },
+  "somethingWrong": {
+    "message": "We could not reach this tab. Reload the page and try again."
+  },
+  "optionsTitle": {
+    "message": "bonis oculis settings"
+  },
+  "defaultsHelp": {
+    "message": "These choices apply to every new video. You can change them for one video from the toolbar button."
+  },
+  "presetLittle": {
+    "message": "Little kids",
+    "description": "Button"
+  },
+  "presetTeens": {
+    "message": "Teens",
+    "description": "Button"
+  },
+  "saved": {
+    "message": "Saved."
+  },
+  "sitesTitle": {
+    "message": "Websites"
+  },
+  "sitesBuiltIn": {
+    "message": "Always on for YouTube, Netflix, Prime Video and Disney+."
+  },
+  "sitesAllOn": {
+    "message": "Also on for every other website with a video."
+  },
+  "sitesAllOff": {
+    "message": "Not on for other websites. Use Protect this tab, or turn it on for all websites."
+  },
+  "sitesTurnOff": {
+    "message": "Turn off for other websites",
+    "description": "Button"
+  },
+  "shortcutTitle": {
+    "message": "Keyboard shortcut"
+  },
+  "shortcutHelp": {
+    "message": "Press $KEYS$ to hide the video at once. Press it again to show it.",
+    "placeholders": {
+      "keys": {
+        "content": "$1",
+        "example": "3"
+      }
+    }
+  },
+  "shortcutNotSet": {
+    "message": "not set"
+  },
+  "openShortcuts": {
+    "message": "Change the shortcut",
+    "description": "Button"
+  },
+  "privacyTitle": {
+    "message": "Privacy"
+  },
+  "privacy1": {
+    "message": "bonis oculis never sends anything anywhere. It has no account, no analytics and no remote settings."
+  },
+  "privacy2": {
+    "message": "It never looks at the picture. It only reads the subtitle text that the page itself downloads, or a file you choose."
+  },
+  "privacy3": {
+    "message": "Your choices, files and hidden moments are kept in this browser only. Removing the extension removes them."
+  },
+  "privacy4": {
+    "message": "It does not download or decode protected video, and it never records the screen or the sound."
+  },
+  "limitsTitle": {
+    "message": "What it can and cannot do"
+  },
+  "limits1": {
+    "message": "It finds scenes from subtitles only, so it can miss scenes that have no words or sound cues. You can hide any moment with the shortcut."
+  },
+  "limits2": {
+    "message": "On Netflix, Prime Video and Disney+ it may not be able to jump ahead. Then it covers the picture and mutes the sound until the scene ends."
+  },
+  "limits3": {
+    "message": "It has no PIN. To keep children from changing it, use a supervised Chrome profile for them."
+  },
+  "forgetTitle": {
+    "message": "Start over"
+  },
+  "forgetAll": {
+    "message": "Forget everything",
+    "description": "Button"
+  },
+  "forgetAllHelp": {
+    "message": "Removes your imported files, hidden moments and choices from this browser."
+  },
+  "forgetAllConfirm": {
+    "message": "Yes, forget everything",
+    "description": "Button"
+  },
+  "keepIt": {
+    "message": "Keep it",
+    "description": "Button"
+  },
+  "forgetAllDone": {
+    "message": "Everything was removed from this browser."
+  }
+}

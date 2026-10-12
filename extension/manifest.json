@@ -1,0 +1,202 @@
+{
+  "manifest_version": 3,
+  "name": "__MSG_extName__",
+  "short_name": "bonis oculis",
+  "description": "__MSG_extDescription__",
+  "version": "0.6.0",
+  "version_name": "0.6.0 beta",
+  "default_locale": "en",
+  "minimum_chrome_version": "111",
+  "icons": {
+    "16": "icons/icon16.png",
+    "32": "icons/icon32.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
+  "action": {
+    "default_title": "__MSG_extName__",
+    "default_popup": "popup/popup.html",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "32": "icons/icon32.png"
+    }
+  },
+  "background": {
+    "service_worker": "background/background.js"
+  },
+  "options_ui": {
+    "page": "options/options.html",
+    "open_in_tab": true
+  },
+  "permissions": [
+    "storage",
+    "activeTab",
+    "scripting"
+  ],
+  "host_permissions": [
+    "https://www.youtube.com/*",
+    "https://m.youtube.com/*",
+    "https://www.youtube-nocookie.com/*",
+    "https://www.netflix.com/*",
+    "https://www.primevideo.com/*",
+    "https://www.amazon.com/*",
+    "https://www.amazon.com.mx/*",
+    "https://www.amazon.es/*",
+    "https://www.amazon.co.uk/*",
+    "https://www.amazon.ca/*",
+    "https://www.disneyplus.com/*",
+    "https://disneyplus.com/*"
+  ],
+  "optional_host_permissions": [
+    "<all_urls>"
+  ],
+  "commands": {
+    "panic": {
+      "suggested_key": {
+        "default": "Alt+Shift+P"
+      },
+      "description": "__MSG_cmdPanic__"
+    }
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://www.youtube.com/*",
+        "https://m.youtube.com/*",
+        "https://www.youtube-nocookie.com/*"
+      ],
+      "js": [
+        "inject/hook.js"
+      ],
+      "run_at": "document_start",
+      "world": "MAIN",
+      "all_frames": false
+    },
+    {
+      "matches": [
+        "https://www.youtube.com/*",
+        "https://m.youtube.com/*",
+        "https://www.youtube-nocookie.com/*"
+      ],
+      "js": [
+        "shared/skipfile.js",
+        "shared/subscan.js",
+        "common/store.js",
+        "content/core.js",
+        "content/bridge.js",
+        "adapters/base.js",
+        "adapters/youtube.js",
+        "content/overlay.js",
+        "content/enforcer.js",
+        "content/main.js"
+      ],
+      "run_at": "document_start",
+      "all_frames": false
+    },
+    {
+      "matches": [
+        "https://www.netflix.com/*"
+      ],
+      "js": [
+        "inject/hook.js"
+      ],
+      "run_at": "document_start",
+      "world": "MAIN",
+      "all_frames": false
+    },
+    {
+      "matches": [
+        "https://www.netflix.com/*"
+      ],
+      "js": [
+        "shared/skipfile.js",
+        "shared/subscan.js",
+        "common/store.js",
+        "content/core.js",
+        "content/bridge.js",
+        "adapters/base.js",
+        "adapters/netflix.js",
+        "content/overlay.js",
+        "content/enforcer.js",
+        "content/main.js"
+      ],
+      "run_at": "document_start",
+      "all_frames": false
+    },
+    {
+      "matches": [
+        "https://www.primevideo.com/*",
+        "https://www.amazon.com/*",
+        "https://www.amazon.com.mx/*",
+        "https://www.amazon.es/*",
+        "https://www.amazon.co.uk/*",
+        "https://www.amazon.ca/*"
+      ],
+      "js": [
+        "inject/hook.js"
+      ],
+      "run_at": "document_start",
+      "world": "MAIN",
+      "all_frames": false
+    },
+    {
+      "matches": [
+        "https://www.primevideo.com/*",
+        "https://www.amazon.com/*",
+        "https://www.amazon.com.mx/*",
+        "https://www.amazon.es/*",
+        "https://www.amazon.co.uk/*",
+        "https://www.amazon.ca/*"
+      ],
+      "js": [
+        "shared/skipfile.js",
+        "shared/subscan.js",
+        "common/store.js",
+        "content/core.js",
+        "content/bridge.js",
+        "adapters/base.js",
+        "adapters/primevideo.js",
+        "content/overlay.js",
+        "content/enforcer.js",
+        "content/main.js"
+      ],
+      "run_at": "document_start",
+      "all_frames": false
+    },
+    {
+      "matches": [
+        "https://www.disneyplus.com/*",
+        "https://disneyplus.com/*"
+      ],
+      "js": [
+        "inject/hook.js"
+      ],
+      "run_at": "document_start",
+      "world": "MAIN",
+      "all_frames": false
+    },
+    {
+      "matches": [
+        "https://www.disneyplus.com/*",
+        "https://disneyplus.com/*"
+      ],
+      "js": [
+        "shared/skipfile.js",
+        "shared/subscan.js",
+        "common/store.js",
+        "content/core.js",
+        "content/bridge.js",
+        "adapters/base.js",
+        "adapters/disneyplus.js",
+        "content/overlay.js",
+        "content/enforcer.js",
+        "content/main.js"
+      ],
+      "run_at": "document_start",
+      "all_frames": false
+    }
+  ],
+  "content_security_policy": {
+    "extension_pages": "script-src 'self'; object-src 'none'; connect-src 'self'; img-src 'self' data:; font-src 'self'; style-src 'self'; base-uri 'none'; form-action 'none'"
+  }
+}

@@ -1,0 +1,687 @@
+{
+ "language": "en",
+ "version": 1,
+ "notes": "Shared by analyzer/bonis_analyzer/signals/subtitles.py and the browser extension. Matching rules: spec/lexicon/README.md.",
+ "sdh": [
+  {
+   "pattern": "moan",
+   "category": "sex",
+   "weight": 0.85
+  },
+  {
+   "pattern": "groan",
+   "category": "sex",
+   "weight": 0.3
+  },
+  {
+   "pattern": "panting",
+   "category": "sex",
+   "weight": 0.4
+  },
+  {
+   "pattern": "pants heavily",
+   "category": "sex",
+   "weight": 0.45
+  },
+  {
+   "pattern": "breathing heavily",
+   "category": "sex",
+   "weight": 0.45
+  },
+  {
+   "pattern": "heavy breathing",
+   "category": "sex",
+   "weight": 0.45
+  },
+  {
+   "pattern": "gasp",
+   "category": "sex",
+   "weight": 0.15
+  },
+  {
+   "pattern": "bed creak",
+   "category": "sex",
+   "weight": 0.7
+  },
+  {
+   "pattern": "bedsprings",
+   "category": "sex",
+   "weight": 0.7
+  },
+  {
+   "pattern": "headboard",
+   "category": "sex",
+   "weight": 0.7
+  },
+  {
+   "pattern": "sexual",
+   "category": "sex",
+   "weight": 0.8
+  },
+  {
+   "pattern": "orgasm",
+   "category": "sex",
+   "weight": 0.9
+  },
+  {
+   "pattern": "climax",
+   "category": "sex",
+   "weight": 0.6
+  },
+  {
+   "pattern": "kiss",
+   "category": "kissing",
+   "weight": 0.85
+  },
+  {
+   "pattern": "smooch",
+   "category": "kissing",
+   "weight": 0.7
+  },
+  {
+   "pattern": "lips smack",
+   "category": "kissing",
+   "weight": 0.5
+  },
+  {
+   "pattern": "unzip",
+   "category": "implied",
+   "weight": 0.4
+  },
+  {
+   "pattern": "zipper",
+   "category": "implied",
+   "weight": 0.3
+  },
+  {
+   "pattern": "clothes rustl",
+   "category": "implied",
+   "weight": 0.3
+  },
+  {
+   "pattern": "undress",
+   "category": "implied",
+   "weight": 0.5
+  },
+  {
+   "pattern": "undress",
+   "category": "nudity",
+   "weight": 0.4
+  },
+  {
+   "pattern": "sighs contentedly",
+   "category": "implied",
+   "weight": 0.25
+  },
+  {
+   "pattern": "scream",
+   "category": "gore",
+   "weight": 0.3
+  },
+  {
+   "pattern": "gunshot",
+   "category": "gore",
+   "weight": 0.3
+  },
+  {
+   "pattern": "gunfire",
+   "category": "gore",
+   "weight": 0.25
+  },
+  {
+   "pattern": "stab",
+   "category": "gore",
+   "weight": 0.7
+  },
+  {
+   "pattern": "squelch",
+   "category": "gore",
+   "weight": 0.6
+  },
+  {
+   "pattern": "squish",
+   "category": "gore",
+   "weight": 0.4
+  },
+  {
+   "pattern": "bone",
+   "category": "gore",
+   "weight": 0.5
+  },
+  {
+   "pattern": "crunch",
+   "category": "gore",
+   "weight": 0.4
+  },
+  {
+   "pattern": "blood",
+   "category": "gore",
+   "weight": 0.7
+  },
+  {
+   "pattern": "splatter",
+   "category": "gore",
+   "weight": 0.6
+  },
+  {
+   "pattern": "flesh",
+   "category": "gore",
+   "weight": 0.6
+  },
+  {
+   "pattern": "chainsaw",
+   "category": "gore",
+   "weight": 0.5
+  },
+  {
+   "pattern": "gurgl",
+   "category": "gore",
+   "weight": 0.5
+  },
+  {
+   "pattern": "choking",
+   "category": "gore",
+   "weight": 0.3
+  },
+  {
+   "pattern": "tearing",
+   "category": "gore",
+   "weight": 0.3
+  }
+ ],
+ "keywords": [
+  {
+   "term": "naked",
+   "category": "nudity",
+   "weight": 0.6,
+   "stem": false
+  },
+  {
+   "term": "nude",
+   "category": "nudity",
+   "weight": 0.6,
+   "stem": true
+  },
+  {
+   "term": "topless",
+   "category": "nudity",
+   "weight": 0.7,
+   "stem": false
+  },
+  {
+   "term": "undress",
+   "category": "nudity",
+   "weight": 0.45,
+   "stem": true
+  },
+  {
+   "term": "take your clothes off",
+   "category": "nudity",
+   "weight": 0.6,
+   "stem": false
+  },
+  {
+   "term": "take off your clothes",
+   "category": "nudity",
+   "weight": 0.6,
+   "stem": false
+  },
+  {
+   "term": "no clothes",
+   "category": "nudity",
+   "weight": 0.4,
+   "stem": false
+  },
+  {
+   "term": "skinny dip",
+   "category": "nudity",
+   "weight": 0.6,
+   "stem": true
+  },
+  {
+   "term": "stripper",
+   "category": "nudity",
+   "weight": 0.5,
+   "stem": true
+  },
+  {
+   "term": "birthday suit",
+   "category": "nudity",
+   "weight": 0.4,
+   "stem": false
+  },
+  {
+   "term": "sex",
+   "category": "sex",
+   "weight": 0.45,
+   "stem": false
+  },
+  {
+   "term": "sexy",
+   "category": "sex",
+   "weight": 0.25,
+   "stem": false
+  },
+  {
+   "term": "have sex",
+   "category": "sex",
+   "weight": 0.6,
+   "stem": false
+  },
+  {
+   "term": "having sex",
+   "category": "sex",
+   "weight": 0.6,
+   "stem": false
+  },
+  {
+   "term": "had sex",
+   "category": "sex",
+   "weight": 0.6,
+   "stem": false
+  },
+  {
+   "term": "make love",
+   "category": "sex",
+   "weight": 0.6,
+   "stem": false
+  },
+  {
+   "term": "making love",
+   "category": "sex",
+   "weight": 0.6,
+   "stem": false
+  },
+  {
+   "term": "made love",
+   "category": "sex",
+   "weight": 0.6,
+   "stem": false
+  },
+  {
+   "term": "sleep with",
+   "category": "sex",
+   "weight": 0.4,
+   "stem": false
+  },
+  {
+   "term": "slept with",
+   "category": "sex",
+   "weight": 0.4,
+   "stem": false
+  },
+  {
+   "term": "sleeping with",
+   "category": "sex",
+   "weight": 0.4,
+   "stem": false
+  },
+  {
+   "term": "orgasm",
+   "category": "sex",
+   "weight": 0.7,
+   "stem": true
+  },
+  {
+   "term": "intercourse",
+   "category": "sex",
+   "weight": 0.6,
+   "stem": false
+  },
+  {
+   "term": "condom",
+   "category": "sex",
+   "weight": 0.4,
+   "stem": true
+  },
+  {
+   "term": "horny",
+   "category": "sex",
+   "weight": 0.5,
+   "stem": false
+  },
+  {
+   "term": "get laid",
+   "category": "sex",
+   "weight": 0.5,
+   "stem": false
+  },
+  {
+   "term": "seduc",
+   "category": "sex",
+   "weight": 0.4,
+   "stem": true
+  },
+  {
+   "term": "hook up",
+   "category": "sex",
+   "weight": 0.3,
+   "stem": false
+  },
+  {
+   "term": "in bed",
+   "category": "implied",
+   "weight": 0.2,
+   "stem": false
+  },
+  {
+   "term": "spend the night",
+   "category": "implied",
+   "weight": 0.35,
+   "stem": false
+  },
+  {
+   "term": "stay the night",
+   "category": "implied",
+   "weight": 0.3,
+   "stem": false
+  },
+  {
+   "term": "come to bed",
+   "category": "implied",
+   "weight": 0.45,
+   "stem": false
+  },
+  {
+   "term": "get undressed",
+   "category": "implied",
+   "weight": 0.5,
+   "stem": false
+  },
+  {
+   "term": "lock the door",
+   "category": "implied",
+   "weight": 0.2,
+   "stem": false
+  },
+  {
+   "term": "take this off",
+   "category": "implied",
+   "weight": 0.35,
+   "stem": false
+  },
+  {
+   "term": "kiss",
+   "category": "kissing",
+   "weight": 0.45,
+   "stem": true
+  },
+  {
+   "term": "make out",
+   "category": "kissing",
+   "weight": 0.55,
+   "stem": false
+  },
+  {
+   "term": "making out",
+   "category": "kissing",
+   "weight": 0.55,
+   "stem": false
+  },
+  {
+   "term": "made out",
+   "category": "kissing",
+   "weight": 0.5,
+   "stem": false
+  },
+  {
+   "term": "french kiss",
+   "category": "kissing",
+   "weight": 0.6,
+   "stem": true
+  },
+  {
+   "term": "blood",
+   "category": "gore",
+   "weight": 0.4,
+   "stem": true
+  },
+  {
+   "term": "bleed",
+   "category": "gore",
+   "weight": 0.45,
+   "stem": true
+  },
+  {
+   "term": "bled",
+   "category": "gore",
+   "weight": 0.4,
+   "stem": false
+  },
+  {
+   "term": "guts",
+   "category": "gore",
+   "weight": 0.35,
+   "stem": false
+  },
+  {
+   "term": "decapitat",
+   "category": "gore",
+   "weight": 0.8,
+   "stem": true
+  },
+  {
+   "term": "dismember",
+   "category": "gore",
+   "weight": 0.8,
+   "stem": true
+  },
+  {
+   "term": "severed",
+   "category": "gore",
+   "weight": 0.6,
+   "stem": false
+  },
+  {
+   "term": "corpse",
+   "category": "gore",
+   "weight": 0.4,
+   "stem": true
+  },
+  {
+   "term": "stab",
+   "category": "gore",
+   "weight": 0.5,
+   "stem": true
+  },
+  {
+   "term": "wound",
+   "category": "gore",
+   "weight": 0.35,
+   "stem": true
+  },
+  {
+   "term": "tortur",
+   "category": "gore",
+   "weight": 0.5,
+   "stem": true
+  },
+  {
+   "term": "slit",
+   "category": "gore",
+   "weight": 0.4,
+   "stem": true
+  },
+  {
+   "term": "entrails",
+   "category": "gore",
+   "weight": 0.7,
+   "stem": false
+  },
+  {
+   "term": "brains",
+   "category": "gore",
+   "weight": 0.4,
+   "stem": false
+  },
+  {
+   "term": "massacre",
+   "category": "gore",
+   "weight": 0.5,
+   "stem": true
+  },
+  {
+   "term": "mutilat",
+   "category": "gore",
+   "weight": 0.8,
+   "stem": true
+  },
+  {
+   "term": "flesh",
+   "category": "gore",
+   "weight": 0.3,
+   "stem": false
+  }
+ ],
+ "profanity": [
+  {
+   "term": "fuck",
+   "weight": 0.9
+  },
+  {
+   "term": "fucking",
+   "weight": 0.9
+  },
+  {
+   "term": "fucked",
+   "weight": 0.9
+  },
+  {
+   "term": "fuckin",
+   "weight": 0.9
+  },
+  {
+   "term": "fucker",
+   "weight": 0.95
+  },
+  {
+   "term": "fucks",
+   "weight": 0.9
+  },
+  {
+   "term": "motherfucker",
+   "weight": 0.95
+  },
+  {
+   "term": "motherfucking",
+   "weight": 0.95
+  },
+  {
+   "term": "shit",
+   "weight": 0.7
+  },
+  {
+   "term": "shitty",
+   "weight": 0.6
+  },
+  {
+   "term": "bullshit",
+   "weight": 0.7
+  },
+  {
+   "term": "bitch",
+   "weight": 0.75
+  },
+  {
+   "term": "bitches",
+   "weight": 0.75
+  },
+  {
+   "term": "asshole",
+   "weight": 0.8
+  },
+  {
+   "term": "assholes",
+   "weight": 0.8
+  },
+  {
+   "term": "ass",
+   "weight": 0.4
+  },
+  {
+   "term": "jackass",
+   "weight": 0.5
+  },
+  {
+   "term": "bastard",
+   "weight": 0.6
+  },
+  {
+   "term": "bastards",
+   "weight": 0.6
+  },
+  {
+   "term": "damn",
+   "weight": 0.35
+  },
+  {
+   "term": "dammit",
+   "weight": 0.35
+  },
+  {
+   "term": "goddamn",
+   "weight": 0.6
+  },
+  {
+   "term": "goddamnit",
+   "weight": 0.6
+  },
+  {
+   "term": "cunt",
+   "weight": 0.95
+  },
+  {
+   "term": "dick",
+   "weight": 0.6
+  },
+  {
+   "term": "dickhead",
+   "weight": 0.7
+  },
+  {
+   "term": "cock",
+   "weight": 0.6
+  },
+  {
+   "term": "prick",
+   "weight": 0.55
+  },
+  {
+   "term": "pussy",
+   "weight": 0.8
+  },
+  {
+   "term": "whore",
+   "weight": 0.8
+  },
+  {
+   "term": "slut",
+   "weight": 0.8
+  },
+  {
+   "term": "piss",
+   "weight": 0.4
+  },
+  {
+   "term": "pissed",
+   "weight": 0.35
+  },
+  {
+   "term": "crap",
+   "weight": 0.25
+  },
+  {
+   "term": "wanker",
+   "weight": 0.7
+  },
+  {
+   "term": "twat",
+   "weight": 0.85
+  }
+ ],
+ "ignore": [
+  "♪",
+  "♫",
+  "#"
+ ]
+}
