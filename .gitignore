@@ -1,0 +1,15 @@
+__pycache__/
+*.pyc
+node_modules/
+.venv/
+dist/
+build/
+*.log
+.DS_Store
+Thumbs.db
+analyzer/models/*.onnx
+analyzer/models/*.gguf
+analyzer/models/*.bin
+analyzer/models/*.tar.gz
+player/mpv/
+bin/
