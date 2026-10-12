@@ -70,6 +70,15 @@
     return null;
   }
 
+  /* Cheap test on the first chunk, so large JSON or media responses are dropped early. */
+  function promising(start) {
+    var h = head(start);
+    if (/^WEBVTT/.test(h)) { return true; }
+    if (/^</.test(h)) { return /^<\?xml/.test(h) || /<(\w+:)?tt[\s>]|<timedtext[\s>]/i.test(h); }
+    if (/^[{]/.test(h)) { return /"events"|"wireMagic"/.test(h); }
+    return false;
+  }
+
   function maybeText(c) { return c === 0x3C || c === 0x57 || c === 0x7B || c === 0xEF || c === 0xFE || c === 0xFF || c === 0x20 || c === 0x0A || c === 0x0D || c === 0x09; }
 
   function report(url, text, ct) {
@@ -109,7 +118,10 @@
         }
         if (!chunks.length) {
           first = r.value;
-          if (!first || !first.length || !maybeText(first[0])) { try { reader.cancel(); } catch (e2) { /* ignore */ } return; }
+          if (!first || !first.length || !maybeText(first[0]) || !promising(decode(first.subarray(0, 4096)))) {
+            try { reader.cancel(); } catch (e2) { /* ignore */ }
+            return;
+          }
         }
         chunks.push(r.value);
         total += r.value.length;
