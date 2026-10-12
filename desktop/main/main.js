@@ -20,6 +20,7 @@ var createPlayerService = require('./player-service.js').createPlayerService;
 var createPlayer = require('./player-controller.js').createPlayer;
 var createThumbs = require('./thumbs.js').createThumbs;
 var createHelp = require('./help.js').createHelp;
+var createAccuracy = require('./accuracy.js').createAccuracy;
 var createHandlers = require('./handlers.js').createHandlers;
 var ipc = require('./ipc.js');
 var windowMod = require('./window.js');
@@ -111,6 +112,7 @@ function boot() {
   player.recover();
   var thumbs = createThumbs({ paths: paths, library: library, skips: skips });
   var help = createHelp({ paths: paths });
+  var accuracy = createAccuracy({ paths: paths, settings: settings, library: library, skips: skips, log: log.child('accuracy') });
 
   pin.setLocked(pin.hasPin() && settings.value('lockOnStart') && settings.value('setupDone'));
 
@@ -125,7 +127,7 @@ function boot() {
   var handlers = createHandlers({
     electron: electron, getWindow: function () { return win; }, store: store, pin: pin, settings: settings, i18n: i18n,
     library: library, skips: skips, supervisor: supervisor, player: player, thumbs: thumbs, help: help, paths: paths,
-    log: log.child('ipc'), emit: emit, versions: versions,
+    accuracy: accuracy, log: log.child('ipc'), emit: emit, versions: versions,
     takeToasts: function () { var t = pendingToasts; pendingToasts = []; return t; },
     onLangChanged: function (lang) { i18n.setLang(lang); rebuildMenu(); }
   });

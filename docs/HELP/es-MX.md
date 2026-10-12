@@ -119,3 +119,14 @@ El PIN reserva los ajustes, las revisiones y la biblioteca para los adultos.
 - bonis oculis no tiene cuentas, anuncios ni estadísticas, y nunca se conecta a internet.
 - Las imágenes de escenas marcadas se difuminan antes de guardarse. Nunca se escribe en el disco una imagen clara.
 - Tu biblioteca, tus revisiones y tus ajustes se quedan en la carpeta de la app en esta computadora. Solo se comparten archivos cuando presionas un botón de exportar.
+
+## ¿Qué tan preciso es? {#accuracy}
+
+bonis oculis es automático, así que comete dos tipos de errores:
+
+- **Escenas que se pasan**: una escena que no querías y que no detectamos. Son las más importantes, por eso la app está configurada para marcar de más antes que de menos.
+- **Falsas alarmas**: algo que marcamos y que estaba bien. Las corriges en segundos con **Rechazar** durante la revisión.
+
+Como la película se revisa antes de que alguien la vea, puedes repasar lo que encontramos. Aun así, ninguna herramienta automática encuentra todo, así que ten presente la tecla de pánico.
+
+Para ver las cifras con tus propias películas, marca a mano todas las escenas de una película (presiona **I** y **O** mientras la ves), luego abre el menú **Más** de la película y elige **Revisar la precisión**, o ve a Ajustes > Acerca de. Verás, para cada tipo de escena, cuánto encontramos, cuánto de lo que marcamos era correcto, el tiempo que se nos pasó y las falsas alarmas, cada uno con una explicación de una línea. Una película es solo un ejemplo: revisa varias para tener una idea justa.

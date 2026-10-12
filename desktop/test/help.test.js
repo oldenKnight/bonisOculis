@@ -24,7 +24,7 @@ test('markdown subset renders and escapes', function () {
 
 test('both help files cover every required topic with the same anchors', function () {
   var dir = path.join(__dirname, '..', '..', 'docs', 'HELP');
-  var need = ['start', 'scanning', 'review', 'kids', 'panic', 'tv', 'limits', 'pin', 'privacy'];
+  var need = ['start', 'scanning', 'review', 'kids', 'panic', 'tv', 'limits', 'pin', 'privacy', 'accuracy'];
   ['en-US.md', 'es-MX.md'].forEach(function (f) {
     var r = help.render(fs.readFileSync(path.join(dir, f), 'utf8'));
     var ids = r.toc.filter(function (e) { return e.level === 2; }).map(function (e) { return e.id; });

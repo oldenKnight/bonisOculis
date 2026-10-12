@@ -147,6 +147,8 @@
     }
     sel.addEventListener('change', function () { save({ threads: parseInt(sel.value, 10) }); });
     return card('scanning', [
+      switchRow('thorough', 'settings.thorough', 'settings.thorough.help'),
+      switchRow('listenSpeech', 'settings.listenSpeech', 'settings.listenSpeech.help'),
       switchRow('scanOnlyPluggedIn', 'settings.pluggedIn', 'settings.pluggedIn.help'),
       switchRow('pauseWhilePlaying', 'settings.pauseWhilePlaying', 'settings.pauseWhilePlaying.help'),
       BO.el('div', { 'class': 'bo-settings-row' }, [
@@ -201,7 +203,10 @@
         dl.appendChild(BO.el('dd', { 'class': 'bo-num', text: pair[1] || '' }));
       });
     });
-    return card('about', [BO.el('p', { 'class': 'bo-body-2', text: BO.t('settings.about.lead') }), dl, lic]);
+    var acc = BO.el('button', { 'class': 'bo-button bo-button--secondary', type: 'button', data: { act: 'accuracy' } }, [BO.icon('check'), BO.t('acc.title')]);
+    acc.addEventListener('click', function () { BO.router.go('accuracy'); });
+    return card('about', [BO.el('p', { 'class': 'bo-body-2', text: BO.t('settings.about.lead') }), dl,
+      BO.el('p', { 'class': 'bo-body-2', text: BO.t('settings.about.accuracy') }), BO.el('div', { 'class': 'bo-toolbar' }, [acc, lic])]);
   }
 
   function render() {

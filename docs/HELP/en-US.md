@@ -119,3 +119,14 @@ The PIN keeps settings, reviews and the library for grown-ups.
 - bonis oculis has no account, no ads and no statistics, and it never connects to the internet.
 - Pictures of flagged scenes are blurred before they are saved. A clear picture is never written to disk.
 - Your library, reviews and settings stay in the app's folder on this computer. Files are only shared when you press an export button.
+
+## How accurate is it? {#accuracy}
+
+bonis oculis is automatic, so it makes two kinds of mistakes:
+
+- **Misses**: a scene you did not want that we did not catch. These matter most, so the app is set to catch too much rather than too little.
+- **False alarms**: something we flagged that was fine. You fix these in a few seconds with **Reject** during the review.
+
+Because a movie is checked before anyone watches it, you can look over what we found. Still, no automatic tool catches everything, so keep the panic key in mind.
+
+To see the numbers for your own movies, mark every scene of one movie by hand (press **I** and **O** while you watch), then open the movie's **More** menu and choose **Check accuracy**, or go to Settings > About. You see, for each kind of scene, how much we caught, how much of what we flagged was right, the time we missed and the false alarms, each with a one-line explanation. One movie is only one example: check a few to get a fair picture.

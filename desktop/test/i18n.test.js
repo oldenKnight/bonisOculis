@@ -55,7 +55,7 @@ test('every literal key used by the renderer and main exists', function () {
     while ((m = reN.exec(src))) {
       if (!((m[1] + '.one') in en) || !((m[1] + '.other') in en)) { missing.push(path.basename(f) + ': ' + m[1] + '.one/.other'); }
     }
-    var reKey = /\bkey: '([\w.-]+)'/g;
+    var reKey = /kind: '[a-z]+', key: '([\w.-]+)'/g;
     while ((m = reKey.exec(src))) {
       if (!(m[1] in en) && !((m[1] + '.title') in en)) { missing.push(path.basename(f) + ': toast ' + m[1]); }
     }
@@ -69,7 +69,7 @@ test('dynamic key families are complete', function () {
   ['off', 'light', 'moderate', 'strict'].forEach(function (l) { need.push('level.' + l, 'level.' + l + '.desc'); });
   ['light', 'moderate', 'strict'].forEach(function (l) { need.push('level.' + l + '.descLanguage'); });
   ['skip', 'hide', 'blur', 'mute', 'none'].forEach(function (a) { need.push('action.' + a + '.desc'); if (a !== 'none') { need.push('action.' + a); } });
-  ['subtitles', 'frames', 'audio', 'speech', 'captions', 'starting'].forEach(function (s) { need.push('stage.' + s); });
+  ['subtitles', 'speech', 'frames', 'audio', 'lm', 'captions', 'fusion', 'starting'].forEach(function (s) { need.push('stage.' + s); });
   ['user', 'player', 'battery'].forEach(function (r) { need.push('drawer.reason.' + r); });
   ['little-kids', 'teens', 'custom'].forEach(function (p) { need.push('preset.' + p, 'preset.' + p + '.desc'); });
   ['protection', 'playback', 'scanning', 'privacy', 'language', 'pin', 'about'].forEach(function (s) { need.push('settings.' + s); });
@@ -81,7 +81,7 @@ test('dynamic key families are complete', function () {
   ['mild', 'moderate', 'strong'].forEach(function (i) { need.push('intensity.' + i); });
   ['notFound', 'fileMissing', 'kidRefused', 'writeFailed', 'invalidSkip', 'badPayload', 'locked', 'internal', 'failed', 'playing', 'rangeNotFound',
     'badEdges', 'nothingToUndo', 'pinNeeded', 'peekFailed', 'noSkip', 'notWritable', 'exportFailed', 'busy', 'notVideo', 'noKeyframes', 'nothingLeft',
-    'ffmpegFailed', 'tmpFailed', 'expired', 'dialogFailed', 'noPin', 'pinShape', 'pinExists', 'ipc', 'addFailed', 'unknownSetting', 'badValue'].forEach(function (e) {
+    'ffmpegFailed', 'tmpFailed', 'expired', 'dialogFailed', 'evalFailed', 'noPin', 'pinShape', 'pinExists', 'ipc', 'addFailed', 'unknownSetting', 'badValue'].forEach(function (e) {
     need.push('error.' + e + '.title', 'error.' + e + '.text');
   });
   ['recovered', 'lostFile', 'tampered', 'skipTampered', 'scanAttention', 'scanDoneProtected', 'scanDoneReview'].forEach(function (t) { need.push('toast.' + t + '.title', 'toast.' + t + '.text'); });

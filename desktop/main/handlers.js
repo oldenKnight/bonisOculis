@@ -325,6 +325,24 @@ function createHandlers(c) {
 
   h['help:open'] = function (p, ctx, cb) { cb(null, c.help.get(c.i18n.lang(), p.doc)); };
 
+  // Check accuracy: the parent picks a hand-marked skip file, the analyzer's evaluate compares.
+  h['accuracy:run'] = function (p, ctx, cb) {
+    if (!c.library.get(p.id)) { cb('notFound'); return; }
+    if (!c.skips.load(p.id).doc) { cb('noSkip'); return; }
+    c.electron.dialog.showOpenDialog(win(), {
+      title: t('dialog.pickTruth'), properties: ['openFile'],
+      filters: [{ name: t('dialog.skipFiles'), extensions: ['json'] }]
+    }).then(function (r) {
+      if (r.canceled || !r.filePaths.length) { cb(null, { canceled: true }); return; }
+      c.accuracy.run(p.id, r.filePaths[0], function (err, res) { if (err) { cb(err); } else { cb(null, res); } });
+    }, function () { cb('dialogFailed'); });
+  };
+
+  h['app:copyText'] = function (p, ctx, cb) {
+    try { c.electron.clipboard.writeText(p.text); } catch (e) { cb('failed'); return; }
+    cb(null, true);
+  };
+
   return h;
 }
 

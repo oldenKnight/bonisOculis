@@ -124,7 +124,7 @@
 
   function wireEvents() {
     BO.on('library:changed', function (items) {
-      if (items) { BO.store.set('library', items); } else if (!BO.store.get('locked')) { refreshLibrary(); }
+      if (items) { BO.store.set('library', items); } else if (!BO.store.get('locked')) { refreshLibrary(); } else { BO.views.kid.refresh(); }
     });
     BO.on('scan:progress', function (s) { BO.store.set('scan', s); });
     BO.on('player:event', function (ev) { BO.views.player.onEvent(ev); });

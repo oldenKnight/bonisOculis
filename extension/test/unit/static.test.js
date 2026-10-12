@@ -155,6 +155,7 @@ function sandbox() {
   var win = { location: { href: 'https://example.org/' }, addEventListener: function () {} };
   var ctx = { window: win, self: win, document: { querySelector: function () { return null; } }, location: win.location, setInterval: function () {}, clearInterval: function () {}, console: console };
   vm.createContext(ctx);
+  vm.runInContext(fs.readFileSync(path.join(EXT, 'shared', 'subscan.js'), 'utf8'), ctx, { filename: 'shared/subscan.js' });
   ['content/core.js', 'content/bridge.js', 'adapters/base.js', 'adapters/youtube.js', 'adapters/netflix.js', 'adapters/primevideo.js', 'adapters/disneyplus.js', 'adapters/generic.js'].forEach(function (f) {
     vm.runInContext(read(f), ctx, { filename: f });
   });
@@ -188,4 +189,50 @@ test('bridge: segmented tracks share a key; YouTube tracks are per language', fu
   assert.strictEqual(BO.bridge.trackKey('https://cdn.example/sub/en/seg_00012.vtt?tok=1'), BO.bridge.trackKey('https://cdn.example/sub/en/seg_00013.vtt?tok=2'));
   assert.notStrictEqual(BO.bridge.trackKey('https://www.youtube.com/api/timedtext?v=x&lang=en&fmt=json3'), BO.bridge.trackKey('https://www.youtube.com/api/timedtext?v=x&lang=es&fmt=json3'));
   assert.strictEqual(BO.bridge.langFromUrl('https://www.youtube.com/api/timedtext?v=x&lang=es-419'), 'es-419');
+});
+
+test('bridge: HLS WebVTT X-TIMESTAMP-MAP shifts each segment onto the video timeline (Disney+)', function () {
+  var BO = sandbox(), url = 'https://cdn.example/sub/en/seg_%.vtt', segA, segB, keyed, t;
+  segA = 'WEBVTT\nX-TIMESTAMP-MAP=MPEGTS:900000,LOCAL:00:00:00.000\n\n00:00:01.000 --> 00:00:02.500\n[door opens]\n';
+  segB = 'WEBVTT\nX-TIMESTAMP-MAP=LOCAL:00:00:00.000,MPEGTS:1440000\n\n00:00:00.500 --> 00:00:01.500\nHello there.\n';
+  function add(text, n) {
+    var parsed = BO.subscan.parseAuto(text, 'x.vtt');
+    return BO.bridge.addTrack({ url: url.replace('%', n), format: parsed.format, cues: parsed.cues, timestampMap: parsed.cues.timestampMap || null });
+  }
+  function times(track) { return JSON.parse(JSON.stringify(track.cues.map(function (c) { return [c.start, c.end, c.text]; }))); }
+  assert.deepStrictEqual(JSON.parse(JSON.stringify(BO.bridge.parseTimestampMap('MPEGTS:900000,LOCAL:00:00:10.500'))), { mpegts: 10, local: 10.5 });
+  assert.strictEqual(BO.bridge.parseTimestampMap('LOCAL:00:00:00.000'), null);
+  /* segment 2 arrives first (playback started mid-title), then segment 1: the track re-bases */
+  add(segB, 2);
+  t = add(segA, 1);
+  assert.deepStrictEqual(times(t), [[1, 2.5, '[door opens]'], [6.5, 7.5, 'Hello there.']]);
+  /* the same segments in order give the same track; repeats are not duplicated */
+  BO = sandbox();
+  add(segA, 1);
+  add(segB, 2);
+  t = add(segB, 2);
+  assert.deepStrictEqual(times(t), [[1, 2.5, '[door opens]'], [6.5, 7.5, 'Hello there.']]);
+  /* a constant map with LOCAL = 10 s: cue times are absolute and move back by LOCAL */
+  BO = sandbox();
+  keyed = 'WEBVTT\nX-TIMESTAMP-MAP=MPEGTS:900000,LOCAL:00:00:10.000\n\n00:00:12.000 --> 00:00:13.000\nOne.\n\n00:00:20.000 --> 00:00:21.000\nTwo.\n';
+  t = add(keyed, 7);
+  assert.deepStrictEqual(times(t), [[2, 3, 'One.'], [10, 11, 'Two.']]);
+  /* segments without a map are untouched */
+  BO = sandbox();
+  t = add('WEBVTT\n\n00:00:05.000 --> 00:00:06.000\nPlain.\n', 3);
+  assert.deepStrictEqual(times(t), [[5, 6, 'Plain.']]);
+});
+
+test('levels: language defaults to off (a muted category the parent opts into); presets match the desktop app', function () {
+  var ctx = { self: {} }, store, desk = fs.readFileSync(path.join(EXT, '..', 'desktop', 'main', 'settings.js'), 'utf8');
+  ctx.self.self = ctx.self;
+  vm.createContext(ctx);
+  vm.runInContext(read('common/store.js'), ctx, { filename: 'common/store.js' });
+  store = JSON.parse(JSON.stringify(ctx.self.BO.store));
+  assert.deepStrictEqual(store.DEFAULT_LEVELS, { nudity: 'strict', sex: 'strict', implied: 'strict', kissing: 'strict', gore: 'strict', language: 'off' });
+  [['little', 'little-kids'], ['teens', 'teens']].forEach(function (p) {
+    var m = new RegExp("'?" + p[1] + "'?:\\s*(\\{[^}]*\\})").exec(desk);
+    assert.ok(m, 'desktop preset ' + p[1]);
+    assert.deepStrictEqual(store.PRESETS[p[0]], JSON.parse(m[1].replace(/(\w+):/g, '"$1":').replace(/'/g, '"')), p[0]);
+  });
 });

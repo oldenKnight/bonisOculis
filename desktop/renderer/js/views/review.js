@@ -41,6 +41,18 @@
 
   function stateOf(r) { return r.review === 'approved' ? 'approved' : (r.review === 'rejected' ? 'rejected' : 'pending'); }
 
+  // Scene cuts known from the scan: the fingerprint's list plus the cuts ranges were snapped to.
+  function sceneCuts() {
+    var out = [];
+    var fp = doc && doc.media && doc.media.fingerprint;
+    if (fp && fp.sceneCuts) { out = fp.sceneCuts.slice(); }
+    (doc ? doc.ranges : []).forEach(function (r) {
+      if (typeof r.cutStart === 'number') { out.push(r.cutStart); }
+      if (typeof r.cutEnd === 'number') { out.push(r.cutEnd); }
+    });
+    return out;
+  }
+
   function pending() { return doc ? doc.ranges.filter(function (r) { return r.review === 'pending'; }) : []; }
 
   function statePill(r) {
@@ -387,7 +399,7 @@
     endPeek();
     renderBar();
     renderSummary();
-    timeline.update(doc.ranges, selected);
+    timeline.update(doc.ranges, selected, sceneCuts());
     renderList();
     var r = selected ? rangeById(selected) : null;
     if (r) { renderPanelRange(r); } else { renderPanelOverview(); }

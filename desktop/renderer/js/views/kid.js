@@ -42,10 +42,16 @@
     list.forEach(function (it) { grid.appendChild(tile(it)); });
   }
 
-  function load() {
+  function key(l) { return l.map(function (it) { return it.id + ':' + it.title; }).join('|'); }
+
+  // force: always redraw; otherwise only when the set of playable titles changed.
+  function load(force) {
     BO.invoke('library:list', {}, function (r) {
-      list = r.ok && r.data ? r.data.filter(function (it) { return it.status === 'protected'; }) : [];
-      render();
+      var next = r.ok && r.data ? r.data.filter(function (it) { return it.status === 'protected'; }) : [];
+      if (force !== false || key(next) !== key(list)) {
+        list = next;
+        render();
+      }
     });
   }
 
@@ -72,7 +78,9 @@
       build();
       BO.i18n.onChange(function () { if (BO.router.current() === 'kid') { build(); render(); } });
     },
-    show: function () { posters = {}; build(); load(); },
-    hide: function () {}
+    show: function () { posters = {}; build(); load(true); },
+    hide: function () {},
+    // A scan finished (or a title changed) while locked: show what became playable.
+    refresh: function () { if (BO.router.current() === 'kid') { load(false); } }
   };
 }(window));

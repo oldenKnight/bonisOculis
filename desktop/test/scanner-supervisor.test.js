@@ -74,7 +74,7 @@ test('a scan reports progress at most 4 times a second and lands in the library'
       assert.deepStrictEqual(JSON.parse(args[args.indexOf('--levels') + 1]).nudity, 'strict');
       var progressLines = s.lines[0].filter(function (m) { return m.t === 'progress'; }).length;
       var emits = s.events.filter(function (e) { return e.name === 'scan:progress'; });
-      assert.strictEqual(progressLines, 80);
+      assert.strictEqual(progressLines, 7 * 40, 'seven stages (five plus lm and fusion), 40 steps each');
       assert.ok(emits.length < progressLines / 3, 'throttled: ' + emits.length + ' events for ' + progressLines + ' lines');
       var doc = s.skips.load(id).doc;
       assert.strictEqual(doc.ranges.length, 3);
@@ -152,7 +152,7 @@ test('a crash restarts from the checkpoint and the scan completes', opts, functi
       assert.strictEqual(s.spawns.length, 2, 'one restart');
       var first = s.lines[0].filter(function (m) { return m.t === 'progress'; }).length;
       var second = s.lines[1].filter(function (m) { return m.t === 'progress'; }).length;
-      assert.strictEqual(first + second, 20, 'the second run continued where the first stopped');
+      assert.strictEqual(first + second, 7 * 10, 'the second run continued where the first stopped');
       assert.ok(s.lines[1].some(function (m) { return m.t === 'warn' && /checkpoint/.test(m.msg); }));
       assert.strictEqual(s.library.get(id).status, 'needsReview');
       done();
@@ -248,6 +248,35 @@ test('a rescan keeps the parent\'s decisions (merge)', opts, function (t, done) 
         assert.strictEqual(byId[doc.ranges[0].id].review, 'approved');
         assert.strictEqual(byId[doc.ranges[1].id].review, 'rejected');
         assert.strictEqual(after.ranges.filter(function (r) { return r.review === 'pending'; }).length, 1);
+        done();
+      });
+    });
+  });
+});
+
+test('all five stages by default; thorough and no-speech come from Settings > Scanning', opts, function (t, done) {
+  var s = setup('sup-flags', ['--steps', '1']);
+  h.addVideo(s, h.testVideo('sup', 8), function (err, id) {
+    assert.ifError(err);
+    var sup = s.make();
+    sup.load();
+    sup.enqueue(id);
+    waitFor(settled(s, id), 20000, function (e) {
+      assert.ifError(e);
+      var a = s.spawns[0];
+      assert.strictEqual(a[a.indexOf('--stages') + 1], 'subtitles,frames,audio,speech,captions');
+      assert.strictEqual(a.indexOf('--thorough'), -1);
+      var seen = s.lines[0].filter(function (m) { return m.t === 'stage' && m.status === 'running'; }).map(function (m) { return m.stage; });
+      assert.deepStrictEqual(seen, ['subtitles', 'speech', 'frames', 'audio', 'lm', 'captions', 'fusion'], 'the fake speaks every stage name');
+      assert.strictEqual(s.settings.set({ thorough: true, listenSpeech: false }, true).ok, true);
+      sup.enqueue(id);
+      waitFor(function () { return s.spawns.length === 2 && settled(s, id)(); }, 20000, function (e2) {
+        assert.ifError(e2);
+        var b = s.spawns[1];
+        assert.strictEqual(b[b.indexOf('--stages') + 1], 'subtitles,frames,audio,captions', 'speech left out');
+        assert.ok(b.indexOf('--thorough') >= 0);
+        var seen2 = s.lines[1].filter(function (m) { return m.t === 'stage' && m.status === 'running'; }).map(function (m) { return m.stage; });
+        assert.deepStrictEqual(seen2, ['subtitles', 'frames', 'audio', 'lm', 'captions', 'fusion']);
         done();
       });
     });

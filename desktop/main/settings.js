@@ -33,7 +33,8 @@ function defaults(lang) {
     pauseWhilePlaying: true,
     threads: Math.max(1, Math.floor(cpuThreads() / 2)),
     reduceMotion: false,
-    stages: 'subtitles,frames',
+    thorough: false,
+    listenSpeech: true,
     analyzerCommand: null,
     windowBounds: null
   };
@@ -62,7 +63,8 @@ var RULES = {
   pauseWhilePlaying: function (v) { return typeof v === 'boolean' ? v : undefined; },
   threads: function (v) { return typeof v === 'number' && v >= 1 && v <= 64 && Math.floor(v) === v ? v : undefined; },
   reduceMotion: function (v) { return typeof v === 'boolean' ? v : undefined; },
-  stages: function (v) { return typeof v === 'string' && /^(subtitles|frames|audio|speech|captions)(,(subtitles|frames|audio|speech|captions))*$/.test(v) ? v : undefined; },
+  thorough: function (v) { return typeof v === 'boolean' ? v : undefined; },
+  listenSpeech: function (v) { return typeof v === 'boolean' ? v : undefined; },
   analyzerCommand: function (v) {
     if (v === null) { return null; }
     if (v && typeof v.cmd === 'string' && (!v.args || Array.isArray(v.args))) {
@@ -81,7 +83,7 @@ var RULES = {
 
 // Keys the renderer may change through settings:set (analyzerCommand and windowBounds are main-only).
 var RENDERER_KEYS = ['lang', 'setupDone', 'preset', 'levels', 'skipScenes', 'nonSkipAction', 'panicKey',
-  'lockOnStart', 'scanOnlyPluggedIn', 'pauseWhilePlaying', 'threads', 'reduceMotion'];
+  'lockOnStart', 'scanOnlyPluggedIn', 'pauseWhilePlaying', 'threads', 'reduceMotion', 'thorough', 'listenSpeech'];
 
 function createSettings(options) {
   var o = options || {};

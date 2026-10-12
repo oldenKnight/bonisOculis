@@ -6,6 +6,14 @@
  * Segmented WebVTT (HLS, e.g. Disney+) arrives as many small files; files
  * whose URLs differ only in digits of the last path part are one track and
  * their cues are merged.
+ *
+ * HLS WebVTT segments may carry X-TIMESTAMP-MAP=MPEGTS:<90 kHz>,LOCAL:<time>:
+ * a cue at LOCAL plays at presentation timestamp MPEGTS. Each segment's cues
+ * are shifted by MPEGTS/90000 - LOCAL - origin, where origin is the earliest
+ * MPEGTS seen in the track, taken as the stream's first timestamp (= video
+ * time 0, as HLS players map it). Segments keep their raw cues so a segment
+ * that arrives later with an earlier MPEGTS (playback started mid-title, then
+ * went back) re-bases the whole track.
  */
 (function (root) {
   'use strict';
@@ -36,6 +44,27 @@
     return base;
   }
 
+  /* "MPEGTS:900000,LOCAL:00:00:00.000" -> {mpegts: seconds, local: seconds} or null */
+  function parseTimestampMap(text) {
+    var ts = /MPEGTS:\s*(\d+)/i.exec(String(text || '')), lo = /LOCAL:\s*((?:\d+:)?\d{1,2}:\d{2}(?:[.,]\d{1,3})?)/i.exec(String(text || '')), parts, sec = 0, i;
+    if (!ts) { return null; }
+    if (lo) {
+      parts = lo[1].replace(',', '.').split(':');
+      for (i = 0; i < parts.length; i++) { sec = sec * 60 + parseFloat(parts[i]); }
+    }
+    return { mpegts: parseInt(ts[1], 10) / 90000, local: sec };
+  }
+
+  function shifted(cues, by) {
+    var out = [], i, c;
+    if (!by) { return cues; }
+    for (i = 0; i < cues.length; i++) {
+      c = cues[i];
+      if (c.end + by > 0) { out.push({ start: Math.max(0, Math.round((c.start + by) * 1000) / 1000), end: Math.round((c.end + by) * 1000) / 1000, text: c.text }); }
+    }
+    return out;
+  }
+
   function sameCue(a, b) { return Math.abs(a.start - b.start) < 0.01 && Math.abs(a.end - b.end) < 0.01 && a.text === b.text; }
 
   function addCues(track, cues) {
@@ -51,6 +80,32 @@
     return added;
   }
 
+  /* Segments with a timestamp map are kept raw and shifted onto the video timeline. */
+  function addSegment(t, info) {
+    var map = parseTimestampMap(info.timestampMap), origin, i, n;
+    if (!map) { return addCues(t, info.cues); }
+    t.mapped = t.mapped || [];
+    t.mapped.push({ map: map, cues: info.cues });
+    origin = t.origin;
+    if (typeof origin !== 'number' || map.mpegts < origin) {
+      t.origin = map.mpegts;
+      if (typeof origin === 'number') {
+        /* earlier segment: re-base every mapped segment */
+        t.cues = t.cues.filter(function (c) { return !c.mapped; });
+        n = 0;
+        for (i = 0; i < t.mapped.length; i++) { n += addCues(t, mark(shifted(t.mapped[i].cues, t.mapped[i].map.mpegts - t.mapped[i].map.local - t.origin))); }
+        return n || 1;
+      }
+    }
+    return addCues(t, mark(shifted(info.cues, map.mpegts - map.local - t.origin)));
+  }
+
+  function mark(cues) {
+    var out = [], i;
+    for (i = 0; i < cues.length; i++) { out.push({ start: cues[i].start, end: cues[i].end, text: cues[i].text, mapped: true }); }
+    return out;
+  }
+
   /* Adds parsed cues as a track; used by the hook path and by <track> elements. */
   function addTrack(info) {
     var key = info.key || trackKey(info.url), t = tracks[key], added, i;
@@ -61,7 +116,7 @@
       order.push(key);
     }
     t.segments++;
-    added = addCues(t, info.cues);
+    added = addSegment(t, info);
     if (added) {
       for (i = 0; i < listeners.length; i++) {
         try { listeners[i](t); } catch (e) { /* listener errors must not stop others */ }
@@ -75,7 +130,7 @@
     if (e.source !== window || !d || d.bo !== 'bonis-oculis-hook' || d.nonce !== nonce) { return; }
     if (d.type === 'track' && typeof d.text === 'string') {
       parsed = BO.subscan.parseAuto(d.text, d.format || d.url);
-      if (parsed.cues.length) { addTrack({ url: d.url, format: parsed.format, cues: parsed.cues, source: 'hook' }); }
+      if (parsed.cues.length) { addTrack({ url: d.url, format: parsed.format, cues: parsed.cues, timestampMap: parsed.cues.timestampMap || null, source: 'hook' }); }
     }
   }
 
@@ -129,5 +184,5 @@
     window.postMessage(msg, window.location.origin && window.location.origin !== 'null' ? window.location.origin : '*');
   }
 
-  BO.bridge = { start: start, onTrack: onTrack, addTrack: addTrack, list: list, reset: reset, send: send, trackKey: trackKey, langFromUrl: langFromUrl };
+  BO.bridge = { start: start, onTrack: onTrack, addTrack: addTrack, list: list, reset: reset, send: send, trackKey: trackKey, langFromUrl: langFromUrl, parseTimestampMap: parseTimestampMap };
 }(typeof self !== 'undefined' ? self : this));

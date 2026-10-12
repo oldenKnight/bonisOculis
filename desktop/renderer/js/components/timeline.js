@@ -1,7 +1,8 @@
 /* Review timeline (DESIGN 7.10): ruler, range track coloured by category (plus pattern and icon),
    blurred thumbnail strip, legend. Zoom 1x to 32x (buttons, Ctrl+wheel, + - 0 keys). The selected
    range gets edge handles (role=slider): drag, or Left/Right 0.5 s, Shift+arrow 5 s, Home/End to
-   the neighbouring range or the movie edge.
+   the nearest scene cut before/after the edge (scene cuts from the scan: media sceneCuts and the
+   ranges' cutStart/cutEnd), else to the neighbouring range or the movie edge.
    BO.timeline.create({duration, onSelect(id), onEdge(id, 'start'|'end', seconds)}). ES5. */
 (function (window) {
   'use strict';
@@ -17,6 +18,7 @@
     var duration = Math.max(1, o.duration || 1);
     var zoom = 1;
     var ranges = [];
+    var cuts = [];
     var selected = null;
     var stripUrls = [];
     var stripN = o.stripTiles || 24;
@@ -110,6 +112,19 @@
 
     function clamp(v, b) { return Math.max(b.min, Math.min(b.max, v)); }
 
+    // dir -1: the nearest cut before v (Home); +1: after v (End). Falls back to the bound.
+    function nearestCut(v, b, dir) {
+      var best = null;
+      var i;
+      for (i = 0; i < cuts.length; i++) {
+        var c = cuts[i];
+        if (c < b.min - 1e-6 || c > b.max + 1e-6) { continue; }
+        if (dir < 0 && c < v - 0.05 && (best === null || c > best)) { best = c; }
+        if (dir > 0 && c > v + 0.05 && (best === null || c < best)) { best = c; }
+      }
+      return best === null ? (dir < 0 ? b.min : b.max) : best;
+    }
+
     function handle(r, which, node) {
       var b = bounds(r, which);
       var v = which === 'start' ? r.start : r.end;
@@ -122,7 +137,7 @@
       h.addEventListener('keydown', function (e) {
         var step = e.shiftKey ? 5 : 0.5;
         var next = null;
-        if (e.key === 'ArrowLeft' || e.key === 'ArrowDown') { next = v - step; } else if (e.key === 'ArrowRight' || e.key === 'ArrowUp') { next = v + step; } else if (e.key === 'Home') { next = b.min; } else if (e.key === 'End') { next = b.max; }
+        if (e.key === 'ArrowLeft' || e.key === 'ArrowDown') { next = v - step; } else if (e.key === 'ArrowRight' || e.key === 'ArrowUp') { next = v + step; } else if (e.key === 'Home') { next = nearestCut(v, b, -1); } else if (e.key === 'End') { next = nearestCut(v, b, 1); }
         if (next === null) { return; }
         e.preventDefault();
         next = clamp(next, b);
@@ -244,8 +259,9 @@
       });
     }
 
-    function update(list, selectedId) {
+    function update(list, selectedId, sceneCuts) {
       ranges = (list || []).slice().sort(function (a, b) { return a.start - b.start || a.end - b.end; });
+      cuts = (sceneCuts || []).filter(function (c) { return typeof c === 'number' && isFinite(c); }).sort(function (a, b) { return a - b; });
       selected = selectedId || null;
       renderTrack();
       renderLegend();
@@ -267,7 +283,7 @@
     }
     setZoom(1);
     renderStrip();
-    return { el: root, update: update, setStrip: setStrip, reveal: reveal, setZoom: setZoom, focusRange: function (id) { focusAfter = { id: id, edge: null }; } };
+    return { el: root, update: update, setStrip: setStrip, reveal: reveal, setZoom: setZoom, nearestCut: nearestCut, focusRange: function (id) { focusAfter = { id: id, edge: null }; } };
   }
 
   BO.timeline = { create: create, MIN_LEN: MIN_LEN };

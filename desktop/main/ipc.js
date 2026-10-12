@@ -54,7 +54,9 @@ var CHANNELS = {
   'export:cancel': { shape: {} },
   'export:pickFolder': { shape: {} },
   'import:json': { shape: { token: 'token?', targetId: 'id?' } },
-  'help:open': { shape: { doc: ['help', 'licenses'] } }
+  'help:open': { shape: { doc: ['help', 'licenses'] } },
+  'accuracy:run': { shape: { id: 'id' } },
+  'app:copyText': { shape: { text: 'string' } }
 };
 
 // main -> renderer events (webContents.send); preload.js only forwards these.
@@ -66,7 +68,7 @@ function checkType(type, v) {
   if (Array.isArray(type)) { return type.indexOf(v) >= 0; }
   switch (type) {
     case 'id': case 'rangeId': case 'pin': case 'token': return typeof v === 'string' && RE[type].test(v);
-    case 'string': return typeof v === 'string' && v.length > 0 && v.length <= 4096;
+    case 'string': return typeof v === 'string' && v.length > 0 && v.length <= 32768;
     case 'number': return typeof v === 'number' && isFinite(v);
     case 'count': return typeof v === 'number' && Math.floor(v) === v && v >= 1 && v <= 200;
     case 'boolean': return typeof v === 'boolean';

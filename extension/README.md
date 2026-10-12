@@ -101,7 +101,7 @@ safe behaviour is cover + mute, never "play unprotected", as long as subtitles w
 | YouTube | Yes, when captions are on. The panel's "Read this video's captions" presses CC once and turns it off again | Yes | Cover + mute | Ads are ignored (ranges apply to the film only). Auto-generated captions rarely contain sound cues such as [moaning] |
 | Netflix | Yes, once you turn on subtitles in the player (any language we read: English or Spanish) | Best effort through Netflix's own player; **setting the video time breaks Netflix playback, so it is never done** | Cover + mute (DRM site, this is the dependable path) | Netflix's player API is private and may break after an update |
 | Prime Video | Yes, once subtitles are on | Best effort (`currentTime`, the player may ignore it) | Cover + mute (DRM) | Trailers and ads may play in another video element |
-| Disney+ | Partly: subtitles arrive a few seconds at a time, so scenes are found shortly before they play, not for the whole film up front | Best effort | Cover + mute (DRM) | Timing may need the timing control |
+| Disney+ | Partly: subtitles arrive a few seconds at a time, so scenes are found shortly before they play, not for the whole film up front | Best effort | Cover + mute (DRM) | Each subtitle piece's `X-TIMESTAMP-MAP` is applied (counted from the earliest piece seen); if timing is still off, use the timing control |
 
 On every site you can instead give it a subtitle file you have (.srt or .vtt, English or Spanish) or
 a skip file made by the desktop app (.bonis.json). Each has its own timing control (0.5 s steps);

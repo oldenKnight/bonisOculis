@@ -1,6 +1,7 @@
 'use strict';
 // Runs the analyzer (PLAN 2.4), one scan at a time, from a persisted queue.
 //  - spawn: <cmd> <args...> scan --input --work --out --lang --levels --stages --threads --priority low
+//    [--thorough]; all five stages unless the parent turned speech-to-text off.
 //  - stdout JSON lines: progress / stage / warn / paused / resumed / done / error. stderr = log.
 //  - pause = <work>/PAUSE exists, whenever: the parent paused, the player is open (setting), or the
 //    laptop runs on battery (setting, Electron powerMonitor).
@@ -21,6 +22,8 @@ var MAX_RESTARTS = 3;
 var PROGRESS_MIN_MS = 250;
 var PERSIST_PROGRESS_MS = 5000;
 var KILL_GRACE_MS = 3000;
+var ALL_STAGES = ['subtitles', 'frames', 'audio', 'speech', 'captions'];
+var RUN_ORDER = ['subtitles', 'speech', 'frames', 'audio', 'lm', 'captions', 'fusion'];
 
 function noop() {}
 var silentLog = { debug: noop, info: noop, warn: noop, error: noop };
@@ -123,6 +126,11 @@ function createSupervisor(options) {
     try { os.setPriority(pid, os.constants.priority.PRIORITY_LOW); } catch (e) { /* not permitted */ }
   }
 
+  // Every stage by default; the parent can leave out speech-to-text.
+  function requestedStages() {
+    return ALL_STAGES.filter(function (st) { return st !== 'speech' || setting('listenSpeech', true) !== false; });
+  }
+
   function buildArgs(item, work, out) {
     var cmd = paths.analyzer(setting('analyzerCommand', null));
     var lang = setting('lang', 'es-MX');
@@ -130,10 +138,17 @@ function createSupervisor(options) {
     var args = cmd.args.concat(['scan', '--input', item.path, '--work', work, '--out', out,
       '--lang', lang === 'en-US' ? 'en-US' : 'es-MX',
       '--levels', JSON.stringify(levels || {}),
-      '--stages', setting('stages', 'subtitles,frames'),
+      '--stages', requestedStages().join(','),
       '--threads', String(setting('threads', 2)),
       '--priority', 'low']);
+    if (setting('thorough', false) === true) { args.push('--thorough'); }
     return { cmd: cmd.cmd, args: args, cwd: cmd.cwd };
+  }
+
+  // Progress order as the analyzer runs them (lm and fusion always run).
+  function progressStages() {
+    var req = requestedStages();
+    return RUN_ORDER.filter(function (st) { return st === 'lm' || st === 'fusion' || req.indexOf(st) >= 0; });
   }
 
   function handleLine(run, line) {
@@ -251,7 +266,7 @@ function createSupervisor(options) {
     try { fs.unlinkSync(out); } catch (e2) { /* none */ }
     var b = buildArgs(item, work, out);
     var run = {
-      id: id, work: work, out: out, proc: null, stages: String(setting('stages', 'subtitles,frames')).split(','),
+      id: id, work: work, out: out, proc: null, stages: progressStages(),
       stage: null, p: 0, eta: null, restarts: restarts || 0, warnings: [], lastError: null, doneOut: null,
       stderrTail: '', lastPersist: 0, cancelled: false, analyzerPaused: false
     };
@@ -399,4 +414,4 @@ function createSupervisor(options) {
   };
 }
 
-module.exports = { createSupervisor: createSupervisor, MAX_RESTARTS: MAX_RESTARTS };
+module.exports = { createSupervisor: createSupervisor, MAX_RESTARTS: MAX_RESTARTS, ALL_STAGES: ALL_STAGES, RUN_ORDER: RUN_ORDER };

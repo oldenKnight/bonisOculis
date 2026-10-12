@@ -555,5 +555,8 @@
   },
   "liveOpt4": {
     "message": "Usa parte de la potencia de la computadora mientras está encendida: unas centésimas de segundo de trabajo cada medio segundo. El sonido se maneja en la memoria y nunca se guarda ni se envía; solo se guardan los momentos que tapó para ese video, y se omiten la próxima vez."
+  },
+  "importSkipWhere": {
+    "message": "La app de escritorio lo guarda junto a la película como “nombre de la película.bonis.json”, y en su biblioteca."
   }
 }

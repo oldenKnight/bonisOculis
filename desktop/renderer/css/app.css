@@ -213,3 +213,27 @@ ol.bo-help__list { list-style: decimal; }
 .bo-marks { display: grid; gap: var(--bo-space-2); max-height: 14rem; overflow: auto; }
 .bo-marks__item { display: flex; gap: var(--bo-space-3); align-items: flex-start; padding: var(--bo-space-2) var(--bo-space-3); background: var(--bo-surface-2); border-radius: var(--bo-radius-sm); }
 .bo-marks__item .bo-icon { width: 1.25rem; height: 1.25rem; margin-top: 0.15rem; color: var(--bo-primary-ink); }
+
+/* ---- check accuracy ---- */
+.bo-acc__setup { display: grid; gap: var(--bo-space-4); }
+.bo-acc__movie { max-width: 32rem; }
+.bo-acc__result { display: grid; gap: var(--bo-space-4); }
+.bo-acc__h { font-size: var(--bo-fs-2xl); }
+.bo-acc__h:focus { outline: none; }
+.bo-acc__summary { margin: 0; color: var(--bo-text); }
+.bo-acc__sub { font-family: var(--bo-font-ui); font-size: var(--bo-fs-lg); font-weight: var(--bo-fw-bold); }
+.bo-acc__table-wrap { overflow-x: auto; max-width: 100%; border: var(--bo-border-width) solid var(--bo-border); border-radius: var(--bo-radius-md); }
+.bo-acc__table { width: 100%; font-size: var(--bo-fs-sm); line-height: var(--bo-lh-snug); }
+.bo-acc__table th, .bo-acc__table td { padding: var(--bo-space-2) var(--bo-space-3); border-bottom: var(--bo-border-width) solid var(--bo-border); text-align: start; vertical-align: middle; }
+.bo-acc__table thead th { background: var(--bo-surface-2); font-weight: var(--bo-fw-bold); text-wrap: balance; }
+.bo-acc__table tbody th { font-weight: var(--bo-fw-semibold); }
+.bo-acc__table .bo-acc__num { text-align: end; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.bo-acc__table thead .bo-acc__num { white-space: normal; }
+.bo-acc__table tr:last-child > * { border-bottom: 0; }
+.bo-acc__total > * { background: var(--bo-primary-soft); color: var(--bo-primary-ink); font-weight: var(--bo-fw-bold); }
+.bo-acc__na { color: var(--bo-text-3); }
+.bo-acc__cat { display: inline-flex; align-items: center; gap: var(--bo-space-2); }
+.bo-acc__cat .bo-icon { width: 1.125rem; height: 1.125rem; color: var(--_c-ink); }
+.bo-acc__defs { display: grid; grid-template-columns: minmax(7rem, auto) minmax(0, 1fr); gap: var(--bo-space-2) var(--bo-space-4); margin: 0; }
+.bo-acc__defs dt { font-weight: var(--bo-fw-bold); }
+.bo-acc__defs dd { margin: 0; color: var(--bo-text-2); }

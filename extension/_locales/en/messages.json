@@ -555,5 +555,8 @@
   },
   "liveOpt4": {
     "message": "It uses some of the computer's power while it is on: a few hundredths of a second of work every half second. The sound is handled in memory and is never saved or sent; only the times it covered are kept for that video, and they are skipped the next time."
+  },
+  "importSkipWhere": {
+    "message": "The desktop app saves it next to the movie as “movie name.bonis.json”, and in its library."
   }
 }

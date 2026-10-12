@@ -1,0 +1,222 @@
+{
+  "schema": 1,
+  "pinnedOn": "2026-10-12",
+  "notes": [
+    "Read by tools/fetch-binaries.js (download + extract into bin/<platform>-<arch>/) and tools/verify-bundle.js.",
+    "sha256 'PIN_ON_FIRST_FETCH' = not verifiable from the machine that wrote this table (GitHub was unreachable). fetch-binaries refuses such an entry when CI=true; run `node tools/fetch-binaries.js --platform win32 --arch x64 --write-pins` once on a machine with GitHub access and commit the result.",
+    "Every archive below was downloaded and hashed on 2026-10-12 unless its sha256 is PIN_ON_FIRST_FETCH; vendorChecksum records the publisher's own checksum that matched.",
+    "Human-readable version with licences and the GPL source list: packaging/BINARIES.md."
+  ],
+  "archives": {
+    "mpv-win32-x64": {
+      "url": "https://downloads.sourceforge.net/project/mpv-player-windows/release/mpv-0.41.0-x86_64.7z",
+      "file": "mpv-0.41.0-x86_64.7z",
+      "format": "7z",
+      "sha256": "ef86fde0959d789d77a3ad7c3c2dca51c6999695363f493a6154f2c518634c0f",
+      "size": 31430559,
+      "vendorChecksum": "md5 4047e85bea2c2f8246730815b6f4776f (SourceForge file list)",
+      "product": "mpv 0.41.0, Windows x86_64 (baseline x86-64, not -v3), shinchiro build",
+      "license": "GPL-2.0-or-later (mpv); statically linked GPL ffmpeg and other libraries",
+      "homepage": "https://sourceforge.net/projects/mpv-player-windows/files/release/",
+      "buildRecipe": "https://github.com/shinchiro/mpv-winbuild-cmake"
+    },
+    "ffmpeg-win32-x64": {
+      "url": "https://www.gyan.dev/ffmpeg/builds/packages/ffmpeg-9.0.2-essentials_build.zip",
+      "file": "ffmpeg-9.0.2-essentials_build.zip",
+      "format": "zip",
+      "sha256": "60f467265b1e312373dbcd92200c2618a74850f98d3d078e94296bb3fa2047ba",
+      "size": 114768076,
+      "vendorChecksum": "sha256 ffmpeg-9.0.2-essentials_build.zip.sha256 (gyan.dev)",
+      "product": "FFmpeg 9.0.2 essentials, static, Windows x64, gyan.dev (runtime CPU detection)",
+      "license": "GPL-3.0-or-later (built with --enable-gpl --enable-version3)",
+      "homepage": "https://www.gyan.dev/ffmpeg/builds/",
+      "buildRecipe": "README.txt inside the archive (configuration and library versions); source commit https://github.com/FFmpeg/FFmpeg/commit/946fcce07b"
+    },
+    "whisper-win32-x64": {
+      "url": "https://github.com/ggml-org/whisper.cpp/releases/download/v1.9.5/whisper-bin-x64.zip",
+      "file": "whisper.cpp-1.9.5-whisper-bin-x64.zip",
+      "format": "zip",
+      "sha256": "PIN_ON_FIRST_FETCH",
+      "size": null,
+      "product": "whisper.cpp v1.9.5 CLI, Windows x64 CPU build (whisper-cli.exe + its DLLs)",
+      "license": "MIT",
+      "homepage": "https://github.com/ggml-org/whisper.cpp/releases/tag/v1.9.5"
+    },
+    "mpv-darwin-arm64": {
+      "url": "https://laboratory.stolendata.net/~djinn/mpv_osx/mpv-arm64-0.40.0.tar.gz",
+      "file": "mpv-arm64-0.40.0.tar.gz",
+      "format": "tar.gz",
+      "sha256": "3170fb709defebaba33e9755297d70dc3562220541de54fc3d494a8309ef1260",
+      "size": 21956184,
+      "vendorChecksum": "sha256 listed on https://laboratory.stolendata.net/~djinn/mpv_osx/",
+      "product": "mpv 0.40.0 mpv.app for Apple Silicon, macOS 14+ (stolendata build, self-contained dylibs)",
+      "license": "GPL-2.0-or-later (mpv); bundled dylibs under their own licences (ffmpeg 6 GPL/LGPL, libass ISC, ...)",
+      "homepage": "https://laboratory.stolendata.net/~djinn/mpv_osx/"
+    },
+    "mpv-darwin-x64": {
+      "url": "https://laboratory.stolendata.net/~djinn/mpv_osx/mpv-0.39.0.tar.gz",
+      "file": "mpv-0.39.0.tar.gz",
+      "format": "tar.gz",
+      "sha256": "35ec81ad86a97b24956a8d0f4fa1ba2690b44ae7741c920e923620bcd7bd402a",
+      "size": 23791174,
+      "vendorChecksum": "sha256 listed on https://laboratory.stolendata.net/~djinn/mpv_osx/",
+      "product": "mpv 0.39.0 mpv.app for Intel Macs, macOS 11+ (stolendata build, self-contained dylibs)",
+      "license": "GPL-2.0-or-later (mpv); bundled dylibs under their own licences",
+      "homepage": "https://laboratory.stolendata.net/~djinn/mpv_osx/"
+    },
+    "ffmpeg-darwin-arm64": {
+      "url": "https://ffmpeg.martin-riedl.de/download/macos/arm64/1789931890_9.0.2/ffmpeg.zip",
+      "file": "martin-riedl-9.0.2-arm64-ffmpeg.zip",
+      "format": "zip",
+      "sha256": "c8ed4c4e6978a03c485edbfe4e0a5dc2380f8a30bba5150531b31b094492d924",
+      "size": 28395699,
+      "vendorChecksum": "sha256 ffmpeg.zip.sha256 (ffmpeg.martin-riedl.de)",
+      "product": "FFmpeg 9.0.2 static, macOS arm64, Martin Riedl build server",
+      "license": "GPL-3.0-or-later (built with --enable-gpl --enable-version3)",
+      "homepage": "https://ffmpeg.martin-riedl.de/info/detail/macos/arm64/1789931890_9.0.2",
+      "buildRecipe": "https://git.martin-riedl.de/ffmpeg/build-script"
+    },
+    "ffprobe-darwin-arm64": {
+      "url": "https://ffmpeg.martin-riedl.de/download/macos/arm64/1789931890_9.0.2/ffprobe.zip",
+      "file": "martin-riedl-9.0.2-arm64-ffprobe.zip",
+      "format": "zip",
+      "sha256": "fcbe839537485eaee7a7a8bc5cbc0f90d53617e80943e8a5b2e31cb851197ea6",
+      "size": 28317701,
+      "vendorChecksum": "sha256 ffprobe.zip.sha256 (ffmpeg.martin-riedl.de)",
+      "product": "FFprobe 9.0.2 static, macOS arm64, Martin Riedl build server",
+      "license": "GPL-3.0-or-later",
+      "homepage": "https://ffmpeg.martin-riedl.de/info/detail/macos/arm64/1789931890_9.0.2",
+      "buildRecipe": "https://git.martin-riedl.de/ffmpeg/build-script"
+    },
+    "ffmpeg-darwin-x64": {
+      "url": "https://ffmpeg.martin-riedl.de/download/macos/amd64/1789931006_9.0.2/ffmpeg.zip",
+      "file": "martin-riedl-9.0.2-amd64-ffmpeg.zip",
+      "format": "zip",
+      "sha256": "7c6b4125b191cbf773832dc51f424cf2b6bb7da43007d1e066f95909e47cacd4",
+      "size": 33816391,
+      "vendorChecksum": "sha256 ffmpeg.zip.sha256 (ffmpeg.martin-riedl.de)",
+      "product": "FFmpeg 9.0.2 static, macOS x86_64, Martin Riedl build server",
+      "license": "GPL-3.0-or-later",
+      "homepage": "https://ffmpeg.martin-riedl.de/info/detail/macos/amd64/1789931006_9.0.2",
+      "buildRecipe": "https://git.martin-riedl.de/ffmpeg/build-script"
+    },
+    "ffprobe-darwin-x64": {
+      "url": "https://ffmpeg.martin-riedl.de/download/macos/amd64/1789931006_9.0.2/ffprobe.zip",
+      "file": "martin-riedl-9.0.2-amd64-ffprobe.zip",
+      "format": "zip",
+      "sha256": "2322438ed2f6319a691291b247d09c69dcaa3a982460d1f269a7e1af335cfdfd",
+      "size": 33719233,
+      "vendorChecksum": "sha256 ffprobe.zip.sha256 (ffmpeg.martin-riedl.de)",
+      "product": "FFprobe 9.0.2 static, macOS x86_64, Martin Riedl build server",
+      "license": "GPL-3.0-or-later",
+      "homepage": "https://ffmpeg.martin-riedl.de/info/detail/macos/amd64/1789931006_9.0.2",
+      "buildRecipe": "https://git.martin-riedl.de/ffmpeg/build-script"
+    },
+    "license-gpl3": {
+      "url": "https://cdn.jsdelivr.net/gh/FFmpeg/FFmpeg@n9.0.2/COPYING.GPLv3",
+      "file": "FFmpeg-n9.0.2-COPYING.GPLv3",
+      "format": "file",
+      "sha256": "8ceb4b9ee5adedde47b31e975c1d90c73ad27b6b165a1dcd80c7c545eb65b903",
+      "size": 35147,
+      "product": "GNU GPL v3 text (from the FFmpeg n9.0.2 tree; identical to gyan.dev's LICENSE)",
+      "license": "verbatim copying permitted"
+    },
+    "license-gpl2": {
+      "url": "https://cdn.jsdelivr.net/gh/mpv-player/mpv@v0.41.0/LICENSE.GPL",
+      "file": "mpv-v0.41.0-LICENSE.GPL",
+      "format": "file",
+      "sha256": "edaef632cbb643e4e7a221717a6c441a4c1a7c918e6e4d56debc3d8739b233f6",
+      "size": 17984,
+      "product": "GNU GPL v2 text (from the mpv v0.41.0 tree)",
+      "license": "verbatim copying permitted"
+    },
+    "license-lgpl21": {
+      "url": "https://cdn.jsdelivr.net/gh/FFmpeg/FFmpeg@n9.0.2/COPYING.LGPLv2.1",
+      "file": "FFmpeg-n9.0.2-COPYING.LGPLv2.1",
+      "format": "file",
+      "sha256": "246041b6ecf9bc32d718a62c57877c78b5eb397b6467e74ed7ae2626ab189c30",
+      "size": 26517,
+      "product": "GNU LGPL v2.1 text (from the FFmpeg n9.0.2 tree)",
+      "license": "verbatim copying permitted"
+    },
+    "license-mpv-copyright": {
+      "url": "https://cdn.jsdelivr.net/gh/mpv-player/mpv@v0.41.0/Copyright",
+      "file": "mpv-v0.41.0-Copyright",
+      "format": "file",
+      "sha256": "bfe9ee4cceabcb8ecbfadf208d04156f73d801e6a57369a5606bb8341e204a23",
+      "size": 4096,
+      "product": "mpv licensing statement (v0.41.0)",
+      "license": "verbatim copying permitted"
+    },
+    "license-whisper": {
+      "url": "https://cdn.jsdelivr.net/gh/ggml-org/whisper.cpp@v1.9.5/LICENSE",
+      "file": "whisper.cpp-v1.9.5-LICENSE",
+      "format": "file",
+      "sha256": "94f29bbed6a22c35b992c5c6ebf0e7c92f13b836b90f36f461c9cf2f0f1d010d",
+      "size": 1078,
+      "product": "whisper.cpp MIT licence (v1.9.5)",
+      "license": "MIT"
+    }
+  },
+  "builds": {
+    "whisper.cpp": {
+      "git": "https://github.com/ggml-org/whisper.cpp.git",
+      "tag": "v1.9.5",
+      "commit": "PIN_ON_FIRST_FETCH",
+      "license": "MIT",
+      "how": "macOS CI: cmake static build of whisper-cli (see .github/workflows/build.yml), then `node tools/fetch-binaries.js --add-built whisper-cli=<path> --built-commit <git rev-parse HEAD>`."
+    }
+  },
+  "targets": {
+    "win32-x64": [
+      { "dest": "mpv.exe", "archive": "mpv-win32-x64", "member": "mpv.exe" },
+      { "dest": "d3dcompiler_43.dll", "archive": "mpv-win32-x64", "member": "d3dcompiler_43.dll" },
+      { "dest": "mpv/fonts.conf", "archive": "mpv-win32-x64", "member": "mpv/fonts.conf" },
+      { "dest": "ffmpeg.exe", "archive": "ffmpeg-win32-x64", "member": "ffmpeg-9.0.2-essentials_build/bin/ffmpeg.exe" },
+      { "dest": "ffprobe.exe", "archive": "ffmpeg-win32-x64", "member": "ffmpeg-9.0.2-essentials_build/bin/ffprobe.exe" },
+      { "dest": "whisper-cli.exe", "archive": "whisper-win32-x64", "match": "(^|/)whisper-cli\\.exe$" },
+      { "destDir": ".", "archive": "whisper-win32-x64", "match": "(^|/)(whisper|ggml[\\w.-]*|SDL2)\\.dll$", "flatten": true, "min": 2 },
+      { "dest": "licenses/GPL-3.0.txt", "archive": "license-gpl3" },
+      { "dest": "licenses/GPL-2.0.txt", "archive": "license-gpl2" },
+      { "dest": "licenses/LGPL-2.1.txt", "archive": "license-lgpl21" },
+      { "dest": "licenses/mpv-Copyright.txt", "archive": "license-mpv-copyright" },
+      { "dest": "licenses/whisper.cpp-MIT.txt", "archive": "license-whisper" }
+    ],
+    "darwin-arm64": [
+      { "destDir": "mpv.app", "archive": "mpv-darwin-arm64", "prefix": "mpv-arm64-0.40.0/mpv.app/" },
+      { "dest": "mpv", "script": "mac-mpv-wrapper" },
+      { "dest": "ffmpeg", "archive": "ffmpeg-darwin-arm64", "member": "ffmpeg", "mode": 493 },
+      { "dest": "ffprobe", "archive": "ffprobe-darwin-arm64", "member": "ffprobe", "mode": 493 },
+      { "dest": "whisper-cli", "build": "whisper.cpp" },
+      { "dest": "licenses/GPL-3.0.txt", "archive": "license-gpl3" },
+      { "dest": "licenses/GPL-2.0.txt", "archive": "license-gpl2" },
+      { "dest": "licenses/LGPL-2.1.txt", "archive": "license-lgpl21" },
+      { "dest": "licenses/mpv-Copyright.txt", "archive": "license-mpv-copyright" },
+      { "dest": "licenses/whisper.cpp-MIT.txt", "archive": "license-whisper" }
+    ],
+    "darwin-x64": [
+      { "destDir": "mpv.app", "archive": "mpv-darwin-x64", "prefix": "mpv.app/" },
+      { "dest": "mpv", "script": "mac-mpv-wrapper" },
+      { "dest": "ffmpeg", "archive": "ffmpeg-darwin-x64", "member": "ffmpeg", "mode": 493 },
+      { "dest": "ffprobe", "archive": "ffprobe-darwin-x64", "member": "ffprobe", "mode": 493 },
+      { "dest": "whisper-cli", "build": "whisper.cpp" },
+      { "dest": "licenses/GPL-3.0.txt", "archive": "license-gpl3" },
+      { "dest": "licenses/GPL-2.0.txt", "archive": "license-gpl2" },
+      { "dest": "licenses/LGPL-2.1.txt", "archive": "license-lgpl21" },
+      { "dest": "licenses/mpv-Copyright.txt", "archive": "license-mpv-copyright" },
+      { "dest": "licenses/whisper.cpp-MIT.txt", "archive": "license-whisper" }
+    ]
+  },
+  "scripts": {
+    "mac-mpv-wrapper": "#!/bin/sh\n# bonis oculis: run the bundled mpv.app binary (it finds its dylibs via @executable_path).\nexec \"$(dirname \"$0\")/mpv.app/Contents/MacOS/mpv\" \"$@\"\n"
+  },
+  "gplSources": [
+    { "what": "FFmpeg 9.0.2 (gyan.dev Windows, martin-riedl macOS)", "url": "https://ffmpeg.org/releases/ffmpeg-9.0.2.tar.xz", "sha256": "8c3850283eb25fa026482078a04051e0be17347b09ef81a0849bec15a96e002e", "size": 12040788 },
+    { "what": "mpv 0.41.0 (Windows)", "url": "https://github.com/mpv-player/mpv/archive/refs/tags/v0.41.0.tar.gz", "sha256": "PIN_ON_FIRST_FETCH" },
+    { "what": "mpv 0.40.0 (macOS arm64)", "url": "https://github.com/mpv-player/mpv/archive/refs/tags/v0.40.0.tar.gz", "sha256": "PIN_ON_FIRST_FETCH" },
+    { "what": "mpv 0.39.0 (macOS x64)", "url": "https://github.com/mpv-player/mpv/archive/refs/tags/v0.39.0.tar.gz", "sha256": "PIN_ON_FIRST_FETCH" },
+    { "what": "mpv-winbuild-cmake (shinchiro's recipe: every library and version in the Windows mpv)", "url": "https://github.com/shinchiro/mpv-winbuild-cmake/archive/refs/heads/master.tar.gz", "sha256": "PIN_ON_FIRST_FETCH", "floating": true },
+    { "what": "Martin Riedl's FFmpeg build script (library list for the macOS ffmpeg)", "url": "https://git.martin-riedl.de/ffmpeg/build-script/-/archive/main/build-script-main.tar.gz", "sha256": "PIN_ON_FIRST_FETCH", "floating": true },
+    { "what": "whisper.cpp v1.9.5 (MIT; listed for completeness)", "url": "https://github.com/ggml-org/whisper.cpp/archive/refs/tags/v1.9.5.tar.gz", "sha256": "PIN_ON_FIRST_FETCH" }
+  ]
+}

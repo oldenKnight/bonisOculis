@@ -101,10 +101,7 @@ D17 PIN is a deterrent, not a security boundary; hashed properly; settings tampe
   it reacts ~2 s after a scene starts, so it is a backstop, never the primary protection.
 
 ## Polish backlog (for the M9 board pass)
-- Extension defaults `language` to strict; desktop presets default it off. Align to the desktop.
-- Extension popup repeats the level explanation under all six categories; show it once per
-  selected level or collapse unselected categories.
-- Extension: Disney+ X-TIMESTAMP-MAP offset parsed but not applied; iframes unsupported.
+- Extension: iframes unsupported; Disney+ timestamp origin assumption untested on the live site.
 - Player: blur fallback untested under real frame drops.
 
 ## Quality board (brief 5.2 + 5.2b) — what each reviewer will demand
@@ -137,7 +134,9 @@ Q5 Extension adapters in order: generic HTML5, YouTube, Netflix, Prime Video, Di
 Q6 Evaluation harness accepts native .bonis.json files as ground truth.
 Q7 Fire TV help: USB + VLC (Appstore) primary; Kodi sideload + EDL as "advanced"; LAN share later.
 Q8 Four active subagents.
-Q9 `language` category exists in the format; default level off; action mute.
+Q9 `language` category exists in the format; action mute. Resolved 2026-10-12: the fresh-install
+   default on BOTH desktop and extension is the "Little kids" preset, which sets language strict
+   (muted); "Teens" sets it off. The parent picks the preset in the wizard.
 
 ## Original open questions (kept for the record; owner may still answer and override)
 Q1 Project licence (open source vs private) and signing certificates (Apple Developer, Windows

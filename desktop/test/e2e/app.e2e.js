@@ -141,7 +141,7 @@ function imagesOnDisk() {
   }(UD));
   found.forEach(function (f) {
     assert.ok(/^work\/[0-9a-f]{16}\/(thumbs\/r[0-9a-z]+\.jpg|strip\/\d+-\d+\.jpg|poster-blur\.jpg|poster-clear\.jpg)$/.test(f.replace(/\\/g, '/')), 'unexpected image on disk: ' + f);
-    if (/poster-clear/.test(f)) { assert.ok(f.indexOf(ids['Family Picnic']) >= 0, 'sharp poster only for the protected title'); }
+    if (/poster-clear/.test(f)) { assert.ok(f.indexOf(ids['Family Picnic']) >= 0 || f.indexOf(ids.garden) >= 0, 'sharp poster only for protected titles'); }
   });
   assert.ok(!found.some(function (f) { return /\.png$/.test(f); }), 'peek frames are never written');
   return found.length;
@@ -196,6 +196,8 @@ function main() {
   var river = path.join(MOVIES, 'River Trip.mp4');
   makeVideo(picnic, 60, 25);
   makeVideo(river, 30, 25);
+  var garden = path.join(MOVIES, 'Garden Walk [clean].mp4');
+  makeVideo(garden, 20, 25);
   log('fixtures ready');
   var env = {};
   Object.keys(process.env).forEach(function (k) { env[k] = process.env[k]; });
@@ -293,6 +295,15 @@ function main() {
         assert.ok(d.history.some(function (e) { return e.event === 'edited'; }));
       })();
     },
+    function () { return page.focus('.bo-range.is-selected .bo-handle--start'); },
+    press('Home'),
+    sleep(400),
+    function () {
+      return invoke('skip:get', { id: ids['Family Picnic'] }, function (r) {
+        var rr = r.data.doc.ranges[2];
+        assert.strictEqual(rr.start, Math.floor(docBefore.ranges[2].start / 5) * 5, 'Home jumps to the scene cut before the edge');
+      })();
+    },
     click('[data-act="approve"]'),
     waitFor(function () { return document.querySelectorAll('.bo-range.is-pending').length === 0; }),
     waitFor(function () { return document.querySelector('.bo-review__summary .bo-pill--protected'); }),
@@ -323,6 +334,57 @@ function main() {
     waitFor(function () { return document.body.innerText.indexOf('La copia limpia está lista') >= 0; }, null, 60000),
     function () { assert.ok(fs.existsSync(path.join(MOVIES, 'Family Picnic (2019) (bonis oculis clean).mp4')), 'clean copy next to the movie'); },
     shot('es-light-export'),
+    // ---- check accuracy against a hand-marked file (mocked file dialog)
+    invoke('library:list', {}, function (r) {
+      var it = r.data.filter(function (x) { return x.id === ids['Family Picnic']; })[0];
+      var BO = require(path.join(ROOT, 'shared', 'skipfile.js'));
+      var truth = BO.newDoc({
+        media: { title: 'Family Picnic', duration: 60, fingerprint: { size: it.size, oshash: it.oshash } },
+        ranges: [BO.newRange({ id: 'rhand0001', start: 11, end: 16, category: 'nudity', review: 'approved' }),
+          BO.newRange({ id: 'rhand0002', start: 26, end: 30, category: 'kissing', review: 'approved' }),
+          BO.newRange({ id: 'rhand0003', start: 41, end: 46, category: 'gore', review: 'approved' })],
+        scan: { status: 'complete' }
+      });
+      fs.writeFileSync(path.join(WORK, 'hand-marked.bonis.json'), JSON.stringify(truth));
+    }),
+    function () { return mockOpenDialog([path.join(WORK, 'hand-marked.bonis.json')])(); },
+    click('[data-nav="library"]'),
+    function () { return page.click('.bo-title-card[data-id="' + ids['Family Picnic'] + '"] [data-act="more"]'); },
+    click('[data-menu="accuracy"]'),
+    waitText('Revisar la precisión'),
+    shot('es-light-accuracy-empty'),
+    click('[data-act="pick-truth"]'),
+    waitSel('.bo-acc__table'),
+    function () {
+      return page.$$eval('.bo-acc__table tbody tr', function (rows) { return rows.map(function (r) { return r.getAttribute('data-category'); }); }).then(function (cats) {
+        assert.deepStrictEqual(cats, ['nudity', 'kissing', 'gore', 'all'], 'one row per kind plus the total');
+      });
+    },
+    function () {
+      return page.$eval('.bo-acc__table tr[data-category="kissing"]', function (r) { return r.textContent; }).then(function (t) {
+        assert.ok(t.indexOf('0%') >= 0, 'the rejected kissing scene shows as caught 0%');
+      });
+    },
+    waitText('Se pasaron = escenas que marcaste y que no detectamos'),
+    shot('es-light-accuracy'),
+    noHorizontalScroll('accuracy'),
+    click('[data-act="copy"]'),
+    sleep(200),
+    function () {
+      return app.evaluate(function (electron) { return electron.clipboard.readText(); }).then(function (txt) {
+        assert.ok(txt.indexOf('| category | precision | recall | F1 |') >= 0, 'markdown table copied');
+        assert.ok(txt.indexOf('Family Picnic') >= 0);
+      });
+    },
+    invoke('library:list', {}, function (r) {
+      var it = r.data.filter(function (x) { return x.id === ids['Family Picnic']; })[0];
+      assert.ok(it.accuracy && it.accuracy.report.categories.all, 'last result stored per title');
+    }),
+    setLang('en-US'),
+    waitText('Missed = scenes you marked that we did not catch'),
+    waitText('Caught'),
+    shot('en-light-accuracy'),
+    setTheme('dark'), shot('en-dark-accuracy'), setLang('es-MX'), shot('es-dark-accuracy'), setTheme('light'),
     // ---- play in parent mode: mpv starts, the now-playing panel reaches "ready"
     click('[data-nav="library"]'),
     function () { return page.click('.bo-title-card[data-id="' + ids['Family Picnic'] + '"] [data-act="play"]'); },
@@ -356,6 +418,9 @@ function main() {
       steps.push(click('[data-section="about"]'), sleep(400), shot(p + 'settings-about'));
       steps.push(go('export', function () { return { id: ids['Family Picnic'] }; }), sleep(300), shot(p + 'export'), noHorizontalScroll(p + 'export'));
       steps.push(go('help'), sleep(400), shot(p + 'help'), noHorizontalScroll(p + 'help'));
+      steps.push(go('help', { anchor: 'accuracy' }), sleep(300), shot(p + 'help-accuracy'));
+      steps.push(go('accuracy', function () { return { id: ids['Family Picnic'] }; }), waitSel('.bo-acc__table'), sleep(200), shot(p + 'accuracy-matrix'), noHorizontalScroll(p + 'accuracy'));
+      steps.push(go('settings', { section: 'scanning' }), sleep(300), shot(p + 'settings-scanning'));
       steps.push(go('help', { anchor: 'tv' }), sleep(300), shot(p + 'help-tv'));
       steps.push(evaluate(function () { document.documentElement.setAttribute('data-mode', 'kid'); window.BO.router.go('kid'); }), sleep(600), shot(p + 'kid'), noHorizontalScroll(p + 'kid'));
       steps.push(evaluate(function () { window.BO.pinPad.ask({ purpose: 'peek' }, function () {}); }), sleep(300), shot(p + 'kid-pin'), press('Escape'), sleep(100), noModal());
@@ -371,10 +436,15 @@ function main() {
   // ---- lock: kid mode with only the protected title; wrong PIN cooldown; play; stop
   steps.push(
     setLang('es-MX'), setTheme('light'), go('library'), sleep(300),
+    invoke('library:add', { paths: [garden] }, function (r) { assert.strictEqual(r.data.added.length, 1); ids.garden = r.data.added[0]; }),
     click('[data-nav="lock"]'),
     waitSel('.bo-kid__grid .bo-play-tile'),
     function () { return page.$$eval('.bo-kid__grid .bo-play-tile', function (n) { return n.map(function (x) { return x.getAttribute('data-id'); }); }).then(function (list) { assert.deepStrictEqual(list, [ids['Family Picnic']], 'only the protected title'); }); },
-    invoke('library:list', {}, function (r) { assert.strictEqual(r.data.length, 1, 'main serves only protected titles while locked'); }),
+    // the clean title's scan finishes while locked: the kid screen shows it without a reload
+    function () { return poll(function (id) { return !!document.querySelector('.bo-kid__grid .bo-play-tile[data-id="' + id + '"]'); }, ids.garden, 30000); },
+    function () { return page.$$eval('.bo-kid__grid .bo-play-tile', function (n) { return n.length; }).then(function (n) { assert.strictEqual(n, 2, 'the newly protected title appeared live'); }); },
+    shot('es-light-kid-live'),
+    invoke('library:list', {}, function (r) { assert.strictEqual(r.data.length, 2, 'main serves only protected titles while locked'); }),
     invoke('settings:set', { patch: { lockOnStart: false } }, function (r) { assert.strictEqual(r.error, 'locked'); }),
     invoke('skip:get', function () { return { id: ids['River Trip'] }; }, function (r) { assert.strictEqual(r.error, 'locked'); }),
     invoke('player:play', function () { return { id: ids['River Trip'], kidMode: false }; }, function (r) { assert.strictEqual(r.error, 'kidRefused', 'kid mode never plays an unprotected title'); }),
