@@ -1,0 +1,178 @@
+{
+  "manifestVersion": 1,
+  "verifiedOn": "2026-10-12",
+  "shippedBytes": 1015866599,
+  "shippedMiB": 968.8,
+  "notes": [
+    "Every file is verified by sha256 after download (tools/fetch-models.js) and at first app run.",
+    "No file is fetched at runtime by the app; models ship inside the installer.",
+    "Sizes below are the exact bytes of the downloaded files."
+  ],
+  "files": [
+    {
+      "file": "nudenet-3.4.2.tar.gz",
+      "url": "https://files.pythonhosted.org/packages/source/n/nudenet/nudenet-3.4.2.tar.gz",
+      "sha256": "b20645d5f06bbb10006e6d4dc8a9513cf684269bbcffb0557a3ed6831aa90d75",
+      "size": 10596676,
+      "model": "NudeNet 3.4.2 (320n detector inside the sdist, nudenet/320n.onnx)",
+      "role": "frames.nudity",
+      "license": "MIT",
+      "licenseUrl": "https://pypi.org/project/nudenet/",
+      "note": "Extract nudenet/320n.onnx at build time. 640m is optional and not bundled."
+    },
+    {
+      "file": "clip-vit-b32-vision_quantized.onnx",
+      "url": "https://huggingface.co/Xenova/clip-vit-base-patch32/resolve/main/onnx/vision_model_quantized.onnx",
+      "sha256": "583fd1110a514667812fee7d684952aaf82a99b959760c8d7dca7e0ab9839299",
+      "size": 89117001,
+      "model": "CLIP ViT-B/32 image encoder, int8 (Xenova export of openai/clip-vit-base-patch32)",
+      "role": "frames.zeroshot",
+      "license": "MIT",
+      "licenseUrl": "https://huggingface.co/Xenova/clip-vit-base-patch32"
+    },
+    {
+      "file": "clip-vit-b32-preprocessor_config.json",
+      "url": "https://huggingface.co/Xenova/clip-vit-base-patch32/resolve/main/preprocessor_config.json",
+      "sha256": "6f638fb9401a6d6296feff533ee7efe657b787c49f954f82f5906b36ef2a1b1f",
+      "size": 520,
+      "model": "CLIP preprocessor config",
+      "role": "frames.zeroshot",
+      "license": "MIT",
+      "licenseUrl": "https://huggingface.co/Xenova/clip-vit-base-patch32"
+    },
+    {
+      "file": "clip-vit-b32-text_quantized.onnx",
+      "url": "https://huggingface.co/Xenova/clip-vit-base-patch32/resolve/main/onnx/text_model_quantized.onnx",
+      "sha256": "73baab855d406190da9faa498cfedf65f15cf309f4cc7385b7b032e6d08e5c3a",
+      "size": 64504507,
+      "model": "CLIP text encoder, int8",
+      "role": "frames.zeroshot.prompts",
+      "license": "MIT",
+      "licenseUrl": "https://huggingface.co/Xenova/clip-vit-base-patch32",
+      "note": "Used only at build time to precompute prompt embeddings (models/clip_prompts.npz). Not shipped.",
+      "buildOnly": true
+    },
+    {
+      "file": "clip-vit-b32-tokenizer.json",
+      "url": "https://huggingface.co/Xenova/clip-vit-base-patch32/resolve/main/tokenizer.json",
+      "sha256": "f7f3b7af117d467b58374797691a6438d3e6b9e9cef800dfd5dced7f697a90cd",
+      "size": 2224119,
+      "model": "CLIP tokenizer",
+      "role": "frames.zeroshot.prompts",
+      "license": "MIT",
+      "licenseUrl": "https://huggingface.co/Xenova/clip-vit-base-patch32",
+      "note": "Build time only.",
+      "buildOnly": true
+    },
+    {
+      "file": "yamnet.onnx",
+      "url": "https://huggingface.co/andrelgomes/yamnet-onnx/resolve/main/yamnet.onnx",
+      "sha256": "1510041dce24a2e9e84ec546807ac408ae496da6d1ed41bc3ccba649623f8e19",
+      "size": 16093603,
+      "model": "YAMNet (AudioSet, 521 classes) ONNX",
+      "role": "audio.events",
+      "license": "Apache-2.0",
+      "licenseUrl": "https://huggingface.co/andrelgomes/yamnet-onnx"
+    },
+    {
+      "file": "whisper-small-q5_1.bin",
+      "url": "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-small-q5_1.bin",
+      "sha256": "ae85e4a935d7a567bd102fe55afc16bb595bdb618e11b2fc7591bc08120411bb",
+      "size": 190085487,
+      "model": "whisper.cpp ggml small multilingual q5_1",
+      "role": "speech.stt",
+      "license": "MIT",
+      "licenseUrl": "https://huggingface.co/ggerganov/whisper.cpp"
+    },
+    {
+      "file": "qwen3-0.6b-q4_k_m.gguf",
+      "url": "https://huggingface.co/bartowski/Qwen_Qwen3-0.6B-GGUF/resolve/main/Qwen_Qwen3-0.6B-Q4_K_M.gguf",
+      "sha256": "9acfc1e001311f34b4252001b626f2e466d592a42065f66571bff3790d4e1b14",
+      "size": 484220320,
+      "model": "Qwen3-0.6B Q4_K_M GGUF (bartowski quant)",
+      "role": "text.lm",
+      "license": "Apache-2.0",
+      "licenseUrl": "https://huggingface.co/Qwen/Qwen3-0.6B"
+    },
+    {
+      "file": "florence2-vision_encoder_q4f16.onnx",
+      "url": "https://huggingface.co/onnx-community/Florence-2-base-ft/resolve/main/onnx/vision_encoder_q4f16.onnx",
+      "sha256": "1e993fb7081302294b5c286b2cc6c2a63283959f399317dc2be49eca94f2dd18",
+      "size": 62416644,
+      "model": "Florence-2 base-ft vision encoder q4f16",
+      "role": "captions.vlm",
+      "license": "MIT",
+      "licenseUrl": "https://huggingface.co/onnx-community/Florence-2-base-ft"
+    },
+    {
+      "file": "florence2-embed_tokens_q4f16.onnx",
+      "url": "https://huggingface.co/onnx-community/Florence-2-base-ft/resolve/main/onnx/embed_tokens_q4f16.onnx",
+      "sha256": "2c2a1663e8db3189699762d8e29ace6235cc9179b710326c99baa822c9ec96b8",
+      "size": 78780309,
+      "model": "Florence-2 embed tokens q4f16",
+      "role": "captions.vlm",
+      "license": "MIT",
+      "licenseUrl": "https://huggingface.co/onnx-community/Florence-2-base-ft"
+    },
+    {
+      "file": "florence2-encoder_model_q4f16.onnx",
+      "url": "https://huggingface.co/onnx-community/Florence-2-base-ft/resolve/main/onnx/encoder_model_q4f16.onnx",
+      "sha256": "1550d697836639b0fec53023dac96253342c2ec1e7fa682595fda80d157e9f64",
+      "size": 25705965,
+      "model": "Florence-2 encoder q4f16",
+      "role": "captions.vlm",
+      "license": "MIT",
+      "licenseUrl": "https://huggingface.co/onnx-community/Florence-2-base-ft"
+    },
+    {
+      "file": "florence2-decoder_model_merged_q4f16.onnx",
+      "url": "https://huggingface.co/onnx-community/Florence-2-base-ft/resolve/main/onnx/decoder_model_merged_q4f16.onnx",
+      "sha256": "db32b0b1fd501e1929e28b96eaacee0dfccdd9573ef0237b1efb4b7a40a016b1",
+      "size": 56543716,
+      "model": "Florence-2 decoder merged q4f16",
+      "role": "captions.vlm",
+      "license": "MIT",
+      "licenseUrl": "https://huggingface.co/onnx-community/Florence-2-base-ft"
+    },
+    {
+      "file": "florence2-tokenizer.json",
+      "url": "https://huggingface.co/onnx-community/Florence-2-base-ft/resolve/main/tokenizer.json",
+      "sha256": "d69dcdb2323e124ac4f800cb9863ddccea0d7bb11e16125e8df3bd60f2f8aeac",
+      "size": 2297961,
+      "model": "Florence-2 tokenizer",
+      "role": "captions.vlm",
+      "license": "MIT",
+      "licenseUrl": "https://huggingface.co/onnx-community/Florence-2-base-ft"
+    },
+    {
+      "file": "florence2-config.json",
+      "url": "https://huggingface.co/onnx-community/Florence-2-base-ft/resolve/main/config.json",
+      "sha256": "d90c22ed72eb55291f183fcd9b98ebd3bd3d92bfcffb6c7f6e1606085e793525",
+      "size": 5432,
+      "model": "Florence-2 config",
+      "role": "captions.vlm",
+      "license": "MIT",
+      "licenseUrl": "https://huggingface.co/onnx-community/Florence-2-base-ft"
+    },
+    {
+      "file": "florence2-preprocessor_config.json",
+      "url": "https://huggingface.co/onnx-community/Florence-2-base-ft/resolve/main/preprocessor_config.json",
+      "sha256": "c892857e34a7082284983a7717717d39c9bf7e574f1f41d80d4c918c97502efa",
+      "size": 2673,
+      "model": "Florence-2 preprocessor config",
+      "role": "captions.vlm",
+      "license": "MIT",
+      "licenseUrl": "https://huggingface.co/onnx-community/Florence-2-base-ft"
+    },
+    {
+      "file": "florence2-generation_config.json",
+      "url": "https://huggingface.co/onnx-community/Florence-2-base-ft/resolve/main/generation_config.json",
+      "sha256": "7b8eb17bbd6cf8a07f619ad83ae03881eff05b6b9237bab89005b40e77783c29",
+      "size": 292,
+      "model": "Florence-2 generation config",
+      "role": "captions.vlm",
+      "license": "MIT",
+      "licenseUrl": "https://huggingface.co/onnx-community/Florence-2-base-ft"
+    }
+  ]
+}
