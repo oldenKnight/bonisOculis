@@ -180,3 +180,57 @@ def gray_frame(cmd_tail: List[str], w: int = 160) -> np.ndarray:
 def laplacian_var(img: np.ndarray) -> float:
     lap = (-4 * img[1:-1, 1:-1] + img[:-2, 1:-1] + img[2:, 1:-1] + img[1:-1, :-2] + img[1:-1, 2:])
     return float(lap.var())
+
+
+def _clip(key: str, name: str, *args: str) -> str:
+    if key in _CACHE:
+        return _CACHE[key]
+    d = os.path.join(tmp_root(), "media-" + key)
+    os.makedirs(d, exist_ok=True)
+    p = os.path.join(d, name)
+    ffmpeg(*args, p)
+    _CACHE[key] = p
+    return p
+
+
+def video60() -> str:
+    """60 s testsrc2 (320x180 @ 10 fps) + 440 Hz sine, NO subtitles (speech runs)."""
+    return _clip("v60", "testsrc60.mp4",
+                 "-f", "lavfi", "-i", "testsrc2=size=320x180:rate=10:duration=60",
+                 "-f", "lavfi", "-i", "sine=frequency=440:duration=60",
+                 "-c:v", "libx264", "-preset", "ultrafast", "-g", "20", "-pix_fmt", "yuv420p",
+                 "-c:a", "aac", "-shortest")
+
+
+def sine_silence30() -> str:
+    """30 s: grey picture; sound = sine 0-10 s, silence 10-20 s, sine 20-30 s."""
+    return _clip("ss30", "sine-silence30.mp4",
+                 "-f", "lavfi", "-i", "color=c=gray:size=160x90:rate=5:duration=30",
+                 "-f", "lavfi", "-i", "aevalsrc='0.4*sin(2*PI*440*t)*(lt(t,10)+gte(t,20))':s=16000:d=30",
+                 "-c:v", "libx264", "-preset", "ultrafast", "-pix_fmt", "yuv420p", "-c:a", "aac", "-shortest")
+
+
+def silent_video20() -> str:
+    """20 s video without any audio stream."""
+    return _clip("na20", "noaudio20.mp4", "-f", "lavfi", "-i", "testsrc2=size=160x90:rate=5:duration=20",
+                 "-c:v", "libx264", "-preset", "ultrafast", "-pix_fmt", "yuv420p")
+
+
+def scan_args(video: str, work: str, out: str, stages: str, scores: Optional[str] = None, **kw: Any) -> Any:
+    """argparse-like namespace for in-process Scan runs."""
+    import argparse
+
+    ns = argparse.Namespace(input=video, work=work, out=out, lang="en-US", levels=None, stages=stages, threads=2,
+                            device="cpu", priority="normal", models=None, scores_from=scores, restart=False,
+                            force_speech=False, profile=False, whisper_cli=None, lang_explicit=True)
+    for k, v in kw.items():
+        setattr(ns, k, v)
+    return ns
+
+
+def model_file(name: str) -> str:
+    """Path of a real model file in $BONIS_MODELS_DIR, or "" when unavailable."""
+    if not MODELS_DIR:
+        return ""
+    p = os.path.join(MODELS_DIR, name)
+    return p if os.path.isfile(p) else ""

@@ -67,7 +67,8 @@ class CliScanTest(unittest.TestCase):
         self.assertNotIn("Traceback", raw)
         self.assertEqual(lines[-1], {"t": "done", "out": os.path.abspath(out)})
         stages = [(x["stage"], x["status"]) for x in lines if x["t"] == "stage"]
-        for st in [("subtitles", "done"), ("frames", "done"), ("lm", "skipped"), ("fusion", "done")]:
+        for st in [("subtitles", "done"), ("speech", "skipped"), ("frames", "done"), ("audio", "done"),
+                   ("lm", "skipped"), ("captions", "done"), ("fusion", "done")]:
             self.assertIn(st, stages)
         self.assertTrue(any(x["t"] == "progress" and x["stage"] == "frames" and "eta" in x for x in lines))
         doc = load(out)
@@ -90,7 +91,10 @@ class CliScanTest(unittest.TestCase):
         for r in doc["ranges"]:
             self.assertNotIn("moaning", r["note"].lower())  # notes are templates, never dialogue
         # work dir: only state, stage arrays and blurred thumbnails remain
-        self.assertEqual(sorted(os.listdir(work)), ["frames.npz", "fusion.npz", "state.json", "subtitles.npz", "thumbs"])
+        self.assertEqual(sorted(os.listdir(work)), ["audio.npz", "captions.npz", "frames.npz", "fusion.npz", "state.json",
+                                                    "subtitles.npz", "thumbs"])
+        self.assertEqual(doc["scan"]["stages"]["speech"], {"status": "skipped", "detail": "Subtitles were found.",
+                                                           "progress": 0.0, "seconds": 0.0})
         self.assertEqual(sorted(os.listdir(os.path.join(work, "thumbs"))), sorted(r["id"] + ".jpg" for r in doc["ranges"]))
         self.assertEqual([n for n in os.listdir(self.dir) if n.endswith(".tmp")], [])
 

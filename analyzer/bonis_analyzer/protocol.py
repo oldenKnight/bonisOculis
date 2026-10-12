@@ -7,6 +7,7 @@
     {"t":"paused"} / {"t":"resumed"}
     {"t":"done","out":"/path/movie.bonis.json"}
     {"t":"error","code":3,"msg":"..."}
+    {"t":"profile","stages":{...},"peakRssMB":...}   (scan --profile only, after "done")
 
 stdout carries ONLY these lines (one JSON object per line, flushed). Logs go
 to stderr. Exit codes below.
@@ -15,6 +16,7 @@ to stderr. Exit codes below.
 from __future__ import annotations
 
 import json
+import os
 import sys
 import threading
 import time
@@ -52,6 +54,21 @@ class Protocol:
         self.min_interval = min_interval
         self._last: dict = {}
         self.warnings: list = []
+
+    def isolate_stdout(self) -> bool:
+        """Move the protocol onto a private duplicate of fd 1 and point fd 1 at
+        stderr, so a native library printing to stdout can only reach the log.
+        Only when writing to the real stdout; best effort."""
+        if self.stream is not sys.stdout:
+            return False
+        try:
+            self.stream.flush()
+            fd = os.dup(1)
+            os.dup2(2, 1)
+            self.stream = os.fdopen(fd, "w", encoding="utf-8", errors="replace", buffering=1)
+            return True
+        except (OSError, ValueError, AttributeError):
+            return False
 
     def emit(self, obj: dict) -> None:
         line = json.dumps(obj, ensure_ascii=False, separators=(",", ":"), allow_nan=False)
@@ -131,6 +148,8 @@ def parse_line(line: str) -> dict:
         assert isinstance(obj.get("out"), str)
     elif t == "error":
         assert isinstance(obj.get("code"), int) and isinstance(obj.get("msg"), str)
+    elif t == "profile":
+        assert isinstance(obj.get("stages"), dict)
     elif t not in ("paused", "resumed"):
         raise ValueError("unknown line type %r" % t)
     return obj

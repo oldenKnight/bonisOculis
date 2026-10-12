@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="es-MX">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data:; style-src 'self'; script-src 'self'">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>bonis oculis</title>
+<link rel="stylesheet" href="css/tokens.css">
+<link rel="stylesheet" href="css/base.css">
+<link rel="stylesheet" href="css/components.css">
+<link rel="stylesheet" href="css/app.css">
+</head>
+<body>
+<a class="bo-skip-link" href="#main" data-i18n="common.skipToContent">Skip to content</a>
+<svg id="bo-sprite" class="bo-sr-only" xmlns="http://www.w3.org/2000/svg" width="0" height="0" aria-hidden="true" focusable="false"><symbol id="bo-i-play" viewBox="0 0 24 24"><path d="M8 5.5v13l10.5-6.5z"/></symbol><symbol id="bo-i-pause" viewBox="0 0 24 24"><rect x="6.5" y="5" width="3.5" height="14" rx="1"/><rect x="14" y="5" width="3.5" height="14" rx="1"/></symbol><symbol id="bo-i-skip" viewBox="0 0 24 24"><path d="M5.5 5.5v13l9-6.5z"/><path d="M18.5 5.5v13"/></symbol><symbol id="bo-i-volume-off" viewBox="0 0 24 24"><path d="M4 9.5h3l4.5-4v13L7 14.5H4z"/><path d="M16 9.5l5 5M21 9.5l-5 5"/></symbol><symbol id="bo-i-panic" viewBox="0 0 24 24"><path d="M8.5 3.5h7l5 5v7l-5 5h-7l-5-5v-7z"/><path d="M8.5 12h7"/></symbol><symbol id="bo-i-flag" viewBox="0 0 24 24"><path d="M5.5 21V4M5.5 5h12l-3 4 3 4h-12"/></symbol><symbol id="bo-i-lock" viewBox="0 0 24 24"><rect x="5" y="10.5" width="14" height="10" rx="2.5"/><path d="M8.5 10.5V8a3.5 3.5 0 0 1 7 0v2.5M12 14.5v2"/></symbol><symbol id="bo-i-unlock" viewBox="0 0 24 24"><rect x="5" y="10.5" width="14" height="10" rx="2.5"/><path d="M8.5 10.5V8a3.5 3.5 0 0 1 6.7-1.4M12 14.5v2"/></symbol><symbol id="bo-i-shield-check" viewBox="0 0 24 24"><path d="M12 3.5l7 2.5v5.5c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6z"/><path d="M9 12l2.2 2.2L15.5 10"/></symbol><symbol id="bo-i-eye" viewBox="0 0 24 24"><path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z"/><circle cx="12" cy="12" r="3"/></symbol><symbol id="bo-i-eye-off" viewBox="0 0 24 24"><path d="M9.5 5.8a9 9 0 0 1 2.5-.3c6 0 9.5 6.5 9.5 6.5a16 16 0 0 1-2.8 3.6M6.3 7.5A16 16 0 0 0 2.5 12S6 18.5 12 18.5a9 9 0 0 0 3.6-.8"/><path d="M9.9 9.9a3 3 0 0 0 4.2 4.2M4 4l16 16"/></symbol><symbol id="bo-i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol><symbol id="bo-i-minus" viewBox="0 0 24 24"><path d="M5 12h14"/></symbol><symbol id="bo-i-check" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></symbol><symbol id="bo-i-close" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></symbol><symbol id="bo-i-chevron-down" viewBox="0 0 24 24"><path d="M6 9.5l6 6 6-6"/></symbol><symbol id="bo-i-chevron-left" viewBox="0 0 24 24"><path d="M14.5 6l-6 6 6 6"/></symbol><symbol id="bo-i-chevron-right" viewBox="0 0 24 24"><path d="M9.5 6l6 6-6 6"/></symbol><symbol id="bo-i-more" viewBox="0 0 24 24"><circle cx="5.5" cy="12" r="1.25"/><circle cx="12" cy="12" r="1.25"/><circle cx="18.5" cy="12" r="1.25"/></symbol><symbol id="bo-i-alert" viewBox="0 0 24 24"><path d="M12 4L2.8 19.5h18.4z"/><path d="M12 10v4.5M12 17.3v.1"/></symbol><symbol id="bo-i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v5.5M12 7.8v.1"/></symbol><symbol id="bo-i-help" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9.5 9.6a2.6 2.6 0 0 1 5 .8c0 1.7-2.5 2.2-2.5 3.8M12 17v.1"/></symbol><symbol id="bo-i-settings" viewBox="0 0 24 24"><path d="M4 7h9M17 7h3M4 17h3M11 17h9"/><circle cx="15" cy="7" r="2"/><circle cx="9" cy="17" r="2"/></symbol><symbol id="bo-i-keyboard" viewBox="0 0 24 24"><rect x="2.5" y="6" width="19" height="12" rx="2.5"/><path d="M6.5 10h.1M10 10h.1M14 10h.1M17.5 10h.1M7.5 14h9"/></symbol><symbol id="bo-i-globe" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.8 2.6 4 5.6 4 9s-1.2 6.4-4 9c-2.8-2.6-4-5.6-4-9s1.2-6.4 4-9z"/></symbol><symbol id="bo-i-edit" viewBox="0 0 24 24"><path d="M4.5 19.5l1-4.2L16.3 4.5a2.1 2.1 0 0 1 3 3L8.7 18.5z"/><path d="M14.5 6.5l3 3"/></symbol><symbol id="bo-i-trash" viewBox="0 0 24 24"><path d="M4.5 6.5h15M9.5 6.5v-2h5v2M6.5 6.5l.8 12.5a1.5 1.5 0 0 0 1.5 1.5h6.4a1.5 1.5 0 0 0 1.5-1.5l.8-12.5M10 10.5v6M14 10.5v6"/></symbol><symbol id="bo-i-undo" viewBox="0 0 24 24"><path d="M8 6.5l-4 4 4 4"/><path d="M4.5 10.5H14a5 5 0 0 1 0 10h-3"/></symbol><symbol id="bo-i-library" viewBox="0 0 24 24"><rect x="4" y="4" width="7" height="7" rx="1.5"/><rect x="13" y="4" width="7" height="7" rx="1.5"/><rect x="4" y="13" width="7" height="7" rx="1.5"/><rect x="13" y="13" width="7" height="7" rx="1.5"/></symbol><symbol id="bo-i-film" viewBox="0 0 24 24"><rect x="3.5" y="4.5" width="17" height="15" rx="2.5"/><path d="M8 4.5v15M16 4.5v15M3.5 9.5H8M3.5 14.5H8M16 9.5h4.5M16 14.5h4.5"/></symbol><symbol id="bo-i-folder-plus" viewBox="0 0 24 24"><path d="M3.5 7.5a2 2 0 0 1 2-2h4l2 2.5h7a2 2 0 0 1 2 2v7.5a2 2 0 0 1-2 2h-13a2 2 0 0 1-2-2z"/><path d="M12 11v5M9.5 13.5h5"/></symbol><symbol id="bo-i-download" viewBox="0 0 24 24"><path d="M12 4v11M7.5 10.5L12 15l4.5-4.5M5 19.5h14"/></symbol><symbol id="bo-i-upload" viewBox="0 0 24 24"><path d="M12 15V4M7.5 8.5L12 4l4.5 4.5M5 19.5h14"/></symbol><symbol id="bo-i-tv" viewBox="0 0 24 24"><rect x="3" y="5.5" width="18" height="12" rx="2.5"/><path d="M8.5 20.5h7M12 17.5v3"/></symbol><symbol id="bo-i-usb" viewBox="0 0 24 24"><path d="M8.5 9V3.5h7V9"/><rect x="6" y="9" width="12" height="11.5" rx="2.5"/><path d="M10 13.5v3M14 13.5v3"/></symbol><symbol id="bo-i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.2 2"/></symbol><symbol id="bo-i-scan" viewBox="0 0 24 24"><path d="M4 8.5V6a2 2 0 0 1 2-2h2.5M15.5 4H18a2 2 0 0 1 2 2v2.5M20 15.5V18a2 2 0 0 1-2 2h-2.5M8.5 20H6a2 2 0 0 1-2-2v-2.5M4 12h16"/></symbol><symbol id="bo-i-rescan" viewBox="0 0 24 24"><path d="M19.5 12a7.5 7.5 0 0 1-13.2 4.9M4.5 12a7.5 7.5 0 0 1 13.2-4.9M18 3.5v4.2h-4.2M6 20.5v-4.2h4.2"/></symbol><symbol id="bo-i-cat-nudity" viewBox="0 0 24 24"><circle cx="12" cy="7.5" r="3.5"/><path d="M5 20.5c.5-4.5 3.2-7 7-7s6.5 2.5 7 7"/></symbol><symbol id="bo-i-cat-sex" viewBox="0 0 24 24"><circle cx="9" cy="12" r="5.5"/><circle cx="15" cy="12" r="5.5"/></symbol><symbol id="bo-i-cat-implied" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" stroke-dasharray="3.2 3.1"/><path d="M8.5 12h.1M12 12h.1M15.5 12h.1"/></symbol><symbol id="bo-i-cat-kissing" viewBox="0 0 24 24"><path d="M12 20s-7.5-4.4-7.5-10.2A4.3 4.3 0 0 1 12 7.2a4.3 4.3 0 0 1 7.5 2.6C19.5 15.6 12 20 12 20z"/></symbol><symbol id="bo-i-cat-gore" viewBox="0 0 24 24"><path d="M12 3.5s6 6.3 6 10.7a6 6 0 0 1-12 0C6 9.8 12 3.5 12 3.5z"/></symbol><symbol id="bo-i-cat-language" viewBox="0 0 24 24"><path d="M5 4.5h14a1.5 1.5 0 0 1 1.5 1.5v9a1.5 1.5 0 0 1-1.5 1.5h-7L8 20.5v-4H5A1.5 1.5 0 0 1 3.5 15V6A1.5 1.5 0 0 1 5 4.5z"/><path d="M12 8v3.2M12 13.5v.1"/></symbol><symbol id="bo-i-cat-other" viewBox="0 0 24 24"><path d="M12.5 3.5h7v7L11 19a2 2 0 0 1-2.8 0l-3.7-3.7a2 2 0 0 1 0-2.8z"/><path d="M16 8v.1"/></symbol></svg>
+<div class="bo-app" id="app">
+  <section data-view="setup" class="bo-setup" hidden></section>
+  <section data-view="kid" hidden></section>
+  <section data-view="review" hidden></section>
+  <section data-view="player" hidden></section>
+  <div class="bo-shell" id="shell" hidden>
+    <aside class="bo-sidebar">
+      <div class="bo-sidebar__brand" id="brand"></div>
+      <nav class="bo-nav" id="nav" data-i18n-label="nav.label"></nav>
+      <div class="bo-sidebar__foot bo-nav" id="sidebar-foot"></div>
+    </aside>
+    <main class="bo-main" id="main" tabindex="-1">
+      <section data-view="library" hidden></section>
+      <section data-view="settings" hidden></section>
+      <section data-view="export" hidden></section>
+      <section data-view="help" hidden></section>
+    </main>
+  </div>
+  <div class="bo-toast-region" id="toasts" aria-live="polite"></div>
+  <div id="modal-root"></div>
+  <div class="bo-dropzone bo-dropzone--overlay is-dragover" id="drop-overlay" hidden aria-hidden="true">
+    <span class="bo-dropzone__body"><span class="bo-dropzone__icon"><svg class="bo-icon" aria-hidden="true"><use href="#bo-i-download"/></svg></span><span class="bo-dropzone__title" data-i18n="drop.release">Drop to add</span><span class="bo-dropzone__hint" data-i18n="drop.hint"></span></span>
+  </div>
+</div>
+<script src="../../shared/skipfile.js"></script>
+<script src="js/core.js"></script>
+<script src="js/i18n.js"></script>
+<script src="js/store.js"></script>
+<script src="js/router.js"></script>
+<script src="js/logo.js"></script>
+<script src="js/components/modal.js"></script>
+<script src="js/components/toast.js"></script>
+<script src="js/components/pin-pad.js"></script>
+<script src="js/components/pin-flows.js"></script>
+<script src="js/components/level-picker.js"></script>
+<script src="js/components/drop-zone.js"></script>
+<script src="js/components/status-pill.js"></script>
+<script src="js/components/thumb.js"></script>
+<script src="js/components/parents-card.js"></script>
+<script src="js/components/hotkeys.js"></script>
+<script src="js/components/popup-menu.js"></script>
+<script src="js/components/queue-drawer.js"></script>
+<script src="js/components/timeline.js"></script>
+<script src="js/views/setup.js"></script>
+<script src="js/views/library.js"></script>
+<script src="js/views/kid.js"></script>
+<script src="js/views/review.js"></script>
+<script src="js/views/settings.js"></script>
+<script src="js/views/export.js"></script>
+<script src="js/views/help.js"></script>
+<script src="js/views/player.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>

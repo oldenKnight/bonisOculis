@@ -42,4 +42,5 @@
 
   BO.i18n = { t: t, tn: tn, has: has, set: set, apply: apply, lang: function () { return lang; }, onChange: function (fn) { listeners.push(fn); } };
   BO.t = t;
+  BO.tn = tn;
 }(window));

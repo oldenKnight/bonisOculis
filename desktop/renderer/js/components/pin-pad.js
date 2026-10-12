@@ -169,7 +169,8 @@
     });
     var forgot = o.allowRecover ? BO.el('button', { 'class': 'bo-button bo-button--ghost bo-button--sm', type: 'button', text: BO.t('pin.forgot'), on: { click: function () { m.close('recover'); if (o.onForgot) { o.onForgot(); } } } }) : null;
     var m = BO.modal.open({
-      title: o.heading || BO.t('pin.modalTitle'), icon: 'lock', body: [o.text ? BO.el('p', { text: o.text }) : null, pad.el, forgot ? BO.el('div', { 'class': 'bo-pin-forgot' }, forgot) : null],
+      title: o.heading || BO.t('pin.modalTitle'), icon: 'lock', variant: 'pin', body: [o.text ? BO.el('p', { text: o.text }) : null, pad.el],
+      footerStart: forgot,
       actions: [{ label: BO.t('common.cancel'), kind: 'secondary', id: 'cancel' }],
       initialFocus: function () { return pad.el; },
       onClose: function () { pad.destroy(); if (!done) { cb(false); } }

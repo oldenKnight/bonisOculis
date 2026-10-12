@@ -166,10 +166,11 @@ function createLibrary(options) {
   }
 
   // Re-derive status and counts from the skip document (after a scan, an edit or at start).
-  function applyDoc(id, doc, validate) {
+  // force: a scan just finished, so leave queued/scanning too.
+  function applyDoc(id, doc, validate, force) {
     var it = find(id);
     if (!it) { return null; }
-    if (it.status === 'queued' || it.status === 'scanning') {
+    if (!force && (it.status === 'queued' || it.status === 'scanning')) {
       var d0 = deriveStatus(doc, validate);
       it.pending = d0.pending; it.enforced = d0.enforced; it.total = d0.total;
       changed();

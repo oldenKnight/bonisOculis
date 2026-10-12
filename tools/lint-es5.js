@@ -9,6 +9,7 @@
  * Prints "file:line:col  rule  source" for each hit and exits 1 if any.
  * Tokenizer-light: strings, comments, regexes and template literals are
  * blanked (newlines kept) before the rules run on what is left.
+ * Vendored third-party code (any path with a `vendor` folder) is exempt.
  * ES5, no dependencies.
  */
 'use strict';
@@ -112,17 +113,20 @@ function scanSource(src) {
   return hits.map(function (h) { return { line: h.line, col: h.col, rule: h.rule }; });
 }
 
+/* Third-party files copied verbatim (e.g. extension/vendor/) are not ours to lint. */
+function isVendor(file) { return file.split(path.sep).join('/').split('/').indexOf('vendor') >= 0; }
+
 function listJs(target, acc) {
   var st, names, i;
   try { st = fs.statSync(target); } catch (e) { return acc; }
   if (st.isFile()) {
-    if (/\.js$/.test(target)) { acc.push(target); }
+    if (/\.js$/.test(target) && !isVendor(target)) { acc.push(target); }
     return acc;
   }
   if (!st.isDirectory()) { return acc; }
   names = fs.readdirSync(target).sort();
   for (i = 0; i < names.length; i++) {
-    if (names[i] === 'node_modules' || names[i].charAt(0) === '.') { continue; }
+    if (names[i] === 'node_modules' || names[i] === 'vendor' || names[i].charAt(0) === '.') { continue; }
     listJs(path.join(target, names[i]), acc);
   }
   return acc;
@@ -152,7 +156,7 @@ function main(argv) {
   return 0;
 }
 
-module.exports = { scanSource: scanSource, strip: strip };
+module.exports = { scanSource: scanSource, strip: strip, isVendor: isVendor };
 
 if (require.main === module) {
   process.exitCode = main(process.argv.slice(2));

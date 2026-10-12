@@ -443,7 +443,7 @@
     "message": "bonis oculis nunca envía nada a ningún lado. No tiene cuenta, ni estadísticas, ni ajustes remotos."
   },
   "privacy2": {
-    "message": "Nunca mira la imagen. Solo lee el texto de los subtítulos que la propia página descarga, o un archivo que tú eliges."
+    "message": "Nunca mira la imagen. Lee el texto de los subtítulos que la propia página descarga, o un archivo que tú eliges. Solo si enciendes la escucha en vivo en una pestaña escucha el sonido de esa pestaña, en la memoria, sin guardarlo."
   },
   "privacy3": {
     "message": "Tus opciones, archivos y momentos ocultos se guardan solo en este navegador. Al quitar la extensión, se borran."
@@ -455,7 +455,7 @@
     "message": "Qué puede y qué no puede hacer"
   },
   "limits1": {
-    "message": "Encuentra escenas solo por los subtítulos, así que puede pasar por alto escenas sin palabras ni señales de sonido. Puedes ocultar cualquier momento con el atajo."
+    "message": "Sin la escucha en vivo encuentra escenas solo por los subtítulos, así que puede pasar por alto escenas sin palabras ni señales de sonido. Puedes ocultar cualquier momento con el atajo."
   },
   "limits2": {
     "message": "En Netflix, Prime Video y Disney+ quizá no pueda adelantar. Entonces tapa la imagen y quita el sonido hasta que termine la escena."
@@ -486,5 +486,74 @@
   },
   "forgetAllDone": {
     "message": "Se quitó todo de este navegador."
+  },
+  "liveTitle": {
+    "message": "Escucha en vivo (experimental)"
+  },
+  "liveHelp": {
+    "message": "Escucha el sonido de esta pestaña mientras se reproduce el video. Solo puede reaccionar: cuando oye sonidos de una escena que elegiste omitir (sonidos íntimos o disparos), tapa la imagen y silencia el sonido unos 2 segundos después de que empieza la escena, y la vuelve a mostrar 3 segundos después de que hay silencio. Necesita el sonido de la pestaña y usa parte de la potencia de la computadora mientras está encendida. El sonido nunca se guarda ni se envía."
+  },
+  "liveStarting": {
+    "message": "Preparando la escucha…"
+  },
+  "liveOn": {
+    "message": "Escuchando esta pestaña. Un punto rojo en el botón de bonis oculis y una pequeña etiqueta \"Escuchando\" sobre el video indican que está encendida."
+  },
+  "liveOnNoSound": {
+    "message": "Escuchando, pero todavía no llega ningún sonido. Dale play y revisa que la pestaña no esté silenciada."
+  },
+  "liveOtherTab": {
+    "message": "La escucha en vivo está encendida en otra pestaña. Si la enciendes aquí, se apaga allá."
+  },
+  "liveError": {
+    "message": "La escucha en vivo se detuvo porque algo salió mal. Inténtalo de nuevo."
+  },
+  "liveNoCapture": {
+    "message": "Chrome no dejó que bonis oculis escuchara esta pestaña. Haz clic otra vez en el botón de bonis oculis junto a la barra de direcciones y enciéndela desde ahí."
+  },
+  "liveModelFailed": {
+    "message": "La escucha en vivo no pudo iniciar en esta computadora. Todo lo demás sigue funcionando."
+  },
+  "liveTabGone": {
+    "message": "La escucha en vivo se detuvo porque la pestaña se cerró o dejó de enviar sonido."
+  },
+  "liveNoSound": {
+    "message": "Esta pestaña no tiene un sonido que bonis oculis pueda escuchar."
+  },
+  "overlayLive": {
+    "message": "Tapado por un momento"
+  },
+  "overlayLiveHint": {
+    "message": "Oímos sonidos de una escena que elegiste omitir. La imagen vuelve unos segundos después de que hay silencio."
+  },
+  "overlayListening": {
+    "message": "Escuchando"
+  },
+  "liveBadgeTitle": {
+    "message": "bonis oculis: escuchando esta pestaña"
+  },
+  "sourceLive": {
+    "message": "Momentos tapados por la escucha en vivo: $COUNT$",
+    "placeholders": {
+      "count": {
+        "content": "$1",
+        "example": "2"
+      }
+    }
+  },
+  "liveOptTitle": {
+    "message": "Escucha en vivo (experimental)"
+  },
+  "liveOpt1": {
+    "message": "Enciéndela para una pestaña a la vez: con el video abierto, haz clic en el botón de bonis oculis junto a la barra de direcciones y activa \"Escucha en vivo\". Se apaga cuando la desactivas o cierras la pestaña."
+  },
+  "liveOpt2": {
+    "message": "Solo puede reaccionar. Tapa la imagen y silencia el sonido unos 2 segundos después de oír que empieza una escena (sonidos íntimos, disparos) y la vuelve a mostrar 3 segundos después de que hay silencio, así que el primer momento de una escena puede pasar. Los subtítulos y los archivos de omisión funcionan por adelantado y son más confiables."
+  },
+  "liveOpt3": {
+    "message": "Necesita el sonido de la pestaña. Algunos sitios protegidos pueden enviarle silencio; ahí no puede ayudar. Las explosiones o los gritos por sí solos no hacen que tape la imagen."
+  },
+  "liveOpt4": {
+    "message": "Usa parte de la potencia de la computadora mientras está encendida: unas centésimas de segundo de trabajo cada medio segundo. El sonido se maneja en la memoria y nunca se guarda ni se envía; solo se guardan los momentos que tapó para ese video, y se omiten la próxima vez."
   }
 }

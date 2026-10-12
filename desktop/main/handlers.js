@@ -22,7 +22,7 @@ function versionOf(bin, cb) {
   p.stdout.on('data', function (d) { if (out.length < 400) { out += d; } });
   p.on('error', function () { cb(null); cb = function () {}; });
   p.on('close', function () {
-    var m = /version\s+(\S+)/i.exec(out) || /^(\S+\s+\S+)/.exec(out);
+    var m = /version\s+(\S+)/i.exec(out) || /\b(v?\d+\.\d+[\w.+~-]*)/.exec(out);
     cb(m ? m[1] : null);
   });
 }

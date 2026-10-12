@@ -53,7 +53,7 @@ function keyframes(ffprobe, file, cb) {
     var list = [];
     out.split(/\r?\n/).forEach(function (line) {
       var parts = line.split(',');
-      var v = parseFloat(parts[parts.length - 1]);
+      var v = parseFloat(parts[1]);
       if (parts[0] === 'frame' && isFinite(v)) { list.push(v); }
     });
     list.sort(function (a, b) { return a - b; });

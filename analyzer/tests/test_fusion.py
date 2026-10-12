@@ -83,7 +83,8 @@ class FusionTest(unittest.TestCase):
         sig = {"frames": {"sex": stream((20, 22, 0.5))}, "subtitles": {"sex": stream((20, 22, 0.5))}}
         r = fusion.fuse(sig, [], 90, {"sex": "moderate"})
         self.assertEqual(len(r), 1)
-        expect = 1 - (1 - 0.9 * 0.5) * (1 - 0.85 * 0.5)
+        noisy_or = 1 - (1 - 0.9 * 0.5) * (1 - 0.85 * 0.5)
+        expect = 1 - (1 - noisy_or) * (1 - config.AGREE_BONUS)  # picture + dialogue both >= 0.3
         self.assertAlmostEqual(r[0]["confidence"], round(expect, 3), places=3)
         self.assertEqual(r[0]["intensity"], 3)  # band 2 + two signals agree
         self.assertEqual(r[0]["note"], "Possible sexual activity. Seen in the picture; the dialogue agrees.")

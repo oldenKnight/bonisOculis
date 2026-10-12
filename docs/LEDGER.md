@@ -83,6 +83,8 @@ D17 PIN is a deterrent, not a security boundary; hashed properly; settings tampe
 - Kid-mode seeks are intercepted before decoding; the after-the-fact enforcement remains as a
   safety net. A seek to a range end still decodes (and discards) frames from the previous keyframe.
 - Blur fallback to hide is untested under real frame drops (needs a slow machine).
+- Live tab-audio (extension): YAMNet in wasm costs ~25 ms per 0.96 s window (~5% of a core);
+  it reacts ~2 s after a scene starts, so it is a backstop, never the primary protection.
 
 ## Polish backlog (for the M9 board pass)
 - Extension defaults `language` to strict; desktop presets default it off. Align to the desktop.
@@ -148,7 +150,7 @@ M4  Analyzer v1: subtitles + frames, resumable, checkpointed ...... DONE 2026-10
 M5  App shell: library, review timeline, PIN, import/export, clean copy  todo
 M6  Extension: subtitle pre-read + skip-file import ............... DONE 2026-10-12 (reviewed)
 M7  Analyzer v2: audio + captions + fusion tuning + measurement .... todo
-M8  Extension live-audio mode ..................................... todo
+M8  Extension live-audio mode ..................................... DONE 2026-10-12 (reviewed)
 M9  Packaging (Win x64, macOS universal), in-app help (TV paths) .. todo
 
 ## Handoff note

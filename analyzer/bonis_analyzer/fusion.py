@@ -1,12 +1,16 @@
 """Fusion: per-second signal scores -> skip ranges.
 
 score[c][t] = 1 - prod_s (1 - w[s][c] * signal[s][c][t])     (noisy-OR)
+then, where >= AGREE_MIN_SIGNALS signals from different groups (picture,
+description, dialogue, sound) each reach AGREE_MIN:
+score[c][t] = 1 - (1 - score[c][t]) * (1 - AGREE_BONUS)       (agreement)
 Seconds at or above the level threshold form runs; runs closer than
 MERGE_GAP merge; each run snaps outward to the enclosing shot (nearest scene
 cut at/before the start and at/after the end, at most MAX_SNAP away); then
-lead-in / tail padding, minimum duration, confidence = max score, intensity
-from score bands plus signal agreement, default action from the level, and a
-template note. Deterministic: same inputs -> same ranges and ids.
+lead-in / tail padding, a per-category minimum duration, confidence = max
+score, intensity from score bands plus signal agreement, default action from
+the level, and a template note. Deterministic: same inputs -> same ranges and
+ids. Every constant is in config.py and explained in analyzer/TUNING.md.
 """
 
 from __future__ import annotations
@@ -42,17 +46,96 @@ def fit(a: Any, n: int) -> np.ndarray:
     return v
 
 
-def combine(signals: Signals, category: str, n: int) -> np.ndarray:
+Weights = Dict[str, Dict[str, float]]
+
+
+def _weight(weights: Optional[Weights], s: str, category: str) -> float:
+    return float((weights if weights is not None else config.SIGNAL_WEIGHTS).get(s, {}).get(category, 0.0))
+
+
+def combine(signals: Signals, category: str, n: int, weights: Optional[Weights] = None) -> np.ndarray:
+    """Weighted noisy-OR of the signals (no agreement bonus)."""
     keep = np.ones(n, dtype=np.float64)
     for s in config.SIGNALS:
         per_cat = signals.get(s) or {}
         if category not in per_cat:
             continue
-        w = config.SIGNAL_WEIGHTS.get(s, {}).get(category, 0.0)
+        w = _weight(weights, s, category)
         if w <= 0:
             continue
         keep *= 1.0 - w * fit(per_cat[category], n)
     return 1.0 - keep
+
+
+def agreement(signals: Signals, category: str, n: int, weights: Optional[Weights] = None,
+              agree_min: Optional[float] = None) -> np.ndarray:
+    """Per second: number of distinct signal GROUPS whose raw score reaches
+    AGREE_MIN (only signals that count for the category, weight > 0)."""
+    thr = config.AGREE_MIN if agree_min is None else agree_min
+    groups: Dict[str, np.ndarray] = {}
+    for s in config.SIGNALS:
+        per_cat = signals.get(s) or {}
+        if category not in per_cat or _weight(weights, s, category) <= 0:
+            continue
+        g = config.SIGNAL_GROUPS.get(s, s)
+        hit = fit(per_cat[category], n) >= thr - 1e-9
+        groups[g] = groups[g] | hit if g in groups else hit
+    out = np.zeros(n, dtype=np.int64)
+    for hit in groups.values():
+        out += hit
+    return out
+
+
+def fused_score(signals: Signals, category: str, n: int, weights: Optional[Weights] = None,
+                bonus: Optional[float] = None) -> np.ndarray:
+    """Noisy-OR plus the agreement bonus: the per-second score fusion thresholds."""
+    p = combine(signals, category, n, weights)
+    b = config.AGREE_BONUS if bonus is None else bonus
+    if b > 0 and category in config.AGREE_CATEGORIES:
+        agree = agreement(signals, category, n, weights) >= config.AGREE_MIN_SIGNALS
+        if agree.any():
+            p = np.where(agree, 1.0 - (1.0 - p) * (1.0 - b), p)
+    return np.clip(p, 0.0, 1.0)
+
+
+def assemble_signals(stage_arrays: Dict[str, Optional[Dict[str, Any]]], n: int) -> Tuple[Signals, List[float]]:
+    """Stage results (the <work>/*.npz contents) -> fusion signals + cuts.
+    The ONE place that decides how stages become signals; the scan and
+    tools/tune.py both use it, so tuning sees exactly what a scan fuses.
+
+    frames.npz -> "frames" (+ "cuts"); subtitles.npz (keywords) and
+    speech.npz (keywords over the transcript) -> "subtitles" / "speech", each
+    max()ed with LM_WEIGHT * lm.npz when lm.npz["source"] names it;
+    audio.npz -> "audio"; captions.npz -> "captions" (already lexicon+LM)."""
+    signals: Signals = {}
+    cuts: List[float] = []
+    fr = stage_arrays.get("frames")
+    if fr:
+        signals["frames"] = {c: fr[c] for c in config.VISUAL_CATEGORIES if c in fr}
+        cuts = [float(c) for c in np.asarray(fr.get("cuts", []), dtype=np.float64).ravel()]
+    lm = stage_arrays.get("lm")
+    lm_source = None
+    if lm:
+        src = lm.get("source")
+        lm_source = str(np.asarray(src).item()) if src is not None else "subtitles"
+    for name in ("subtitles", "speech"):
+        kw = stage_arrays.get(name)
+        if not kw:
+            continue
+        sig = {c: np.asarray(kw[c], dtype=np.float32) for c in config.CATEGORIES if c in kw}
+        if lm and lm_source == name:
+            for c in config.LM_CATEGORIES:
+                if c in lm:
+                    base = sig.get(c, np.zeros(n, np.float32))
+                    sig[c] = np.maximum(fit(base, n), config.LM_WEIGHT * fit(lm[c], n)).astype(np.float32)
+        signals[name] = sig
+    au = stage_arrays.get("audio")
+    if au:
+        signals["audio"] = {c: au[c] for c in config.CATEGORIES if c in au}
+    cap = stage_arrays.get("captions")
+    if cap:
+        signals["captions"] = {c: cap[c] for c in config.VISUAL_CATEGORIES if c in cap}
+    return signals, cuts
 
 
 def runs(mask: np.ndarray) -> List[Tuple[int, int]]:
@@ -112,9 +195,15 @@ def range_id(category: str, start: float, end: float) -> str:
     return "r" + h[:10]
 
 
+def min_duration(category: str) -> float:
+    return float(config.CATEGORY_MIN_DURATION.get(category, config.MIN_DURATION))
+
+
 def fuse(signals: Signals, cuts: Sequence[float], duration: float, levels: Dict[str, str],
-         lang: str = "en-US") -> List[Dict[str, Any]]:
-    """Fuse per-second signal arrays into skip ranges (sorted by start, category)."""
+         lang: str = "en-US", weights: Optional[Weights] = None,
+         thresholds: Optional[Dict[str, float]] = None) -> List[Dict[str, Any]]:
+    """Fuse per-second signal arrays into skip ranges (sorted by start, category).
+    ``weights`` / ``thresholds`` override config (tools/tune.py)."""
     n = seconds_count(duration, signals)
     dur = float(duration) if duration and duration > 0 else float(n)
     cuts = sorted(float(c) for c in (cuts or []) if 0 < float(c) < dur)
@@ -124,7 +213,9 @@ def fuse(signals: Signals, cuts: Sequence[float], duration: float, levels: Dict[
         thr = config.threshold(level)
         if thr is None:
             continue
-        score = combine(signals, cat, n)
+        if thresholds and cat in thresholds:
+            thr = float(thresholds[cat])
+        score = fused_score(signals, cat, n, weights)
         mask = score >= thr - 1e-9
         rs = runs(mask)
         if not rs:
@@ -153,16 +244,17 @@ def fuse(signals: Signals, cuts: Sequence[float], duration: float, levels: Dict[
             items.append({"start": start, "end": end, "cutStart": cs, "cutEnd": ce, "core": list(core)})
         # 3. merge again (snapping can close gaps), 4. pad, 5. min duration, 6. merge overlaps
         items = _merge_items(items, tm["merge_gap"])
+        mind = min_duration(cat)
         for it in items:
             it["start"] = max(0.0, it["start"] - tm["lead_in"])
             it["end"] = min(dur, it["end"] + tm["tail"])
-            if it["end"] - it["start"] < config.MIN_DURATION:
-                it["end"] = min(dur, it["start"] + config.MIN_DURATION)
-                if it["end"] - it["start"] < config.MIN_DURATION:
-                    it["start"] = max(0.0, it["end"] - config.MIN_DURATION)
+            if it["end"] - it["start"] < mind:
+                it["end"] = min(dur, it["start"] + mind)
+                if it["end"] - it["start"] < mind:
+                    it["start"] = max(0.0, it["end"] - mind)
         items = _merge_items(items, 0.0)
         for it in items:
-            out.append(_finish(it, cat, level, score, signals, n, lang))
+            out.append(_finish(it, cat, level, score, signals, n, lang, weights))
     out.sort(key=lambda r: (r["start"], r["end"], config.CATEGORIES.index(r["category"])))
     return out
 
@@ -183,7 +275,7 @@ def _merge_items(items: List[Dict[str, Any]], gap: float) -> List[Dict[str, Any]
 
 
 def _finish(it: Dict[str, Any], cat: str, level: str, score: np.ndarray, signals: Signals, n: int,
-            lang: str) -> Dict[str, Any]:
+            lang: str, weights: Optional[Weights] = None) -> Dict[str, Any]:
     start, end = _r3(it["start"]), _r3(it["end"])
     conf = 0.0
     for a, b in it["core"]:
@@ -192,7 +284,7 @@ def _finish(it: Dict[str, Any], cat: str, level: str, score: np.ndarray, signals
     peaks: Dict[str, float] = {}
     for s in config.SIGNALS:
         per_cat = signals.get(s) or {}
-        if cat in per_cat and config.SIGNAL_WEIGHTS.get(s, {}).get(cat, 0) > 0:
+        if cat in per_cat and _weight(weights, s, cat) > 0:
             v = fit(per_cat[cat], n)[lo:hi]
             peaks[s] = _r3(float(v.max()) if v.size else 0.0)
     present = [s for s in config.SIGNALS if peaks.get(s, 0.0) >= config.SIGNAL_PRESENT]

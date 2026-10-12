@@ -1,0 +1,16 @@
+<!doctype html>
+<html lang="en-US">
+<head>
+<meta charset="utf-8">
+<title>bonis oculis live listening</title>
+</head>
+<body>
+<!-- Offscreen document (never visible). Live listening: hears one tab's sound
+     in memory, routes it back to the speakers, classifies 0.96 s windows with
+     YAMNet and tells the service worker when to cover and when to release. -->
+<script src="../vendor/ort.wasm.min.js"></script>
+<script src="../audio/classmap.js"></script>
+<script src="../audio/live.js"></script>
+<script src="offscreen.js"></script>
+</body>
+</html>

@@ -189,6 +189,7 @@ function createSupervisor(options) {
     var res = skips.replace(run.id, merged, false);
     if (!res.ok) { return false; }
     library.update(run.id, { scannedAt: new Date().toISOString(), progress: 1, stage: null }, true);
+    library.applyDoc(run.id, res.doc, BO.validate, true);
     try { fs.unlinkSync(run.doneOut || run.out); } catch (e) { /* keep */ }
     var it = library.get(run.id);
     emit('toast', { kind: 'success', key: it && it.status === 'protected' ? 'toast.scanDoneProtected' : 'toast.scanDoneReview',

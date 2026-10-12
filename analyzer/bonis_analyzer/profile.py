@@ -2,11 +2,13 @@
 psutil. Linux: the kernel's peak-RSS counter (VmHWM) is reset at each stage
 start (/proc/self/clear_refs = 5) and read at its end, plus a 50 ms sampler
 as a fallback; Windows: GetProcessMemoryInfo; macOS: getrusage (lifetime peak
-only, so per-stage peaks are the running maximum there).
+only, so per-stage peaks are the running maximum there). Children (ffmpeg,
+whisper-cli) are not included: on Linux a child's maxrss counts the parent's
+pages it shared before exec, which makes that number meaningless.
 
 The final protocol line:
     {"t":"profile","stages":{"frames":{"wall":12.3,"peakRssMB":238.1},...},
-     "peakRssMB":930.2,"childPeakRssMB":61.0,"framesProcessed":60,
+     "peakRssMB":930.2,"framesProcessed":60,
      "shotsCaptioned":3,"windowsScored":{"lm":1,"speech":3,"audioChunks":6}}
 """
 
@@ -82,17 +84,6 @@ def peak_rss_bytes() -> Optional[int]:
         import resource  # noqa: PLC0415
 
         r = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
-        return int(r if sys.platform == "darwin" else r * 1024)
-    except Exception:  # noqa: BLE001
-        return None
-
-
-def child_peak_rss_bytes() -> Optional[int]:
-    """Largest peak RSS among waited-for children (ffmpeg, whisper-cli)."""
-    try:
-        import resource  # noqa: PLC0415
-
-        r = resource.getrusage(resource.RUSAGE_CHILDREN).ru_maxrss
         return int(r if sys.platform == "darwin" else r * 1024)
     except Exception:  # noqa: BLE001
         return None
@@ -180,7 +171,6 @@ class Profiler:
         overall = max(self._overall, 0)
         if not self._can_reset:
             overall = max(overall, peak_rss_bytes() or 0)
-        out: Dict[str, Any] = {"t": "profile", "stages": self.stages, "peakRssMB": _mb(overall),
-                               "childPeakRssMB": _mb(child_peak_rss_bytes())}
+        out: Dict[str, Any] = {"t": "profile", "stages": self.stages, "peakRssMB": _mb(overall)}
         out.update(self.counters)
         return out

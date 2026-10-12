@@ -1,6 +1,6 @@
 'use strict';
 // In-app help: loads docs/HELP/<lang>.md (or the licence inventory) and converts a small Markdown
-// subset to HTML for the renderer: # ## ### headings (with ids), paragraphs, - and 1. lists,
+// subset to HTML for the renderer: # ## ### headings (with ids; '## Title {#id}' sets one), paragraphs, - and 1. lists,
 // > notes, | tables |, ---, **bold**, `code`, [text](#anchor). Links to anything but an anchor are
 // shown as plain text: the help never opens remote content. Everything is HTML-escaped first.
 
@@ -36,6 +36,7 @@ function render(md) {
   var para = [];
   var list = null;
   var used = {};
+  var title = null;
   var i = 0;
 
   function flushPara() {
@@ -56,11 +57,14 @@ function render(md) {
     if ((m = /^(#{1,3})\s+(.*)$/.exec(line))) {
       flush();
       var level = m[1].length;
-      var id = slug(m[2]);
+      var explicit = /\s*\{#([a-z0-9-]+)\}\s*$/.exec(m[2]);
+      if (explicit) { m[2] = m[2].slice(0, explicit.index); }
+      var id = explicit ? explicit[1] : slug(m[2]);
       while (used[id]) { id += '-x'; }
       used[id] = true;
+      if (level === 1 && title === null) { title = m[2]; i++; continue; }
       if (level > 1) { toc.push({ id: id, text: m[2], level: level }); }
-      html.push('<h' + (level + 1) + ' id="' + id + '" tabindex="-1">' + inline(m[2]) + '</h' + (level + 1) + '>');
+      html.push('<h' + level + ' id="' + id + '" tabindex="-1">' + inline(m[2]) + '</h' + level + '>');
       i++;
       continue;
     }
@@ -98,7 +102,7 @@ function render(md) {
     i++;
   }
   flush();
-  return { html: html.join('\n'), toc: toc };
+  return { title: title, html: html.join('\n'), toc: toc };
 }
 
 function createHelp(options) {

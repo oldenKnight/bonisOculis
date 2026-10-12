@@ -60,6 +60,49 @@ def build_prompt(text: str) -> str:
     return p + _msg("user", _user(text)) + "<|im_start|>assistant\n<think>\n\n</think>\n\n" + ANSWER_PREFIX
 
 
+# --------------------------------------------------------------------------
+# caption prompt: rate a one-paragraph scene description (signals/captions.py)
+# --------------------------------------------------------------------------
+
+CAPTION_CATS = ("sex", "implied", "kissing", "gore")
+CAPTION_SYSTEM = (
+    "You read a short description of one movie frame for a parental filter. For each label give a number "
+    "from 0 (absent) to 10 (clearly present):\n"
+    "sex = sexual activity; implied = intimacy suggested (a couple in bed, undressing, lingerie); "
+    "kissing = people kissing; gore = blood, wounds or a dead body.\n"
+    "Most frames are 0 for every label. Answer with JSON only."
+)
+# Synthetic, non-explicit descriptions in Florence-2's style.
+CAPTION_SHOTS = (
+    ("The image shows a man in a grey suit sitting at a desk with a laptop. Behind him is a window.",
+     {"sex": 0, "implied": 0, "kissing": 0, "gore": 0}),
+    ("A man and a woman are lying in a bed under white sheets. The room is dark and the woman has bare shoulders.",
+     {"sex": 3, "implied": 8, "kissing": 1, "gore": 0}),
+    ("Two people are kissing on a couch. The woman has her arms around the man's neck.",
+     {"sex": 1, "implied": 3, "kissing": 8, "gore": 0}),
+    ("A man is lying on the floor with blood on his shirt and a pool of blood next to him.",
+     {"sex": 0, "implied": 0, "kissing": 0, "gore": 8}),
+)
+CAPTION_PREFIX = '{"sex": '
+
+
+def _caption_user(text: str) -> str:
+    return "Description:\n<<<\n%s\n>>>\nJSON with keys sex, implied, kissing, gore. /no_think" % text
+
+
+def build_caption_prompt(text: str) -> str:
+    text = text.replace("<|", "< |")
+    p = _msg("system", CAPTION_SYSTEM)
+    for t, a in CAPTION_SHOTS:
+        p += _msg("user", _caption_user(t)) + _msg("assistant", "<think>\n\n</think>\n\n" + json.dumps(a))
+    return p + _msg("user", _caption_user(text)) + "<|im_start|>assistant\n<think>\n\n</think>\n\n" + CAPTION_PREFIX
+
+
+def parse_caption_answer(text: str) -> Dict[str, float]:
+    full = parse_answer(text, scale10=True)
+    return {c: full.get(c, 0.0) for c in CAPTION_CATS}
+
+
 def available() -> bool:
     try:
         import llama_cpp  # noqa: F401, PLC0415
@@ -115,6 +158,12 @@ class LlamaLM:
         res = self.llm.create_completion(prompt, max_tokens=48, temperature=0.0, top_k=1, stop=["}"], seed=0)
         return parse_answer(ANSWER_PREFIX + (res["choices"][0].get("text") or "") + "}", scale10=True)
 
+    def score_caption(self, text: str) -> Dict[str, float]:
+        """Rate one scene description (sex / implied / kissing / gore)."""
+        prompt = build_caption_prompt(text[:1200])
+        res = self.llm.create_completion(prompt, max_tokens=40, temperature=0.0, top_k=1, stop=["}"], seed=0)
+        return parse_caption_answer(CAPTION_PREFIX + (res["choices"][0].get("text") or "") + "}")
+
     def close(self) -> None:
         llm = getattr(self, "llm", None)
         self.llm = None
@@ -147,6 +196,10 @@ class FakeLM:
                     if c in out:
                         out[c] = max(out[c], float(v))
         return out
+
+    def score_caption(self, text: str) -> Dict[str, float]:
+        out = self.score(text)
+        return {c: out.get(c, 0.0) for c in CAPTION_CATS}
 
     def close(self) -> None:
         pass

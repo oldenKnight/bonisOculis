@@ -61,6 +61,7 @@
     if (s.subFile) { parts.push(t('sourceFile', [s.subFile])); }
     s.skipFiles.forEach(function (f) { parts.push(t('sourceSkip', [f.title || f.name])); });
     if (s.marks) { parts.push(t('sourceMarks', [s.marks])); }
+    if (s.live && s.live.marks) { parts.push(t('sourceLive', [s.live.marks])); }
     return parts.length ? parts.join(' · ') : t('sourceNone');
   }
 
@@ -70,7 +71,7 @@
     $('msg').hidden = true;
     $('ready').hidden = false;
     $('siteName').textContent = s.adapter === 'generic' ? s.site : t(s.nameKey);
-    anySource = s.pageTracks || s.subFile || s.skipFiles.length || s.marks;
+    anySource = s.pageTracks || s.subFile || s.skipFiles.length || s.marks || (s.live && s.live.marks);
     if (!anySource) {
       $('scenesLine').textContent = t('scenesWaiting');
     } else if (s.scenes === 0) {
@@ -104,6 +105,68 @@
 
     renderFiles(s);
     renderTiming(s);
+    liveRefresh();
+  }
+
+  /* ------------------------------------------------------------------ */
+  /* live listening                                                      */
+  /* ------------------------------------------------------------------ */
+
+  var liveTimer = null;
+  var liveBusy = false;
+  var LIVE_ERRORS = ['liveNoCapture', 'liveModelFailed', 'liveTabGone', 'liveNoSound'];
+
+  function liveRender(ls) {
+    var sw = $('liveSwitch'), status = $('liveStatus'), text = '', isError = false, st = ls && ls.stats;
+    sw.setAttribute('aria-checked', ls && ls.on ? 'true' : 'false');
+    sw.setAttribute('aria-busy', liveBusy || (ls && ls.state === 'starting') ? 'true' : 'false');
+    if (!ls) {
+      text = t('liveError');
+      isError = true;
+    } else if (ls.error) {
+      text = t(LIVE_ERRORS.indexOf(ls.error) >= 0 ? ls.error : 'liveError');
+      isError = true;
+    } else if (ls.state === 'starting' || liveBusy) {
+      text = t('liveStarting');
+    } else if (ls.on) {
+      text = st && st.heardAgoMs >= 0 && st.heardAgoMs < 10000 ? t('liveOn') : t('liveOnNoSound');
+    } else if (ls.otherTab) {
+      text = t('liveOtherTab');
+    }
+    status.hidden = !text;
+    status.classList.toggle('is-error', isError);
+    $('liveStatusText').textContent = text;
+    if (ls && ls.on && liveTimer === null) {
+      liveTimer = setInterval(liveRefresh, 2000);
+    } else if (!(ls && ls.on) && liveTimer !== null) {
+      clearInterval(liveTimer);
+      liveTimer = null;
+    }
+  }
+
+  function liveRefresh() {
+    if (!tab || liveBusy) { return; }
+    chrome.runtime.sendMessage({ t: 'liveState', tabId: tab.id }, function (ls) {
+      void chrome.runtime.lastError;
+      if (!liveBusy) { liveRender(ls || null); }
+    });
+  }
+
+  /* The click is the user gesture chrome.tabCapture needs. */
+  function liveToggle() {
+    var on = $('liveSwitch').getAttribute('aria-checked') === 'true';
+    if (!tab || liveBusy) { return; }
+    liveBusy = true;
+    liveRender({ on: !on, state: on ? 'off' : 'starting' });
+    chrome.runtime.sendMessage({ t: on ? 'liveStop' : 'liveStart', tabId: tab.id }, function (res) {
+      void chrome.runtime.lastError;
+      liveBusy = false;
+      if (!res || res.ok === false) {
+        liveRender({ on: false, state: 'off', error: res && res.error ? res.error : 'liveError' });
+        return;
+      }
+      liveRefresh();
+    });
   }
 
   /* One timing row per external source: the subtitle file (with automatic
@@ -284,6 +347,7 @@
     $('protectTab').addEventListener('click', protectTab);
     $('allowAll').addEventListener('click', allowAll);
     $('openOptions').addEventListener('click', function () { chrome.runtime.openOptionsPage(); });
+    $('liveSwitch').addEventListener('click', liveToggle);
   }
 
   function applyLanguage() {

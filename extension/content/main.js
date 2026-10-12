@@ -11,6 +11,12 @@
  *    each have their own offset (they may come from different editions).
  * 5. Report the number of planned scenes to the service worker (badge) and
  *    answer the popup.
+ * 6. Live listening (experimental): the service worker relays the offscreen
+ *    document's decisions ({t: 'live', cover, category, score}); a cover goes
+ *    through the enforcer (black-out; the element is muted only when the sound
+ *    is not heard through tab capture) and, when released, the covered stretch
+ *    is saved for this video as a "live" moment (with a lead-in), so it counts
+ *    in the popup and is skipped the next time, like a panic moment.
  */
 (function (root) {
   'use strict';
@@ -28,7 +34,7 @@
   var uiLang = 'en';
   var site = adapter.id === 'generic' ? location.hostname || 'file' : adapter.id;
   var videoId = '';
-  var record = { offset: 0, skipOffset: 0, panic: [] };
+  var record = { offset: 0, skipOffset: 0, panic: [], live: [] };
   var skipFiles = [];
   var plan = [];
   var summary = { scenes: 0, mutes: 0, byCategory: {} };
@@ -36,6 +42,9 @@
   var lastHref = location.href;
   var initTries = 0;
   var ready = false;
+  var listening = false;
+  var liveOpen = null;
+  var LIVE_LEAD = 3;
 
   BO.bridge.start();
 
@@ -73,6 +82,7 @@
     strings = res.strings || null;
     uiLang = res.uiLang === 'es' ? 'es' : 'en';
     if (strings) { overlay.setStrings(strings); }
+    if (typeof res.live === 'boolean') { setListening(res.live); }
   }
 
   function onVideo(v) {
@@ -108,6 +118,7 @@
     lastHref = location.href;
     id = currentVideoId();
     if (id === videoId) { return; }
+    closeLive();
     BO.bridge.reset(function (t) { return id.length >= 6 && t.url.indexOf(id) >= 0; });
     plan = [];
     enforcer.setRanges([]);
@@ -177,6 +188,12 @@
         out.push({ id: 'rpanic' + i, start: r.start, end: r.end, category: 'other', confidence: 1, action: 'skip', source: 'panic', review: 'approved' });
       }
     }
+    for (i = 0; i < record.live.length; i++) {
+      r = record.live[i];
+      if (r && r.end > r.start && lv[r.category] !== 'off') {
+        out.push({ id: 'rlive' + i, start: r.start, end: r.end, category: r.category || 'other', confidence: r.confidence || 0.5, action: 'skip', source: 'live', review: 'unreviewed' });
+      }
+    }
     for (i = 0; i < out.length; i++) { if (out[i].action === 'blur' || out[i].action === 'hide') { out[i].action = 'hide'; } }
     out.sort(function (a, b) { return (a.start - b.start) || (a.end - b.end); });
     return out;
@@ -241,6 +258,7 @@
         return { key: f.key, title: (f.doc.media && f.doc.media.title) || f.name || '', name: f.name, count: BO.skipfile.enforced(f.doc).length };
       }),
       marks: record.panic.length,
+      live: { listening: listening, covered: enforcer.isLive(), marks: record.live.length },
       levels: levels(),
       customLevels: !!record.levels,
       offset: record.offset || 0,
@@ -257,6 +275,56 @@
 
   function report() {
     BO.util.toBackground({ t: 'state', count: summary.scenes + summary.mutes, panic: enforcer.isPanic(), hasVideo: !!video });
+  }
+
+  /* ------------------------------------------------------------------ */
+  /* live listening                                                      */
+  /* ------------------------------------------------------------------ */
+
+  function now() { return video && typeof video.currentTime === 'number' ? video.currentTime : 0; }
+
+  /* Saves the stretch that was covered (started LIVE_LEAD s earlier: the sound
+     is recognised about 1.5 s after it begins). */
+  function closeLive() {
+    var open = liveOpen, end, range, id = videoId, at = site;
+    liveOpen = null;
+    if (!open || !video || !id) { return; }
+    end = now();
+    if (!(end > open.start)) { return; }
+    range = {
+      start: Math.round(Math.max(0, open.start - LIVE_LEAD) * 1000) / 1000,
+      end: Math.round(end * 1000) / 1000,
+      category: open.category,
+      confidence: Math.round(open.score * 1000) / 1000,
+      at: new Date().toISOString()
+    };
+    record.live = record.live.concat([range]);
+    store.addLive(at, id, range, function (v) { if (videoId === id) { record = v; recompute(); } });
+  }
+
+  function onLive(msg) {
+    var cat = msg.category === 'sex' || msg.category === 'gore' ? msg.category : 'other', score = Number(msg.score) || 0;
+    if (!msg.cover) {
+      enforcer.setLive(null);
+      closeLive();
+      report();
+      return { ok: true, covered: false };
+    }
+    if (cat !== 'other' && levels()[cat] === 'off') { return { ok: true, ignored: true }; }
+    if (!listening) { setListening(true); }
+    enforcer.setLive({ category: cat, score: score, muteElement: !!msg.muteElement });
+    if (!liveOpen) { liveOpen = { start: now(), category: cat, score: score }; } else if (score > liveOpen.score) { liveOpen.score = score; }
+    report();
+    return { ok: true, covered: true };
+  }
+
+  function setListening(on) {
+    listening = !!on;
+    overlay.setListening(listening);
+    if (!listening) {
+      enforcer.setLive(null);
+      closeLive();
+    }
   }
 
   /* ------------------------------------------------------------------ */
@@ -341,8 +409,16 @@
         reply({ ok: !!(adapter.requestSubtitles && adapter.requestSubtitles()) });
         return false;
       case 'forgetMarks':
-        saveRecord({ panic: [] }, function () { reply(state()); });
+        saveRecord({ panic: [], live: [] }, function () { reply(state()); });
         return true;
+      case 'live':
+        reply(onLive(msg));
+        return false;
+      case 'liveListening':
+        setListening(!!msg.on);
+        report();
+        reply({ ok: true });
+        return false;
       case 'reinit':
         init();
         reply({ ok: true });

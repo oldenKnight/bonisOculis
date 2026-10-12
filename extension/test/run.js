@@ -13,6 +13,16 @@
  * service worker; a parent's .srt gives the same ranges as the page track;
  * auto-sync recovers a 2.5 s shift; skip-file import; Spanish strings; no
  * request leaves 127.0.0.1.
+ * Live listening (M8): the popup switch reports Chrome's refusal when the
+ * extension was not invoked on the tab (no user gesture in automation); the
+ * offscreen document loads onnxruntime-web (wasm) and YAMNet and classifies
+ * two generated clips through the real audio path (media element ->
+ * AudioWorklet -> resampler -> 0.96 s windows): 2 s silence + 3 s of short
+ * white-noise impulses + 2 s silence, and a 5 s sine; the impulses cover and
+ * mute the test page's video and release after the quiet period; a fed
+ * score stream covers and releases; the inference time per window is
+ * printed. These use the BO_TEST path of the test copy (version_name), which
+ * classifies a file from this server instead of capturing the tab.
  *
  * Needs (never installed into the repo):
  *   - playwright-core or playwright: set BO_PLAYWRIGHT to its node_modules
@@ -34,6 +44,7 @@ var path = require('path');
 var http = require('http');
 var assert = require('assert');
 var cp = require('child_process');
+var crypto = require('crypto');
 
 var EXT = path.join(__dirname, '..');
 var ROOT = path.join(EXT, '..');
@@ -111,6 +122,33 @@ function runUnit() {
 /* media and server                                                       */
 /* ---------------------------------------------------------------------- */
 
+/* Live-listening clips (nothing explicit: impulses of white noise and a sine). */
+function makeLiveMedia(dir) {
+  var burst = path.join(dir, 'live-burst.wav'), sine = path.join(dir, 'live-sine.wav'), r;
+  if (!fs.existsSync(burst)) {
+    r = cp.spawnSync(FFMPEG, ['-y', '-hide_banner', '-loglevel', 'error',
+      '-f', 'lavfi', '-i', 'anullsrc=r=48000:cl=mono:d=2',
+      '-f', 'lavfi', '-i', "aevalsrc='(random(0)*2-1)*exp(-35*mod(t,0.08))':s=48000:d=3,lowpass=f=3000,volume=4,alimiter=limit=0.95",
+      '-f', 'lavfi', '-i', 'anullsrc=r=48000:cl=mono:d=2',
+      '-filter_complex', '[0][1][2]concat=n=3:v=0:a=1', '-c:a', 'pcm_s16le', burst], { encoding: 'utf8' });
+    if (r.status !== 0) { throw new Error('ffmpeg could not make the burst clip: ' + (r.stderr || r.error)); }
+  }
+  if (!fs.existsSync(sine)) {
+    r = cp.spawnSync(FFMPEG, ['-y', '-hide_banner', '-loglevel', 'error', '-f', 'lavfi', '-i', 'sine=frequency=440:sample_rate=44100:duration=5', '-c:a', 'pcm_s16le', sine], { encoding: 'utf8' });
+    if (r.status !== 0) { throw new Error('ffmpeg could not make the sine clip: ' + (r.stderr || r.error)); }
+  }
+}
+
+/* index -> AudioSet display name, from the analyzer's copy of the official class map */
+function yamnetNames() {
+  var lines = fs.readFileSync(path.join(ROOT, 'analyzer', 'models', 'yamnet_class_map.csv'), 'utf8').split(/\r?\n/).slice(1), out = [];
+  lines.forEach(function (l) {
+    var m = /^(\d+),[^,]*,(.*)$/.exec(l);
+    if (m) { out[+m[1]] = m[2].replace(/^"|"$/g, ''); }
+  });
+  return out;
+}
+
 function makeMedia() {
   var dir = path.join(SCRATCH, 'media'), mp4 = path.join(dir, 'clip.mp4'), webm = path.join(dir, 'clip.webm'), base, r;
   fs.mkdirSync(dir, { recursive: true });
@@ -128,14 +166,15 @@ function makeMedia() {
     r = cp.spawnSync(FFMPEG, base.concat(['-c:v', 'libvpx', '-deadline', 'realtime', '-cpu-used', '8', '-b:v', '300k', '-g', '25', '-c:a', 'libvorbis', '-shortest', webm]), { encoding: 'utf8' });
     if (r.status !== 0) { throw new Error('ffmpeg could not make the webm: ' + (r.stderr || r.error)); }
   }
+  makeLiveMedia(dir);
   return dir;
 }
 
-var TYPES = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript', '.vtt': 'text/vtt; charset=utf-8', '.srt': 'text/plain; charset=utf-8', '.mp4': 'video/mp4', '.webm': 'video/webm' };
+var TYPES = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript', '.vtt': 'text/vtt; charset=utf-8', '.srt': 'text/plain; charset=utf-8', '.mp4': 'video/mp4', '.webm': 'video/webm', '.wav': 'audio/wav' };
 
 function serve(roots, cb) {
   var server = http.createServer(function (req, res) {
-    var name = decodeURIComponent(req.url.split('?')[0]).replace(/^\/+/, '') || 'index.html', file = null, i, stat, range, m, start, end;
+    var name = decodeURIComponent(req.url.split('?')[0]).replace(/^\/+/, '') || 'index.html', file = null, i, stat, range, m, start, end, cors;
     if (name.indexOf('..') >= 0) { res.writeHead(400); res.end(); return; }
     if (name === 'favicon.ico') { res.writeHead(204); res.end(); return; }
     for (i = 0; i < roots.length; i++) { if (fs.existsSync(path.join(roots[i], name))) { file = path.join(roots[i], name); break; } }
@@ -143,14 +182,16 @@ function serve(roots, cb) {
     stat = fs.statSync(file);
     range = req.headers.range;
     m = range ? /bytes=(\d*)-(\d*)/.exec(range) : null;
+    /* the offscreen document (chrome-extension:// origin) reads the audio clips through Web Audio: CORS */
+    cors = path.extname(file) === '.wav' ? { 'Access-Control-Allow-Origin': '*' } : {};
     if (m) {
       start = m[1] ? parseInt(m[1], 10) : 0;
       end = m[2] ? Math.min(parseInt(m[2], 10), stat.size - 1) : stat.size - 1;
-      res.writeHead(206, { 'Content-Type': TYPES[path.extname(file)] || 'application/octet-stream', 'Content-Range': 'bytes ' + start + '-' + end + '/' + stat.size, 'Accept-Ranges': 'bytes', 'Content-Length': end - start + 1 });
+      res.writeHead(206, Object.assign({ 'Content-Type': TYPES[path.extname(file)] || 'application/octet-stream', 'Content-Range': 'bytes ' + start + '-' + end + '/' + stat.size, 'Accept-Ranges': 'bytes', 'Content-Length': end - start + 1 }, cors));
       fs.createReadStream(file, { start: start, end: end }).pipe(res);
       return;
     }
-    res.writeHead(200, { 'Content-Type': TYPES[path.extname(file)] || 'application/octet-stream', 'Accept-Ranges': 'bytes', 'Content-Length': stat.size });
+    res.writeHead(200, Object.assign({ 'Content-Type': TYPES[path.extname(file)] || 'application/octet-stream', 'Accept-Ranges': 'bytes', 'Content-Length': stat.size }, cors));
     fs.createReadStream(file).pipe(res);
   });
   server.listen(0, '127.0.0.1', function () { cb(server, 'http://127.0.0.1:' + server.address().port); });
@@ -158,14 +199,18 @@ function serve(roots, cb) {
 
 /* The test copy grants <all_urls> at install (instead of the optional
    permission prompt a parent would answer), so the service worker registers
-   the generic adapter exactly as it does after the parent says yes. */
-function prepareExtension() {
-  var dir = path.join(SCRATCH, 'ext'), mf;
+   the generic adapter exactly as it does after the parent says yes. It is
+   marked BO_TEST (version_name), which enables the live-listening test path,
+   and its pages may play media from this test server (media-src). */
+function prepareExtension(name) {
+  var dir = path.join(SCRATCH, name || 'ext'), mf;
   rmrf(dir);
   copyDir(EXT, dir, ['test', 'tools', 'README.md']);
   mf = JSON.parse(fs.readFileSync(path.join(dir, 'manifest.json'), 'utf8'));
   mf.host_permissions.push('<all_urls>');
   delete mf.optional_host_permissions;
+  mf.version_name = mf.version_name + ' BO_TEST';
+  mf.content_security_policy.extension_pages = mf.content_security_policy.extension_pages.replace("media-src 'self' blob:", "media-src 'self' blob: http://127.0.0.1:*");
   fs.writeFileSync(path.join(dir, 'manifest.json'), JSON.stringify(mf, null, 2));
   return dir;
 }
@@ -186,7 +231,7 @@ function makeSkipFile() {
 
 function browserTest(pw, done) {
   var ctx = null, sw = null, page = null, popup = null, server = null, base = '', tabId = null, extId = '';
-  var results = [], requests = [], pageErrors = [], steps, mediaDir, extDir, skipFile, pageRanges = null;
+  var results = [], requests = [], pageErrors = [], steps, mediaDir, extDir, skipFile, pageRanges = null, liveTimes = [];
 
   /* ----- small async helpers (callback style) ----- */
   function swEval(fn, arg, cb) { p(sw.evaluate(fn, arg), cb); }
@@ -232,6 +277,21 @@ function browserTest(pw, done) {
     return list.map(function (r) { return [r.start, r.end, r.category, r.action].join(' '); }).sort();
   }
   function byPrefix(s, prefix) { return s.ranges.filter(function (r) { return String(r.id).indexOf(prefix) === 0; }); }
+  function liveTest(opts, cb) {
+    swEval(function (a) { return new Promise(function (resolve) { self.BO_BG.liveTest(a.id, a.opts, resolve); }); }, { id: tabId, opts: opts }, cb);
+  }
+  function offLog(cb) {
+    swEval(function () { return new Promise(function (resolve) { self.BO_BG.toOffscreen({ t: 'offLog' }, resolve); }); }, null, cb);
+  }
+  function storedLive(cb) {
+    swEval(function () { return new Promise(function (resolve) { chrome.storage.local.get(null, resolve); }); }, null, function (err, all) {
+      var keys;
+      if (err) { cb(err); return; }
+      keys = Object.keys(all).filter(function (k) { return k.indexOf('video|127.0.0.1|') === 0; });
+      cb(null, keys.length ? (all[keys[0]].live || []) : []);
+    });
+  }
+  function liveNote(s) { log('    # ' + s); }
 
   steps = [
     ['set up: media, server, extension, browser', function (next) {
@@ -532,6 +592,206 @@ function browserTest(pw, done) {
       });
     }],
 
+    ['live: the popup switch reports Chrome\'s refusal without a user gesture and stops everything', function (next) {
+      p(popup.waitForSelector('#liveSwitch', { timeout: 5000 }), function (err) {
+        if (err) { next(err); return; }
+        p(popup.getAttribute('#liveSwitch', 'aria-checked'), function (e2, on) {
+          if (e2) { next(e2); return; }
+          assert.strictEqual(on, 'false', 'live listening starts off');
+          p(popup.click('#liveSwitch', { timeout: 5000 }), function (e3) {
+            if (e3) { next(e3); return; }
+            waitFor('live error shown', function (k) {
+              p(popup.evaluate(function () {
+                var st = document.getElementById('liveStatus');
+                return { hidden: st.hidden, error: st.classList.contains('is-error'), text: document.getElementById('liveStatusText').textContent, on: document.getElementById('liveSwitch').getAttribute('aria-checked') };
+              }), function (e, r) { k(e, r && !r.hidden && r.error && r.on === 'false' && r.text.length > 10); });
+            }, 8000, function (e4) {
+              if (e4) { next(e4); return; }
+              swEval(function (id) {
+                return new Promise(function (resolve) {
+                  self.BO_BG.liveState(id, function (ls) {
+                    chrome.runtime.getContexts({ contextTypes: ['OFFSCREEN_DOCUMENT'] }, function (list) { resolve({ ls: ls, offscreen: list.length }); });
+                  });
+                });
+              }, tabId, function (e5, r) {
+                if (e5) { next(e5); return; }
+                assert.strictEqual(r.ls.on, false);
+                assert.strictEqual(r.ls.error, 'liveNoCapture');
+                assert.strictEqual(r.offscreen, 0, 'no offscreen document left after the error');
+                next();
+              });
+            });
+          });
+        });
+      });
+    }],
+
+    ['live: offscreen loads ORT wasm + YAMNet; impulses cover and mute the video, release after the quiet period', function (next) {
+      var names = yamnetNames(), sawCover = null;
+      play(33, function (err) {
+        if (err) { next(err); return; }
+        liveTest({ url: base + '/live-burst.wav' }, function (e2, res) {
+          if (e2) { next(e2); return; }
+          assert.ok(res && res.ok, 'test start: ' + JSON.stringify(res));
+          assert.ok(/AudioWorklet|ScriptProcessor/.test(res.capture), 'capture ' + res.capture);
+          liveNote('runtime + model loaded in ' + res.loadMs + ' ms; capture ' + res.capture + ' at ' + res.rate + ' Hz');
+          waitFor('live cover from the impulses', function (k) {
+            video(function (e, v) {
+              if (v && v.overlay) { sawCover = v; }
+              k(e, !!sawCover);
+            });
+          }, 12000, function (e3) {
+            if (e3) { next(e3); return; }
+            assert.strictEqual(sawCover.covers, true, 'live black-out covers the whole video box');
+            assert.strictEqual(sawCover.muted, true, 'muted while covered (file test mutes the element)');
+            pgEval(function () { return !!document.getElementById('bonis-oculis-listening'); }, null, function (e4, tag) {
+              if (e4) { next(e4); return; }
+              assert.strictEqual(tag, true, 'listening tag on the video corner');
+              badge(function (e5, b) {
+                if (e5) { next(e5); return; }
+                assert.ok(/^●/.test(b), 'badge shows listening: ' + b);
+                state(function (e6, st) {
+                  if (e6) { next(e6); return; }
+                  assert.strictEqual(st.live.listening, true);
+                  assert.strictEqual(st.live.covered, true);
+                  assert.strictEqual(st.enforcer.live.category, 'gore');
+                  waitFor('live release', function (k) { video(function (e, v) { k(e, v && !v.overlay && !v.muted); }); }, 12000, function (e7) {
+                    if (e7) { next(e7); return; }
+                    offLog(function (e8, log) {
+                      if (e8) { next(e8); return; }
+                      var fr = log.frames, cls = fr.filter(function (f) { return !f.silent; }), sil = fr.filter(function (f) { return f.silent; }), i, gore = 0, gunTop = 0;
+                      assert.ok(fr.length >= 14, 'windows: ' + fr.length);
+                      for (i = 1; i < fr.length; i++) { assert.ok(Math.abs(fr[i].t - fr[i - 1].t - 0.48) < 0.02, 'hop ' + fr[i - 1].t + ' -> ' + fr[i].t); }
+                      assert.ok(sil.length >= 4, 'silence windows are recognised: ' + sil.length);
+                      cls.forEach(function (f) {
+                        assert.strictEqual(f.n, 521, 'YAMNet returns 521 class scores');
+                        ['sex', 'implied', 'gore'].forEach(function (c) { assert.ok(f[c] >= 0 && f[c] <= 1, c + '=' + f[c]); });
+                        assert.ok(f.ms > 0 && f.top.length === 3);
+                        gore = Math.max(gore, f.gore);
+                        if ([420, 421, 422, 423].indexOf(f.top[0][0]) >= 0) { gunTop++; }
+                      });
+                      assert.ok(gore >= 0.6, 'gunfire-like impulses reach the violence threshold: ' + gore);
+                      assert.ok(gunTop >= 2, 'top class gunfire/explosion on ' + gunTop + ' windows');
+                      liveTimes.push(log.stats);
+                      assert.deepStrictEqual(log.resources.filter(function (u) { return !/^chrome-extension:\/\//.test(u) && u.indexOf(base + '/') !== 0; }), [], 'offscreen loads only package files (and the test clip)');
+                      log.frames.filter(function (f) { return !f.silent; }).slice(0, 12).forEach(function (f) {
+                        log.top = (log.top || []).concat([f.t.toFixed(2) + 's ' + names[f.top[0][0]] + ' ' + f.top[0][1] + ' gore ' + f.gore.toFixed(2)]);
+                      });
+                      liveNote('impulses: ' + cls.length + ' windows classified, ' + sil.length + ' silent, avg ' + log.stats.avgMs + ' ms, max ' + log.stats.maxMs + ' ms per window (' + log.stats.capture + '); top: ' + log.top.slice(0, 6).join(' | '));
+                      storedLive(function (e9, list) {
+                        if (e9) { next(e9); return; }
+                        assert.strictEqual(list.length, 1, 'one live moment stored');
+                        assert.strictEqual(list[0].category, 'gore');
+                        assert.ok(list[0].end > list[0].start && list[0].start >= 30 && list[0].end <= 44, JSON.stringify(list[0]));
+                        state(function (e10, st2) {
+                          if (e10) { next(e10); return; }
+                          assert.strictEqual(st2.live.marks, 1);
+                          assert.ok(st2.ranges.some(function (r) { return r.source === 'live' && r.action === 'skip'; }), 'live moment is part of the plan');
+                          next();
+                        });
+                      });
+                    });
+                  });
+                });
+              });
+            });
+          });
+        });
+      });
+    }],
+
+    ['live: a 5 s sine is heard as a tone and never covers', function (next) {
+      var names = yamnetNames(), covered = false, until;
+      pause(function () {
+        liveTest({ url: base + '/live-sine.wav' }, function (err, res) {
+          if (err) { next(err); return; }
+          assert.ok(res && res.ok, JSON.stringify(res));
+          until = Date.now() + 6200;
+          (function poll() {
+            video(function (e, v) {
+              if (e) { next(e); return; }
+              if (v.overlay) { covered = true; }
+              if (Date.now() < until) { setTimeout(poll, 100); return; }
+              offLog(function (e2, log) {
+                if (e2) { next(e2); return; }
+                var cls = log.frames.filter(function (f) { return !f.silent; }), tops = {};
+                assert.strictEqual(covered, false, 'a tone never covers');
+                assert.ok(cls.length >= 8, 'sine windows classified: ' + cls.length);
+                cls.forEach(function (f) {
+                  assert.ok(f.sex < 0.25 && f.gore < 0.3, 'tone scores stay low');
+                  tops[names[f.top[0][0]]] = (tops[names[f.top[0][0]]] || 0) + 1;
+                });
+                assert.ok(!tops.Silence, 'the tone is heard, not silence');
+                liveTimes.push(log.stats);
+                liveNote('sine: ' + cls.length + ' windows, top classes ' + JSON.stringify(tops) + ', avg ' + log.stats.avgMs + ' ms');
+                next();
+              });
+            });
+          }());
+        });
+      });
+    }],
+
+    ['live: a fed score stream covers, never flaps, releases 3 s after the last loud window', function (next) {
+      var frames = [], i, coverAt = null, releaseAt = null, t0 = Date.now();
+      for (i = 0; i < 3; i++) { frames.push({ sex: 0.05 }); }
+      frames.push({ sex: 0.9 }, { sex: 0.4 }, { sex: 0.8 }, { sex: 0.85 }, { sex: 0.3 }, { sex: 0.7 });
+      for (i = 0; i < 9; i++) { frames.push({ sex: 0.1 }); }
+      play(49, function (err) {
+        if (err) { next(err); return; }
+        liveTest({ frames: frames, intervalMs: 120 }, function (e2, res) {
+          if (e2) { next(e2); return; }
+          assert.ok(res && res.ok, JSON.stringify(res));
+          (function poll() {
+            video(function (e, v) {
+              if (e) { next(e); return; }
+              if (v.overlay && coverAt === null) { coverAt = Date.now() - t0; assert.strictEqual(v.muted, true, 'muted while covered'); }
+              if (!v.overlay && coverAt !== null && releaseAt === null) { releaseAt = Date.now() - t0; }
+              if (releaseAt === null && Date.now() - t0 < 6000) { setTimeout(poll, 40); return; }
+              assert.ok(coverAt !== null, 'covered');
+              assert.ok(releaseAt !== null, 'released');
+              assert.strictEqual(v.muted, false, 'sound restored');
+              waitFor('all fed windows', function (k) { offLog(function (e, l) { k(e, l && l.frames.length === frames.length); }); }, 4000, function (e3) {
+                if (e3) { next(e3); return; }
+                offLog(function (e3b, log) {
+                  var f = log.frames, ev = log.events;
+                  if (e3b) { next(e3b); return; }
+                  /* cover on the 2nd window in a row >= 0.5 (index 6: 0.8, 0.85; 0.9 then 0.4 does not arm);
+                     the last window >= 0.25 is index 8; release at the first window >= 3 s later (index 15) */
+                  assert.deepStrictEqual(ev.map(function (x) { return [x.cover, x.category, x.t]; }), [[true, 'sex', f[6].t], [false, 'sex', f[15].t]]);
+                  assert.ok(f[15].t - f[8].t >= 3 && f[14].t - f[8].t < 3, 'released exactly after the quiet period');
+                storedLive(function (e4, list) {
+                  if (e4) { next(e4); return; }
+                  assert.strictEqual(list.length, 2);
+                  assert.strictEqual(list[1].category, 'sex');
+                  pause(function () { next(); });
+                });
+                });
+              });
+            });
+          }());
+        });
+      });
+    }],
+
+    ['live: switching off closes the offscreen document, removes the tag and the badge dot', function (next) {
+      swEval(function () { return new Promise(function (resolve) { self.BO_BG.liveStop(null, function () { chrome.runtime.getContexts({ contextTypes: ['OFFSCREEN_DOCUMENT'] }, function (l) { resolve(l.length); }); }); }); }, null, function (err, n) {
+        if (err) { next(err); return; }
+        assert.strictEqual(n, 0);
+        sleep(300, function () {
+          pgEval(function () { return !!document.getElementById('bonis-oculis-listening'); }, null, function (e2, tag) {
+            if (e2) { next(e2); return; }
+            assert.strictEqual(tag, false, 'listening tag removed');
+            badge(function (e3, b) {
+              assert.ok(!/●/.test(b), 'badge without the listening dot: ' + b);
+              liveNote('inference per window: ' + liveTimes.map(function (s) { return 'avg ' + s.avgMs + ' ms / max ' + s.maxMs + ' ms over ' + s.classified; }).join('; '));
+              next(e3);
+            });
+          });
+        });
+      });
+    }],
+
     ['never left covered or muted; no request left 127.0.0.1; no page errors', function (next) {
       play(56.5, function (err) {
         if (err) { next(err); return; }
@@ -578,12 +838,212 @@ function browserTest(pw, done) {
   }(0));
 }
 
+
+/* ---------------------------------------------------------------------- */
+/* real tab capture (child run, headed)                                   */
+/* ---------------------------------------------------------------------- */
+
+/* Chrome derives an unpacked extension's id from its folder path. */
+function extensionId(dir) {
+  return crypto.createHash('sha256').update(path.resolve(dir)).digest('hex').slice(0, 32).replace(/[0-9a-f]/g, function (c) { return String.fromCharCode(97 + parseInt(c, 16)); });
+}
+
+/*
+ * The live path exactly as a parent uses it, minus the click: the service
+ * worker's liveStart (chrome.tabCapture.getMediaStreamId -> offscreen
+ * getUserMedia of the tab), the page plays the impulse clip, the tab is
+ * covered while its sound keeps reaching the listener (the element is NOT
+ * muted; the offscreen route is), released after the quiet period, and
+ * closing the tab stops everything. Chrome only hands out a tab stream after
+ * a user gesture; --allowlisted-extension-id stands in for that click.
+ * Captured sound is silent in headless mode and with --mute-audio, so this
+ * runs headed (under xvfb-run when there is no display) and plays about
+ * 8 s of test sound.
+ */
+function tabCaptureTest(pw, done) {
+  var ctx = null, sw = null, page = null, server = null, base = '', tabId = null, extDir, mediaDir, requests = [], results = [], steps;
+  function swEval(fn, arg, cb) { p(sw.evaluate(fn, arg), cb); }
+  function pgEval(fn, arg, cb) { p(page.evaluate(fn, arg), cb); }
+  function look(cb) {
+    pgEval(function () {
+      var v = document.getElementById('v'), o = document.getElementById('bonis-oculis-overlay');
+      return { overlay: !!o && getComputedStyle(o).display !== 'none', muted: v.muted, t: v.currentTime, tag: !!document.getElementById('bonis-oculis-listening') };
+    }, null, cb);
+  }
+  function waitFor(what, check, ms, cb) {
+    var until = Date.now() + ms;
+    (function again() {
+      check(function (err, ok) {
+        if (!err && ok) { cb(null); return; }
+        if (Date.now() > until) { cb(new Error('timed out waiting for ' + what + (err ? ': ' + err.message : ''))); return; }
+        setTimeout(again, 50);
+      });
+    }());
+  }
+  function offscreens(cb) {
+    swEval(function () { return new Promise(function (r) { chrome.runtime.getContexts({ contextTypes: ['OFFSCREEN_DOCUMENT'] }, function (l) { r(l.length); }); }); }, null, cb);
+  }
+
+  steps = [
+    ['tab capture: set up a headed browser that may capture without a click', function (next) {
+      mediaDir = makeMedia();
+      extDir = prepareExtension('ext-capture');
+      serve([SITE, mediaDir], function (srv, url) {
+        var profile = path.join(SCRATCH, 'profile-capture');
+        server = srv;
+        base = url;
+        rmrf(profile);
+        p(pw.chromium.launchPersistentContext(profile, {
+          executablePath: chromiumPath(),
+          headless: false,
+          viewport: { width: 1000, height: 700 },
+          args: ['--disable-extensions-except=' + extDir, '--load-extension=' + extDir, '--autoplay-policy=no-user-gesture-required', '--allowlisted-extension-id=' + extensionId(extDir)]
+        }), function (err, c) {
+          if (err) { next(err); return; }
+          ctx = c;
+          ctx.on('request', function (r) { requests.push(r.url()); });
+          sw = ctx.serviceWorkers()[0];
+          function go() {
+            assert.strictEqual(/chrome-extension:\/\/([a-z]+)\//.exec(sw.url())[1], extensionId(extDir), 'extension id from the folder path');
+            swEval(function () { return new Promise(function (resolve) { self.BO_BG.syncGenericRegistration(function () { resolve(true); }); }); }, null, function (e3) { next(e3); });
+          }
+          if (sw) { go(); return; }
+          p(ctx.waitForEvent('serviceworker', { timeout: 15000 }), function (e2, w) { sw = w; if (e2) { next(e2); return; } go(); });
+        });
+      });
+    }],
+
+    ['tab capture: the tab\'s own sound is heard; impulses cover without muting the element; released after the quiet period', function (next) {
+      page = ctx.pages()[0];
+      p(page.goto(base + '/index.html'), function (err) {
+        if (err) { next(err); return; }
+        swEval(function (b) {
+          return new Promise(function (resolve) { chrome.tabs.query({}, function (tabs) { resolve(tabs.filter(function (x) { return (x.url || '').indexOf(b) === 0; }).map(function (x) { return x.id; })[0]); }); });
+        }, base, function (e2, id) {
+          if (e2) { next(e2); return; }
+          tabId = id;
+          waitFor('content script', function (k) {
+            swEval(function (i) { return new Promise(function (r) { chrome.tabs.sendMessage(i, { t: 'getState' }, function (s) { void chrome.runtime.lastError; r(!!(s && s.hasVideo)); }); }); }, tabId, k);
+          }, 15000, function (e3) {
+            if (e3) { next(e3); return; }
+            swEval(function (i) { return new Promise(function (r) { self.BO_BG.liveStart(i, r); }); }, tabId, function (e4, res) {
+              var covered = null;
+              if (e4) { next(e4); return; }
+              assert.ok(res && res.ok, 'liveStart through chrome.tabCapture: ' + JSON.stringify(res));
+              log('    # tab capture started: ' + res.capture + ' at ' + res.rate + ' Hz, runtime + model loaded in ' + res.loadMs + ' ms');
+              pgEval(function (b) {
+                var v = document.getElementById('v');
+                v.muted = false;
+                window.__test.seek(33);
+                return v.play().then(function () { var a = new Audio(b + '/live-burst.wav'); window.__clip = a; return a.play(); }).then(function () { return true; });
+              }, base, function (e5) {
+                if (e5) { next(e5); return; }
+                waitFor('cover from the tab\'s sound', function (k) { look(function (e, v) { if (v && v.overlay) { covered = v; } k(e, !!covered); }); }, 12000, function (e6) {
+                  if (e6) { next(e6); return; }
+                  assert.strictEqual(covered.muted, false, 'the element stays unmuted: muting it would make the listener deaf');
+                  assert.strictEqual(covered.tag, true, 'listening tag');
+                  waitFor('release', function (k) { look(function (e, v) { k(e, v && !v.overlay); }); }, 12000, function (e7) {
+                    if (e7) { next(e7); return; }
+                    swEval(function () { return new Promise(function (r) { self.BO_BG.toOffscreen({ t: 'offLog' }, r); }); }, null, function (e8, lg) {
+                      var fr, ev, lastLoud = null, heard;
+                      if (e8) { next(e8); return; }
+                      fr = lg.frames;
+                      ev = lg.events;
+                      heard = fr.filter(function (f) { return !f.silent; }).length;
+                      assert.ok(heard >= 8, 'the tab\'s sound reaches the model: ' + heard + ' windows');
+                      assert.strictEqual(ev.length, 2, JSON.stringify(ev));
+                      assert.deepStrictEqual([ev[0].cover, ev[0].category, ev[1].cover], [true, 'gore', false]);
+                      fr.forEach(function (f) { if (f.t <= ev[1].t && (f.gore >= 0.3 || f.sex >= 0.25)) { lastLoud = f.t; } });
+                      assert.ok(ev[1].t - lastLoud >= 3 && ev[1].t - lastLoud < 3.48 + 0.01, 'released at the first window 3 s after the last loud one (' + lastLoud + ' -> ' + ev[1].t + ')');
+                      log('    # tab capture: ' + heard + ' windows heard, cover at ' + ev[0].t + ' s, release at ' + ev[1].t + ' s, avg ' + lg.stats.avgMs + ' ms, max ' + lg.stats.maxMs + ' ms per window, ' + lg.stats.dropped + ' dropped');
+                      next();
+                    });
+                  });
+                });
+              });
+            });
+          });
+        });
+      });
+    }],
+
+    ['tab capture: closing the tab stops listening and closes the offscreen document; nothing left 127.0.0.1', function (next) {
+      p(ctx.newPage(), function (err, other) {
+        if (err) { next(err); return; }
+        p(page.close(), function (e2) {
+          if (e2) { next(e2); return; }
+          waitFor('offscreen closed', function (k) { offscreens(function (e, n) { k(e, n === 0); }); }, 5000, function (e3) {
+            if (e3) { next(e3); return; }
+            swEval(function (i) { return new Promise(function (r) { self.BO_BG.liveState(i, r); }); }, tabId, function (e4, ls) {
+              if (e4) { next(e4); return; }
+              assert.strictEqual(ls.on, false);
+              assert.deepStrictEqual(requests.filter(function (u) { return !(u.indexOf(base) === 0 || /^(chrome-extension|data|blob|about):/.test(u)); }), []);
+              void other;
+              next();
+            });
+          });
+        });
+      });
+    }]
+  ];
+
+  (function runStep(i) {
+    var name, timer, finished = false;
+    if (i >= steps.length) { finish(null); return; }
+    name = steps[i][0];
+    timer = setTimeout(function () { end(new Error('step timed out')); }, 30000);
+    currentEnd = end;
+    function end(err) {
+      if (finished) { return; }
+      finished = true;
+      currentEnd = null;
+      clearTimeout(timer);
+      results.push([name, err]);
+      log((err ? 'not ok ' : 'ok ') + 'c' + (i + 1) + ' - ' + name + (err ? '\n    ' + (err.stack || err).toString().split('\n').slice(0, 14).join('\n    ') : ''));
+      if (err) { finish(err); return; }
+      runStep(i + 1);
+    }
+    try { steps[i][1](end); } catch (e) { end(e); }
+  }(0));
+
+  function finish(err) {
+    function close() { if (server) { server.close(); } done(err, results); }
+    if (ctx) { p(ctx.close(), close); } else { close(); }
+  }
+}
+
+/* Runs tabCaptureTest in a child process: headed, under xvfb-run when there
+   is no display. -> true (passed), false (failed) or null (skipped). */
+function runTabCapture() {
+  var args = [__filename, '--tab-capture'], r, cmd = process.execPath, have;
+  if (process.env.BO_NO_TAB_CAPTURE) { log('tab capture: skipped (BO_NO_TAB_CAPTURE)'); return null; }
+  if (!process.env.DISPLAY) {
+    have = cp.spawnSync('xvfb-run', ['--help'], { encoding: 'utf8' });
+    if (have.error) { log('tab capture: skipped (no display and no xvfb-run; captured sound is silent in headless Chromium)'); return null; }
+    args = ['-a', process.execPath].concat(args);
+    cmd = 'xvfb-run';
+  }
+  r = cp.spawnSync(cmd, args, { stdio: 'inherit', env: process.env });
+  return r.status === 0;
+}
+
 /* ---------------------------------------------------------------------- */
 /* main                                                                   */
 /* ---------------------------------------------------------------------- */
 
 (function main() {
-  var unitOk = runUnit(), pw;
+  var unitOk, pw;
+  if (process.argv.indexOf('--tab-capture') >= 0) {
+    pw = findPlaywright();
+    if (!pw) { log('Playwright not found'); process.exit(2); }
+    fs.mkdirSync(SCRATCH, { recursive: true });
+    tabCaptureTest(pw, function (err, results) {
+      log('tab capture test: ' + results.filter(function (r) { return !r[1]; }).length + '/' + results.length + ' steps passed in ' + ((Date.now() - t0) / 1000).toFixed(1) + ' s');
+      process.exit(err ? 1 : 0);
+    });
+    return;
+  }
+  unitOk = runUnit();
   if (process.argv.indexOf('--unit') >= 0) { process.exit(unitOk ? 0 : 1); }
   pw = findPlaywright();
   if (!pw) {
@@ -593,8 +1053,9 @@ function browserTest(pw, done) {
   }
   fs.mkdirSync(SCRATCH, { recursive: true });
   browserTest(pw, function (err, results) {
-    var passed = results.filter(function (r) { return !r[1]; }).length;
+    var passed = results.filter(function (r) { return !r[1]; }).length, capture;
     log('browser test: ' + passed + '/' + results.length + ' steps passed in ' + ((Date.now() - t0) / 1000).toFixed(1) + ' s');
-    process.exit(unitOk && !err ? 0 : 1);
+    capture = err ? null : runTabCapture();
+    process.exit(unitOk && !err && capture !== false ? 0 : 1);
   });
 }());

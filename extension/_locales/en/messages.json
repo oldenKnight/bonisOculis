@@ -443,7 +443,7 @@
     "message": "bonis oculis never sends anything anywhere. It has no account, no analytics and no remote settings."
   },
   "privacy2": {
-    "message": "It never looks at the picture. It only reads the subtitle text that the page itself downloads, or a file you choose."
+    "message": "It never looks at the picture. It reads the subtitle text that the page itself downloads, or a file you choose. Only if you turn on live listening for a tab does it listen to that tab's sound, in memory, without saving it."
   },
   "privacy3": {
     "message": "Your choices, files and hidden moments are kept in this browser only. Removing the extension removes them."
@@ -455,7 +455,7 @@
     "message": "What it can and cannot do"
   },
   "limits1": {
-    "message": "It finds scenes from subtitles only, so it can miss scenes that have no words or sound cues. You can hide any moment with the shortcut."
+    "message": "Without live listening it finds scenes from subtitles only, so it can miss scenes that have no words or sound cues. You can hide any moment with the shortcut."
   },
   "limits2": {
     "message": "On Netflix, Prime Video and Disney+ it may not be able to jump ahead. Then it covers the picture and mutes the sound until the scene ends."
@@ -486,5 +486,74 @@
   },
   "forgetAllDone": {
     "message": "Everything was removed from this browser."
+  },
+  "liveTitle": {
+    "message": "Live listening (experimental)"
+  },
+  "liveHelp": {
+    "message": "Listens to this tab's sound while the video plays. It can only react: when it hears sounds of a scene you chose to skip (intimate sounds or gunfire), it covers the picture and mutes the sound about 2 seconds after the scene starts, and shows it again 3 seconds after it gets quiet. It needs the tab's sound and uses some of the computer's power while it is on. The sound is never saved or sent."
+  },
+  "liveStarting": {
+    "message": "Getting ready to listen…"
+  },
+  "liveOn": {
+    "message": "Listening to this tab. A red dot on the bonis oculis button and a small \"Listening\" tag on the video show that it is on."
+  },
+  "liveOnNoSound": {
+    "message": "Listening, but no sound has reached it yet. Press play and check that the tab is not muted."
+  },
+  "liveOtherTab": {
+    "message": "Live listening is on in another tab. Turning it on here stops it there."
+  },
+  "liveError": {
+    "message": "Live listening stopped because something went wrong. Try again."
+  },
+  "liveNoCapture": {
+    "message": "Chrome did not let bonis oculis hear this tab. Click the bonis oculis button next to the address bar again and turn it on from there."
+  },
+  "liveModelFailed": {
+    "message": "Live listening could not start on this computer. Everything else keeps working."
+  },
+  "liveTabGone": {
+    "message": "Live listening stopped because the tab was closed or stopped sending sound."
+  },
+  "liveNoSound": {
+    "message": "This tab has no sound that bonis oculis can hear."
+  },
+  "overlayLive": {
+    "message": "Covered for a moment"
+  },
+  "overlayLiveHint": {
+    "message": "We heard sounds of a scene you chose to skip. The picture comes back a few seconds after it gets quiet."
+  },
+  "overlayListening": {
+    "message": "Listening"
+  },
+  "liveBadgeTitle": {
+    "message": "bonis oculis: listening to this tab"
+  },
+  "sourceLive": {
+    "message": "Moments covered by live listening: $COUNT$",
+    "placeholders": {
+      "count": {
+        "content": "$1",
+        "example": "2"
+      }
+    }
+  },
+  "liveOptTitle": {
+    "message": "Live listening (experimental)"
+  },
+  "liveOpt1": {
+    "message": "Turn it on for one tab at a time: with the video open, click the bonis oculis button next to the address bar and switch on \"Live listening\". It turns off when you switch it off or close the tab."
+  },
+  "liveOpt2": {
+    "message": "It can only react. It covers the picture and mutes the sound about 2 seconds after it hears a scene start (intimate sounds, gunfire), and shows it again 3 seconds after it gets quiet, so the first moment of a scene can get through. Subtitles and skip files work ahead of time and are more dependable."
+  },
+  "liveOpt3": {
+    "message": "It needs the tab's sound. Some protected sites may send it silence; there it cannot help. Explosions or screams on their own do not make it cover the picture."
+  },
+  "liveOpt4": {
+    "message": "It uses some of the computer's power while it is on: a few hundredths of a second of work every half second. The sound is handled in memory and is never saved or sent; only the times it covered are kept for that video, and they are skipped the next time."
   }
 }

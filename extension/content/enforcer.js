@@ -14,6 +14,12 @@
  *                black-out + mute until the range ends
  *       hide, blur, anything visual -> black-out + mute (no visual filters)
  *       mute  -> mute only
+ *   - live cover on (live listening heard a scene start; setLive) and no
+ *     skip range playing -> black-out ('live'); the video element is muted
+ *     only when live.muteElement is true (when the sound is heard through tab
+ *     capture, muting the element would make the listener deaf, so the
+ *     offscreen document silences its own route to the speakers instead).
+ *     Ads and mute ranges do not lift a live cover.
  *   - outside every range -> restore: overlay removed, `muted` set back to
  *     what it was before we touched it. A timer fires exactly at the range
  *     end so the restore does not wait for the next tick.
@@ -53,6 +59,7 @@
     var pending = null;
     var blocked = {};
     var active = null;
+    var live = null;
 
     function video() { return adapter.video || null; }
 
@@ -120,7 +127,7 @@
       }
       if (adapter.isAdPlaying && adapter.isAdPlaying()) {
         pending = null;
-        restore();
+        if (live) { liveCover(); } else { restore(); }
         return;
       }
       r = activeAt(t);
@@ -133,13 +140,13 @@
           onEvent('skipped', { id: pending.id, to: t });
         }
         pending = null;
-        restore();
+        if (live) { liveCover(); } else { restore(); }
         scheduleEnd(null, t);
         return;
       }
       active = r;
       if (r.action === 'mute') {
-        setBlack(null);
+        setBlack(live ? 'live' : null);
         setMuted(true);
         pending = null;
       } else if (r.action === 'skip') {
@@ -162,6 +169,18 @@
         pending = null;
       }
       scheduleEnd(r, t);
+    }
+
+    function liveCover() {
+      setBlack('live');
+      setMuted(!!live.muteElement);
+      active = null;
+    }
+
+    /* l: {category, score, muteElement} to cover now, or null to release. */
+    function setLive(l) {
+      live = l ? { category: l.category || 'other', score: Number(l.score) || 0, muteElement: !!l.muteElement } : null;
+      if (attached) { tick(); }
     }
 
     function setRanges(list) {
@@ -191,6 +210,7 @@
       if (interval !== null) { clearI(interval); interval = null; }
       if (endTimer !== null) { clearT(endTimer); endTimer = null; }
       pending = null;
+      live = null;
       restore();
       attached = false;
     }
@@ -223,13 +243,15 @@
         panic: panicOn,
         active: active ? { id: active.id, action: active.action, category: active.category } : null,
         covered: !!blackKind,
+        coverKind: blackKind,
+        live: live ? { category: live.category, score: live.score, muteElement: live.muteElement } : null,
         mutedByUs: mutedByUs,
         blocked: n,
         ranges: ranges.length
       };
     }
 
-    return { setRanges: setRanges, attach: attach, detach: detach, tick: tick, togglePanic: togglePanic, state: state, isPanic: function () { return panicOn; } };
+    return { setRanges: setRanges, setLive: setLive, attach: attach, detach: detach, tick: tick, togglePanic: togglePanic, state: state, isPanic: function () { return panicOn; }, isLive: function () { return !!live; } };
   }
 
   BO.enforcer = { create: create, STRENGTH: STRENGTH };

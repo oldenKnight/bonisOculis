@@ -6,8 +6,10 @@ var assert = require('node:assert');
 var fs = require('fs');
 var path = require('path');
 var vm = require('vm');
+var crypto = require('crypto');
 var lint = require('../../../tools/lint-es5.js');
 var sync = require('../../tools/sync-shared.js');
+var vendor = require('../../../tools/fetch-vendor.js');
 
 var EXT = path.join(__dirname, '..', '..');
 
@@ -21,12 +23,17 @@ function walk(dir, out) {
   return out;
 }
 function rel(p) { return path.relative(EXT, p).split(path.sep).join('/'); }
+/* Third-party files copied verbatim (onnxruntime-web) are exempt from our style checks. */
+function ours(p) { return !/(^|\/)vendor\//.test(rel(p)); }
 
 var manifest = json('manifest.json');
 
 test('manifest: MV3, minimal permissions, optional <all_urls>, panic command', function () {
+  var csp = manifest.content_security_policy.extension_pages;
   assert.strictEqual(manifest.manifest_version, 3);
-  assert.deepStrictEqual(manifest.permissions.slice().sort(), ['activeTab', 'scripting', 'storage']);
+  /* tabCapture + offscreen: live listening (M8), started only by the user from the popup */
+  assert.deepStrictEqual(manifest.permissions.slice().sort(), ['activeTab', 'offscreen', 'scripting', 'storage', 'tabCapture']);
+  assert.ok(Number(manifest.minimum_chrome_version) >= 116, 'tabCapture.getMediaStreamId in the service worker needs Chrome 116');
   assert.deepStrictEqual(manifest.optional_host_permissions, ['<all_urls>']);
   manifest.host_permissions.forEach(function (h) {
     assert.ok(/^https:\/\/(www\.|m\.)?(youtube|youtube-nocookie|netflix|primevideo|amazon|disneyplus)\.[a-z.]+\/\*$/.test(h), h);
@@ -35,7 +42,11 @@ test('manifest: MV3, minimal permissions, optional <all_urls>, panic command', f
   assert.strictEqual(manifest.background.service_worker, 'background/background.js');
   assert.ok(!manifest.background.type, 'classic service worker, no modules');
   assert.ok(!manifest.web_accessible_resources, 'nothing is exposed to web pages');
-  assert.ok(/connect-src 'self'/.test(manifest.content_security_policy.extension_pages));
+  assert.ok(/connect-src 'self';/.test(csp));
+  /* WebAssembly for onnxruntime-web, nothing else: no eval, no remote script, no remote media */
+  assert.ok(/(^|; )script-src 'self' 'wasm-unsafe-eval';/.test(csp), csp);
+  assert.ok(!/'unsafe-eval'|'unsafe-inline'|https?:|\*/.test(csp), csp);
+  assert.ok(/media-src 'self' blob:;/.test(csp), csp);
 });
 
 test('manifest: per-site MAIN-world hook + isolated content script, every file exists', function () {
@@ -53,13 +64,14 @@ test('manifest: per-site MAIN-world hook + isolated content script, every file e
     assert.strictEqual(c.run_at, 'document_start');
     files = files.concat(c.js);
   });
-  files = files.concat(['background/background.js', 'popup/popup.html', 'options/options.html']);
+  files = files.concat(['background/background.js', 'popup/popup.html', 'options/options.html', 'offscreen/offscreen.html', 'offscreen/offscreen.js',
+    'audio/classmap.js', 'audio/live.js', 'audio/capture-worklet.js', 'models/yamnet.onnx', 'vendor/ort.wasm.min.js']);
   Object.keys(manifest.icons).forEach(function (k) { files.push(manifest.icons[k]); });
   files.forEach(function (f) { assert.ok(fs.existsSync(path.join(EXT, f)), f); });
 });
 
-test('all extension JavaScript is ES5', function () {
-  walk(EXT, []).filter(function (p) { return /\.js$/.test(p); }).forEach(function (p) {
+test('all extension JavaScript is ES5 (vendored files excepted)', function () {
+  walk(EXT, []).filter(function (p) { return /\.js$/.test(p) && ours(p); }).forEach(function (p) {
     assert.deepStrictEqual(lint.scanSource(fs.readFileSync(p, 'utf8')).map(function (h) { return h.line + ':' + h.rule; }), [], rel(p));
   });
 });
@@ -97,14 +109,45 @@ test('Spanish strings follow the tone rules: no "usted", inverted question marks
 });
 
 test('no network code: only the hook wraps fetch/XHR, only package files are read', function () {
-  walk(EXT, []).filter(function (p) { return /\.js$/.test(p) && !/\/test\//.test(p) && !/\/tools\//.test(p); }).forEach(function (p) {
+  walk(EXT, []).filter(function (p) { return /\.js$/.test(p) && !/\/test\//.test(p) && !/\/tools\//.test(p) && ours(p); }).forEach(function (p) {
     var r = rel(p), s = fs.readFileSync(p, 'utf8');
     assert.ok(!/\b(WebSocket|EventSource|sendBeacon|RTCPeerConnection)\b/.test(s), r);
     assert.ok(!/https?:\/\/(?!www\.w3\.org)/.test(s.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/[^\n]*/g, '').replace(/'http:\/\/www\.w3\.org\/2000\/svg'/g, '')), r + ' contains a URL');
     if (/\bfetch\(/.test(s)) { assert.ok(['inject/hook.js', 'common/i18n.js'].indexOf(r) >= 0, r + ' uses fetch'); }
     if (/new XMLHttpRequest/.test(s)) { assert.ok(r === 'common/i18n.js', r + ' uses XHR'); }
-    assert.ok(!/getImageData|toDataURL|captureStream|drawImage|MediaRecorder|createMediaElementSource/.test(s), r + ' must never read frames or audio');
+    assert.ok(!/getImageData|toDataURL|captureStream|drawImage|MediaRecorder|getDisplayMedia|<canvas|createElement\('canvas'\)/.test(s), r + ' must never read frames or record');
+    /* Live listening: only the offscreen document hears sound (the tab it was given, or a test file). */
+    if (r !== 'offscreen/offscreen.js') {
+      assert.ok(!/getUserMedia|createMediaStreamSource|createMediaElementSource|AudioContext/.test(s), r + ' must never read audio');
+    }
   });
+});
+
+test('live listening: the offscreen document keeps sound in memory only and needs a user gesture to start', function () {
+  var off = read('offscreen/offscreen.js'), bg = read('background/background.js'), popup = read('popup/popup.js');
+  assert.ok(!/chrome\.storage|indexedDB|localStorage|caches\.|fetch\(|XMLHttpRequest|sendBeacon/.test(off), 'offscreen stores and sends nothing');
+  assert.ok(/chromeMediaSource: 'tab'/.test(off));
+  /* the tab capture starts only from the popup's switch (the user's click) */
+  assert.ok(/getMediaStreamId\(\{ targetTabId: tabId \}/.test(bg));
+  assert.ok(/case 'liveStart':/.test(bg) && /t: on \? 'liveStop' : 'liveStart'/.test(popup));
+  assert.ok(/reasons: \['USER_MEDIA'\]/.test(bg));
+  /* the test-only paths are gated on the test build and a local URL */
+  assert.ok(/function isTestBuild/.test(off) && /function isTestBuild/.test(bg));
+  assert.ok(/\^http:\\\/\\\/\(127\\\.0\\\.0\\\.1\|localhost\)/.test(off), 'test files only from 127.0.0.1');
+});
+
+test('vendored files match the sha256 pinned in tools/fetch-vendor.js; nothing else in vendor/', function () {
+  var listed = vendor.FILES.map(function (f) { return f.dest.replace(/^extension\//, ''); }), present;
+  vendor.FILES.forEach(function (f) {
+    var file = path.join(EXT, f.dest.replace(/^extension\//, ''));
+    assert.ok(fs.existsSync(file), f.dest);
+    assert.strictEqual(fs.statSync(file).size, f.size, f.dest);
+    assert.strictEqual(crypto.createHash('sha256').update(fs.readFileSync(file)).digest('hex'), f.sha256, f.dest);
+  });
+  present = walk(path.join(EXT, 'vendor'), []).concat(walk(path.join(EXT, 'models'), [])).map(rel).sort();
+  assert.deepStrictEqual(present, listed.slice().sort());
+  assert.ok(lint.isVendor('/x/extension/vendor/ort.wasm.min.js'));
+  assert.ok(!lint.isVendor('/x/extension/audio/live.js'));
 });
 
 /* Load the adapters in a sandbox to test their pure URL functions. */

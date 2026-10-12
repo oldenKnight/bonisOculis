@@ -50,8 +50,12 @@ def choose_providers(device: str, warn: Callable[[str], None]) -> Tuple[List[str
     return ["CPUExecutionProvider"], "cpu"
 
 
-def session_factory(threads: int, device: str, warn: Callable[[str], None]) -> Tuple[Callable[[Any], Any], str]:
-    """Returns (make_session(path_or_bytes), device actually used)."""
+def session_factory(threads: int, device: str, warn: Callable[[str], None],
+                    arena: bool = True) -> Tuple[Callable[[Any], Any], str]:
+    """Returns (make_session(path_or_bytes), device actually used).
+    ``arena=False`` returns activation memory to the OS after every run (the
+    Florence-2 vision encoder needs ~0.4 GB of scratch at 768 px; with the arena
+    on it stays resident, see analyzer/BENCH.md)."""
     import onnxruntime as ort  # noqa: PLC0415
 
     providers, used = choose_providers(device, warn)
@@ -62,6 +66,7 @@ def session_factory(threads: int, device: str, warn: Callable[[str], None]) -> T
         so.intra_op_num_threads = max(1, int(threads))
         so.inter_op_num_threads = 1
         so.enable_mem_pattern = False
+        so.enable_cpu_mem_arena = bool(arena)
         so.execution_mode = ort.ExecutionMode.ORT_SEQUENTIAL
         so.log_severity_level = 3
         return so
@@ -110,11 +115,26 @@ def register(name: str, detail: str = "") -> None:
         _HISTORY.append(("load", name, len(_LOADED)))
 
 
+def trim_heap() -> bool:
+    """Hand freed heap pages back to the OS (glibc only; elsewhere a no-op).
+    Without it a released model's memory stays resident and the next stage's
+    peak stacks on top of it."""
+    if not sys.platform.startswith("linux"):
+        return False
+    try:
+        import ctypes  # noqa: PLC0415
+
+        return bool(ctypes.CDLL("libc.so.6").malloc_trim(0))
+    except Exception:  # noqa: BLE001
+        return False
+
+
 def release(name: str) -> None:
     with _REG_LOCK:
         _LOADED.pop(name, None)
         _HISTORY.append(("release", name, len(_LOADED)))
     _gc.collect()
+    trim_heap()
 
 
 @_contextmanager

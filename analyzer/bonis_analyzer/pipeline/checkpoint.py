@@ -23,7 +23,7 @@ from ..protocol import BadInput
 STATE = "state.json"
 THUMBS = "thumbs"
 PAUSE = "PAUSE"
-_OWNED_EXT = (".npz", ".json", ".tmp", ".log", ".jpg")
+_OWNED_EXT = (".npz", ".json", ".tmp", ".log", ".jpg", ".wav")  # .wav: whisper-cli temp (deleted in finally)
 
 
 def atomic_write_bytes(path: str, data: bytes) -> None:

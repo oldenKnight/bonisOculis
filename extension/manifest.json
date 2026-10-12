@@ -3,10 +3,10 @@
   "name": "__MSG_extName__",
   "short_name": "bonis oculis",
   "description": "__MSG_extDescription__",
-  "version": "0.6.0",
-  "version_name": "0.6.0 beta",
+  "version": "0.8.0",
+  "version_name": "0.8.0 beta",
   "default_locale": "en",
-  "minimum_chrome_version": "111",
+  "minimum_chrome_version": "116",
   "icons": {
     "16": "icons/icon16.png",
     "32": "icons/icon32.png",
@@ -31,7 +31,9 @@
   "permissions": [
     "storage",
     "activeTab",
-    "scripting"
+    "scripting",
+    "tabCapture",
+    "offscreen"
   ],
   "host_permissions": [
     "https://www.youtube.com/*",
@@ -197,6 +199,6 @@
     }
   ],
   "content_security_policy": {
-    "extension_pages": "script-src 'self'; object-src 'none'; connect-src 'self'; img-src 'self' data:; font-src 'self'; style-src 'self'; base-uri 'none'; form-action 'none'"
+    "extension_pages": "script-src 'self' 'wasm-unsafe-eval'; object-src 'none'; connect-src 'self'; img-src 'self' data:; font-src 'self'; style-src 'self'; media-src 'self' blob:; base-uri 'none'; form-action 'none'"
   }
 }

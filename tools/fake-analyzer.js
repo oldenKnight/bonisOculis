@@ -34,11 +34,11 @@ function out(obj) {
 
 function parseArgs(argv) {
   var a = { stages: 'subtitles,frames', lang: 'es-MX', levels: null, crashAt: null, crashAlways: false, slow: false, failCode: null, steps: STEPS_PER_STAGE };
-  var i = 0;
-  if (argv[0] === 'scan') { i = 1; }
-  for (; i < argv.length; i++) {
+  var i;
+  for (i = 0; i < argv.length; i++) {
     var k = argv[i];
     var v = argv[i + 1];
+    if (k === 'scan') { continue; }
     if (k === '--input') { a.input = v; i++; } else if (k === '--work') { a.work = v; i++; } else if (k === '--out') { a.out = v; i++; } else if (k === '--lang') { a.lang = v; i++; } else if (k === '--levels') { a.levels = v; i++; } else if (k === '--stages') { a.stages = v; i++; } else if (k === '--threads' || k === '--priority' || k === '--device' || k === '--models') { i++; } else if (k === '--crash-at') { a.crashAt = parseFloat(v); i++; } else if (k === '--crash-always') { a.crashAlways = true; } else if (k === '--slow') { a.slow = true; } else if (k === '--fail-code') { a.failCode = parseInt(v, 10); i++; } else if (k === '--steps') { a.steps = Math.max(1, parseInt(v, 10) || STEPS_PER_STAGE); i++; } else { return { error: 'unknown argument ' + k }; }
   }
   return a;

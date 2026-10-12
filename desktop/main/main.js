@@ -112,7 +112,7 @@ function boot() {
   var thumbs = createThumbs({ paths: paths, library: library, skips: skips });
   var help = createHelp({ paths: paths });
 
-  pin.setLocked(pin.hasPin() && settings.value('lockOnStart'));
+  pin.setLocked(pin.hasPin() && settings.value('lockOnStart') && settings.value('setupDone'));
 
   var versions = { app: app.getVersion(), electron: process.versions.electron, chrome: process.versions.chrome, node: process.versions.node };
   s = { paths: paths, log: log, store: store, pin: pin, settings: settings, i18n: i18n, library: library, skips: skips,

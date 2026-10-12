@@ -32,9 +32,10 @@ def build_parser() -> argparse.ArgumentParser:
     s.add_argument("--input", required=True)
     s.add_argument("--work", required=True)
     s.add_argument("--out", required=True)
-    s.add_argument("--lang", default="es-MX", choices=["es-MX", "en-US"])
+    s.add_argument("--lang", default=None, choices=["es-MX", "en-US"],
+                   help="UI/lexicon language (default es-MX); also the speech language when given")
     s.add_argument("--levels", default=None, help="JSON object category -> off|light|moderate|strict")
-    s.add_argument("--stages", default="subtitles,frames")
+    s.add_argument("--stages", default="subtitles,frames,audio,speech,captions")
     s.add_argument("--threads", type=int, default=max(1, (os.cpu_count() or 2) // 2))
     s.add_argument("--device", default="auto", choices=["auto", "cpu", "dml", "coreml", "cuda"])
     s.add_argument("--priority", default="low", choices=["low", "normal"])
@@ -42,6 +43,12 @@ def build_parser() -> argparse.ArgumentParser:
     s.add_argument("--scores-from", dest="scores_from", default=None,
                    help="test hook: per-second signal scores (JSON) replace the models")
     s.add_argument("--restart", action="store_true", help="discard the checkpoint and start over")
+    s.add_argument("--force-speech", dest="force_speech", action="store_true",
+                   help="run speech-to-text even when subtitles were found")
+    s.add_argument("--whisper-cli", dest="whisper_cli", default=None,
+                   help="whisper.cpp command-line executable (fallback when the Python binding is missing)")
+    s.add_argument("--profile", action="store_true",
+                   help='print a final {"t":"profile"} line: per-stage wall time and peak memory')
     e = sub.add_parser("evaluate", help="compare a predicted skip file with a hand-marked one")
     e.add_argument("--truth", required=True)
     e.add_argument("--pred", required=True)
@@ -68,8 +75,14 @@ def cmd_scan(args: argparse.Namespace, proto: Protocol) -> int:
     from .scan import Scan, install_signal_handlers  # noqa: PLC0415
 
     install_signal_handlers()
-    out = Scan(args, proto).run()
+    args.lang_explicit = args.lang is not None
+    args.lang = args.lang or "es-MX"
+    proto.isolate_stdout()  # native libraries (whisper.cpp, llama.cpp, ORT) must never write into the protocol
+    scan = Scan(args, proto)
+    out = scan.run()
     proto.done(out)
+    if getattr(args, "profile", False):
+        proto.emit(scan.profiler.report())
     return EXIT_OK
 
 

@@ -31,7 +31,7 @@
     }
     var footer = BO.el('div', { 'class': 'bo-modal__footer' });
     var dialog = BO.el('div', {
-      'class': 'bo-modal' + (o.danger ? ' bo-modal--danger' : '') + (o.wide ? ' bo-modal--wide' : ''),
+      'class': 'bo-modal' + (o.danger ? ' bo-modal--danger' : '') + (o.wide ? ' bo-modal--wide' : '') + (o.variant ? ' bo-modal--' + o.variant : ''),
       attrs: { role: o.danger ? 'alertdialog' : 'dialog', 'aria-modal': 'true', 'aria-labelledby': titleId }
     }, [
       BO.el('div', { 'class': 'bo-modal__header' }, [
@@ -39,8 +39,9 @@
         BO.el('h2', { 'class': 'bo-modal__title', id: titleId, text: o.title || '' })
       ]),
       bodyNode,
-      (o.actions && o.actions.length) ? footer : null
+      (o.actions && o.actions.length) || o.footerStart ? footer : null
     ]);
+    if (o.footerStart) { o.footerStart.classList.add('bo-modal__footer-start'); footer.appendChild(o.footerStart); }
     var backdrop = BO.el('div', { 'class': 'bo-modal-backdrop' }, dialog);
     var closed = false;
     var handle = { el: dialog, body: bodyNode, footer: footer, close: close };

@@ -242,3 +242,61 @@ test('fuzz: random ranges, seeks and panics never leave the video covered or mut
     assert.strictEqual(h.E.state().mutedByUs, false, 'run ' + run);
   }
 });
+
+test('live cover (tab capture): black-out without muting the element; release restores', function () {
+  var h = harness({ start: 20 });
+  h.E.attach();
+  h.E.setLive({ category: 'gore', score: 0.8, muteElement: false });
+  h.advance(300);
+  assert.strictEqual(h.overlay.shown, 'live');
+  assert.strictEqual(h.video.muted, false, 'the listener must keep hearing the tab');
+  assert.strictEqual(h.E.state().live.category, 'gore');
+  h.E.setLive(null);
+  assert.strictEqual(h.overlay.shown, null);
+  assert.strictEqual(h.E.state().covered, false);
+});
+
+test('live cover (file/fed): mutes the element; the user\'s own mute is kept after release', function () {
+  var h = harness({ start: 20, muted: true });
+  h.E.attach();
+  h.E.setLive({ category: 'sex', score: 0.9, muteElement: true });
+  h.advance(200);
+  assert.strictEqual(h.overlay.shown, 'live');
+  assert.strictEqual(h.video.muted, true);
+  h.E.setLive(null);
+  assert.strictEqual(h.video.muted, true, 'was muted before');
+  h = harness({ start: 20 });
+  h.E.attach();
+  h.E.setLive({ category: 'sex', score: 0.9, muteElement: true });
+  h.advance(200);
+  assert.strictEqual(h.video.muted, true);
+  h.E.setLive(null);
+  assert.strictEqual(h.video.muted, false);
+});
+
+test('live cover with panic, ads, ranges and detach', function () {
+  var h = harness({ start: 7 });
+  h.E.setRanges([{ id: 'a', start: 8, end: 13, action: 'skip' }, { id: 'm', start: 15, end: 17, action: 'mute' }]);
+  h.E.attach();
+  h.E.setLive({ category: 'gore', score: 0.7, muteElement: false });
+  h.E.togglePanic();
+  assert.strictEqual(h.overlay.shown, 'panic');
+  h.advance(100);
+  h.E.togglePanic();
+  assert.strictEqual(h.overlay.shown, 'live', 'panic released: live cover is back');
+  h.advance(1500);
+  assert.ok(h.video.currentTime > 13, 'a skip range still jumps while live covers');
+  assert.strictEqual(h.overlay.shown, 'live');
+  h.video.currentTime = 15.5;
+  h.advance(100);
+  assert.strictEqual(h.overlay.shown, 'live');
+  assert.strictEqual(h.video.muted, true, 'mute range mutes under a live cover');
+  h.adapter.ad = true;
+  h.advance(200);
+  assert.strictEqual(h.overlay.shown, 'live', 'an ad does not lift a live cover');
+  h.adapter.ad = false;
+  h.E.detach();
+  assert.strictEqual(h.overlay.shown, null);
+  assert.strictEqual(h.video.muted, false);
+  assert.strictEqual(h.E.state().live, null);
+});

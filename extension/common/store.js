@@ -3,7 +3,9 @@
  *
  * Everything lives in chrome.storage.local, inside this browser profile.
  *   settings                          {levels, lang}
- *   video|<site>|<videoId>            {levels?, offset, skipOffset, subFile?: {name, text}, panic: [{start, end, at}]}
+ *   video|<site>|<videoId>            {levels?, offset, skipOffset, subFile?: {name, text}, panic: [{start, end, at}],
+ *                                      live: [{start, end, category, confidence, at}]}
+ *                                     live = scenes live listening covered (times only, never sound)
  *   skip|<site>|<videoId>|<oshash>    {doc, name, importedAt}  (imported .bonis.json)
  * <site> is the adapter id (youtube, netflix, primevideo, disneyplus) or the
  * host name for the generic adapter; <oshash> is the desktop file's
@@ -20,6 +22,7 @@
     teens: { nudity: 'moderate', sex: 'moderate', implied: 'light', kissing: 'light', gore: 'moderate', language: 'off' }
   };
   var MAX_PANIC = 200;
+  var MAX_LIVE = 200;
 
   function local() { return chrome.storage.local; }
   function copy(o) { return JSON.parse(JSON.stringify(o)); }
@@ -61,6 +64,7 @@
       if (typeof v.offset !== 'number' || !isFinite(v.offset)) { v.offset = 0; }
       if (typeof v.skipOffset !== 'number' || !isFinite(v.skipOffset)) { v.skipOffset = 0; }
       if (Object.prototype.toString.call(v.panic) !== '[object Array]') { v.panic = []; }
+      if (Object.prototype.toString.call(v.live) !== '[object Array]') { v.live = []; }
       done(cb)(v);
     });
   }
@@ -74,6 +78,7 @@
         if (patch[k] === null) { delete v[k]; } else { v[k] = patch[k]; }
       }
       if (v.panic.length > MAX_PANIC) { v.panic = v.panic.slice(v.panic.length - MAX_PANIC); }
+      if (v.live.length > MAX_LIVE) { v.live = v.live.slice(v.live.length - MAX_LIVE); }
       v.updated = new Date().toISOString();
       o[videoKey(site, id)] = v;
       local().set(o, function () { done(cb)(v); });
@@ -85,6 +90,14 @@
       var list = v.panic.slice();
       list.push(range);
       setVideo(site, id, { panic: list }, cb);
+    });
+  }
+
+  function addLive(site, id, range, cb) {
+    getVideo(site, id, function (v) {
+      var list = v.live.slice();
+      list.push(range);
+      setVideo(site, id, { live: list }, cb);
     });
   }
 
@@ -127,6 +140,7 @@
     getVideo: getVideo,
     setVideo: setVideo,
     addPanic: addPanic,
+    addLive: addLive,
     getSkipFiles: getSkipFiles,
     putSkipFile: putSkipFile,
     remove: remove,
