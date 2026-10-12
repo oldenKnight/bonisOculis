@@ -307,7 +307,7 @@
     var n = pending().length;
     var scanned = !!(doc.scan && doc.scan.status && doc.scan.status !== 'none');
     var top = BO.el('div', { 'class': 'bo-panel__section' }, [
-      BO.parentsCard.create({ title: item.title, meta: [item.year, item.duration ? BO.fmt.duration(item.duration) : null].filter(function (x) { return x; }).join(' · '), summary: s })
+      BO.parentsCard.create({ compact: true, title: item.title, meta: [item.year, item.duration ? BO.fmt.duration(item.duration) : null].filter(function (x) { return x; }).join(' · '), summary: s })
     ]);
     var msg;
     if (!doc.ranges.length) {

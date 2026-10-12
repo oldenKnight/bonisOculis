@@ -255,16 +255,14 @@ class FlorenceCaptioner:
         self.vision = session_factory(paths["vision"])
         self.embed = session_factory(paths["embed"])
         self.encoder = session_factory(paths["encoder"])
+        # ORT >= 1.2x rejects the q4f16 merged decoder as published; the repair is a no-op on a
+        # healthy graph (~0.25 s), so it always runs: no failed first load, no spurious
+        # "accelerator failed" fallback on DirectML / CoreML machines.
         with open(paths["decoder"], "rb") as f:
             raw = f.read()
-        try:
-            self.decoder = session_factory(raw)
-        except Exception:  # noqa: BLE001 - ORT >= 1.2x rejects the q4f16 merged decoder as shipped
-            fixed, _ = onnx_fix.fix_model(raw)
-            del raw
-            self.decoder = session_factory(fixed)
-            del fixed
-        raw = None
+        raw = onnx_fix.fix_model(raw)[0]
+        self.decoder = session_factory(raw)
+        del raw
         gc.collect()
         self.dec_inputs = [i.name for i in self.decoder.get_inputs()]
         self.dec_outputs = [o.name for o in self.decoder.get_outputs()]

@@ -169,12 +169,13 @@
     });
     var forgot = o.allowRecover ? BO.el('button', { 'class': 'bo-button bo-button--ghost bo-button--sm', type: 'button', text: BO.t('pin.forgot'), on: { click: function () { m.close('recover'); if (o.onForgot) { o.onForgot(); } } } }) : null;
     var m = BO.modal.open({
-      title: o.heading || BO.t('pin.modalTitle'), icon: 'lock', variant: 'pin', body: [o.text ? BO.el('p', { text: o.text }) : null, pad.el],
+      title: o.heading || BO.t('pin.modalTitle'), icon: 'lock', variant: 'pin', body: pad.el,
       footerStart: forgot,
       actions: [{ label: BO.t('common.cancel'), kind: 'secondary', id: 'cancel' }],
       initialFocus: function () { return pad.el; },
       onClose: function () { pad.destroy(); if (!done) { cb(false); } }
     });
+    if (o.text) { pad.info(o.text); }
     BO.invoke('pin:status', {}, function (res) {
       if (res.ok && res.data && res.data.cooldownMs) { pad.lock(res.data.cooldownMs); }
     });

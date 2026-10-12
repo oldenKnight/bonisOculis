@@ -1,4 +1,4 @@
 # Build-time only (never imported by the shipped analyzer).
 -r requirements.txt
-tokenizers>=0.15      # tools/make-clip-prompts.py (CLIP prompt embeddings)
+tokenizers>=0.15      # tools/make-clip-prompts.py (CLIP prompt embeddings), tools/make-florence-prompts.py
 pyinstaller>=6.0      # onedir packaging (M9)

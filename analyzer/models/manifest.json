@@ -72,7 +72,8 @@
       "model": "YAMNet (AudioSet, 521 classes) ONNX",
       "role": "audio.events",
       "license": "Apache-2.0",
-      "licenseUrl": "https://huggingface.co/andrelgomes/yamnet-onnx"
+      "licenseUrl": "https://huggingface.co/andrelgomes/yamnet-onnx",
+      "note": "Class names: analyzer/models/yamnet_class_map.csv (official, Apache-2.0, committed; sha256 cdf24d193e196d9e95912a2667051ae203e92a2ba09449218ccb40ef787c6df2)."
     },
     {
       "file": "whisper-small-q5_1.bin",
@@ -132,7 +133,8 @@
       "model": "Florence-2 decoder merged q4f16",
       "role": "captions.vlm",
       "license": "MIT",
-      "licenseUrl": "https://huggingface.co/onnx-community/Florence-2-base-ft"
+      "licenseUrl": "https://huggingface.co/onnx-community/Florence-2-base-ft",
+      "note": "ONNX Runtime >= 1.2x rejects this file as published (an If branch returns an outer-scope value). The analyzer repairs the graph in memory at load (bonis_analyzer/signals/onnx_fix.py); the file is shipped unmodified and keeps this sha256."
     },
     {
       "file": "florence2-tokenizer.json",
@@ -142,7 +144,8 @@
       "model": "Florence-2 tokenizer",
       "role": "captions.vlm",
       "license": "MIT",
-      "licenseUrl": "https://huggingface.co/onnx-community/Florence-2-base-ft"
+      "licenseUrl": "https://huggingface.co/onnx-community/Florence-2-base-ft",
+      "note": "Shipped: the analyzer decodes generated ids with this vocab. Prompt and special ids are precomputed by tools/make-florence-prompts.py into analyzer/models/florence_prompts.json."
     },
     {
       "file": "florence2-config.json",

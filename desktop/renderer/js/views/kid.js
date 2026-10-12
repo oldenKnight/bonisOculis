@@ -72,7 +72,7 @@
       build();
       BO.i18n.onChange(function () { if (BO.router.current() === 'kid') { build(); render(); } });
     },
-    show: function () { posters = {}; load(); },
+    show: function () { posters = {}; build(); load(); },
     hide: function () {}
   };
 }(window));

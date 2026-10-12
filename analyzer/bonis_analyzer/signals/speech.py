@@ -71,9 +71,10 @@ def lang_code(lang: Optional[str]) -> str:
 
 def available() -> bool:
     try:
-        import pywhispercpp.model  # noqa: F401, PLC0415
+        import pywhispercpp.model as binding  # noqa: PLC0415
     except Exception:  # noqa: BLE001
         return False
+    del binding
     return True
 
 

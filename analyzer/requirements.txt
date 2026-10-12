@@ -2,6 +2,10 @@
 numpy>=1.26
 onnxruntime>=1.17 ; sys_platform != "win32"
 onnxruntime-directml>=1.17 ; sys_platform == "win32"
-# Optional: dialogue LM stage (Qwen3-0.6B GGUF via llama.cpp). When it is missing the scan
-# continues with the keyword/SDH scorer alone and emits a warning.
+# Optional: dialogue LM stage and caption LM (Qwen3-0.6B GGUF via llama.cpp). When it is missing
+# the scan continues with the keyword/SDH scorer alone and emits a warning.
 llama-cpp-python>=0.3.2
+# Optional: speech-to-text stage (whisper.cpp small q5_1, MIT). Runs only when a film has no
+# readable subtitles. When it is missing, a whisper-cli executable (--whisper-cli /
+# $BONIS_WHISPER_CLI) is used instead, else the stage is skipped with a warning.
+pywhispercpp>=1.3
