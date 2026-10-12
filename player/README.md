@@ -43,7 +43,19 @@ because adding a filter re-initialises the video chain) until `end` (exclusive).
 - Enforcement runs on every `time-pos` change, on the `seek` event (at that moment `time-pos`
   already holds the seek target, so a seek into a skip range is re-targeted before a single frame
   of it is decoded) and on `playback-restart`.
-- Backward seeks landing in a range: parent mode → `start - 1 s`; kid mode → the range end.
+- Kid mode intercepts seeks before they happen: every key whose binding (read from mpv's
+  `input-bindings`) is a seek-like command — `seek` (relative, absolute, percent), chapter steps,
+  `frame-step` / `frame-back-step` — is rebound to a script-side seek. The script computes the
+  target and, if it falls inside an enforced range, asks mpv for the range end (forward) or
+  `start - 1 s` (backward) instead, with `absolute+exact`. With mpv 0.37 defaults that covers
+  LEFT/RIGHT/UP/DOWN, their Shift variants, Shift+PGUP/PGDWN, PGUP/PGDWN (chapters),
+  WHEEL_LEFT/WHEEL_RIGHT, FORWARD/REWIND and `.`/`,` (25 keys; WHEEL_UP/DOWN are volume in 0.37).
+  `sub-seek`, `revert-seek` and `ab-loop` keys do nothing in kid mode, and the on-screen
+  controller is hidden (`osc-visibility never`) because its seek bar cannot be intercepted.
+  `set-kidmode 0` restores the default keys and the controller.
+- Post-hoc rules (the safety net, for seeks the script cannot intercept: IPC, other scripts):
+  backward seeks landing in a range go to `start - 1 s` in parent mode and to the range end in
+  kid mode.
 - Forward seeks landing in a skip range go to its end; into hide/mute/blur ranges the effect
   applies at once.
 - Seek-loop guard: the script never re-issues a seek to the same target within 0.3 s.
@@ -63,7 +75,7 @@ because adding a filter re-initialises the video chain) until `end` (exclusive).
 | `o` | parent | Mark out: creates a range (`category other`, `source manual`, `review pending`, `action skip`, `confidence 1`), appends it to the marks file, sends `mark`. |
 | `u` | parent | Undo: drops a pending mark-in, else the last completed mark (writes and sends `undo`). |
 | `p` / `Ctrl+Space` | both | Panic phase 1: black + mute at once. Phase 2 (same key again, or `Enter`): restore, save the range `[pressed - leadin, now]`, `source panic`, `review approved`, `action skip`. The range is also enforced for the rest of the session. |
-| `→` | while panic-hidden | Seek +10 s without OSD. |
+| `→` | while panic-hidden | Seek +10 s without OSD (jumps past any enforced range it would land in). |
 
 In kid mode `i`/`o`/`u` show "Not available in kid mode" and do nothing. Mark times are written in
 the skip file's own timeline (`media.offset` subtracted), with 3 decimals.
@@ -116,3 +128,7 @@ Exit code `3` means "refused in kid mode"; the controller does not relaunch on i
 `--vo=null --ao=null --no-config --speed=10` and a generated 60 s colour-bar video in
 `$BONIS_TEST_DIR` (default `<tmpdir>/bonis-oculis-test`). `BONIS_MPV` / `BONIS_FFMPEG` override the
 binaries (default `/usr/bin/mpv`, `/usr/bin/ffmpeg`); without them the tests are skipped.
+`overlay-x11.test.js` additionally runs mpv in a real X11 window under `xvfb-run -a` (`--vo=x11`,
+falling back to `--vo=gpu`) and measures the screen with ffmpeg `x11grab`: mean luminance must be
+below 8 during a hide range and above 40 after it. It is skipped when `xvfb-run` or `x11grab` is
+missing.

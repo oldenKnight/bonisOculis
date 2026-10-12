@@ -164,6 +164,57 @@ test('kid mode: a backward seek into a hide range lands at its end', opts, funct
     .then(rec.stop, function (err) { return rec.stop().then(function () { throw err; }); });
 });
 
+test('kid mode: seek keys are redirected before mpv seeks, so no position inside a range is ever reached', opts, function () {
+  var rec = h.startRecorder();
+  var skip = h.writeSkip('kidkeys', h.standardRanges());
+  var mark;
+  function landed(lo, hi, label) {
+    var from = rec.samples.length;
+    return function () {
+      return rec.waitSampleAfter(from, function (s) { return s.t >= lo && s.t < hi; }, 3000, label);
+    };
+  }
+  function press(key, lo, hi, label) {
+    return function () {
+      var wait = landed(lo, hi, label);
+      return rec.cmd(['keypress', key]).then(wait);
+    };
+  }
+  return rec.play(getVideo(), skip, { kidMode: true })
+    .then(function () { return rec.waitTime(6); })
+    .then(function () { return rec.cmd(['set_property', 'pause', true]); })
+    .then(function () { return h.delay(200); })
+    .then(function () {
+      mark = rec.samples.length;
+      assert.ok(rec.samples[mark - 1].t < 9, 'paused before the skip range');
+    })
+    // RIGHT (+5) would land inside skip 10-15: the script asks mpv for 15 directly
+    .then(press('RIGHT', 15, 15.1, 'RIGHT to the skip end'))
+    // LEFT (-5) from 15 would land on 10: backward -> start - 1
+    .then(press('LEFT', 8.9, 9.1, 'LEFT to before the skip range'))
+    .then(function () {
+      var wait = landed(26.9, 27.1, 'app seek to 27');
+      return rec.cmd(['seek', 27, 'absolute+exact']).then(wait);
+    })
+    // LEFT from 27 would land inside hide 20-25 -> 19
+    .then(press('LEFT', 18.9, 19.1, 'LEFT to before the hide range'))
+    // Shift+RIGHT (+1) from 19 would land on 20, inside hide 20-25 -> its end
+    .then(press('Shift+RIGHT', 25, 25.1, 'Shift+RIGHT to the hide end'))
+    .then(function () { return rec.cmd(['keypress', 'Shift+BS']); })    // revert-seek: disabled
+    .then(function () { return h.delay(300); })
+    .then(function () {
+      var after = rec.samples.slice(mark);
+      var inside = after.filter(function (s) { return (s.t >= 9.95 && s.t < 15) || (s.t >= 19.95 && s.t < 25); });
+      assert.strictEqual(inside.length, 0, 'mpv reported positions inside a range: ' + fmt(inside));
+      var last = after[after.length - 1].t;
+      assert.ok(last >= 25 && last < 25.1, 'revert-seek did not go back into the range: ' + last);
+      // the script never had to cover anything: no range was ever entered
+      var covered = rec.transitions.filter(function (st) { return st.black && st.at >= 7; });
+      assert.strictEqual(covered.length, 0, 'cover was needed: ' + JSON.stringify(covered[0]));
+    })
+    .then(rec.stop, function (err) { return rec.stop().then(function () { throw err; }); });
+});
+
 function expectKidRefusal(skipPath) {
   var rec = h.startRecorder();
   return rec.play(getVideo(), skipPath, { kidMode: true })

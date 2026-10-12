@@ -739,6 +739,177 @@ local function on_undo()
     end
 end
 
+-------------------------------------------------------------------------------------------------
+-- Kid-mode seek interception. In kid mode every key bound to a seek-like command is taken over:
+-- the script computes the target first and, when it falls inside an enforced range, asks mpv for
+-- the range end (forward) or start - 1 s (backward) instead, so a kid's seek never lands inside a
+-- range. The post-hoc enforcement above stays as the safety net (IPC seeks, other scripts).
+-------------------------------------------------------------------------------------------------
+local function safe_target(target, forward)
+    local dur = mp.get_property_number("duration")
+    for _ = 1, 50 do
+        if target < 0 then
+            target = 0
+        end
+        if dur and target >= dur then
+            return dur
+        end
+        local act = active_at(target)
+        if #act == 0 then
+            return target
+        end
+        local nt
+        for _, r in ipairs(act) do
+            if forward then
+                if not nt or r.stop > nt then nt = r.stop end
+            else
+                local s = r.start - BACK_MARGIN
+                if not nt or s < nt then nt = s end
+            end
+        end
+        if not forward and nt < 0 then
+            forward = true        -- nothing before a range that starts at 0: go past it
+            nt = target
+        end
+        target = nt
+    end
+    return target
+end
+
+local function safe_seek_abs(target)
+    local t = now_t()
+    seek_to(safe_target(target, target >= t), "kid")
+end
+
+local function safe_seek(delta)
+    safe_seek_abs(now_t() + delta)
+end
+
+local function safe_chapter(delta)
+    local list = mp.get_property_native("chapter-list") or {}
+    local cur = mp.get_property_number("chapter")
+    if #list == 0 or cur == nil then
+        return
+    end
+    local idx = cur + delta
+    if idx < 0 then
+        safe_seek_abs(0)
+    elseif idx < #list then
+        safe_seek_abs(list[idx + 1].time)
+    end
+end
+
+local function safe_frame_step(dir)
+    local fps = mp.get_property_number("container-fps") or 25
+    local t = now_t()
+    local next_t = t + dir / fps
+    if #active_at(next_t) > 0 then
+        mp.set_property_bool("pause", true)
+        seek_to(safe_target(next_t, dir > 0), "kid")
+    elseif dir > 0 then
+        mp.commandv("frame-step")
+    else
+        mp.commandv("frame-back-step")
+    end
+end
+
+local CMD_PREFIXES = { "no%-osd", "osd%-auto", "osd%-bar", "osd%-msg%-bar", "osd%-msg", "raw",
+    "expand%-properties", "repeatable", "nonrepeatable", "async", "sync" }
+
+-- Returns a replacement handler for a seek-like input command, or nil.
+local function kid_handler(cmd)
+    if type(cmd) ~= "string" or cmd:find(";", 1, true) then
+        return nil
+    end
+    local c = cmd:gsub("^%s+", ""):gsub("%s+$", "")
+    local changed = true
+    while changed do
+        changed = false
+        for _, p in ipairs(CMD_PREFIXES) do
+            local n = c:gsub("^" .. p .. "%s+", "")
+            if n ~= c then
+                c = n
+                changed = true
+            end
+        end
+    end
+    local w = {}
+    for word in c:gmatch("%S+") do
+        w[#w + 1] = (word:gsub('^"(.*)"$', "%1"))
+    end
+    local name = w[1]
+    if name == "seek" then
+        local amount = tonumber(w[2])
+        local flags = w[3] or ""
+        if not amount then
+            return nil
+        end
+        if flags:find("absolute%-percent") then
+            return function()
+                local d = mp.get_property_number("duration")
+                if d then safe_seek_abs(d * amount / 100) end
+            end
+        elseif flags:find("relative%-percent") then
+            return function()
+                local d = mp.get_property_number("duration")
+                if d then safe_seek(d * amount / 100) end
+            end
+        elseif flags:find("absolute") then
+            return function()
+                local d = mp.get_property_number("duration") or 0
+                safe_seek_abs(amount < 0 and d + amount or amount)
+            end
+        end
+        return function() safe_seek(amount) end
+    elseif (name == "add" or name == "cycle") and w[2] == "chapter" then
+        local delta = tonumber(w[3]) or 1
+        return function() safe_chapter(delta) end
+    elseif name == "frame-step" then
+        return function() safe_frame_step(1) end
+    elseif name == "frame-back-step" then
+        return function() safe_frame_step(-1) end
+    elseif name == "sub-seek" or name == "revert-seek" or name == "ab-loop" then
+        return function() end       -- could land inside a range; not available to kids
+    end
+    return nil
+end
+
+local kid_keys = {}
+
+local function set_osc(visibility)
+    mp.commandv("script-message-to", "osc", "osc-visibility", visibility, "no-osd")
+end
+
+local function enable_kid_seeks()
+    if #kid_keys > 0 then
+        return
+    end
+    local best = {}
+    for _, b in ipairs(mp.get_property_native("input-bindings") or {}) do
+        if type(b.key) == "string" and kid_handler(b.cmd) then
+            local cur = best[b.key]
+            if not cur or (b.priority or 0) > (cur.priority or 0) then
+                best[b.key] = b
+            end
+        end
+    end
+    for key, b in pairs(best) do
+        local name = "bonis-kidseek-" .. (#kid_keys + 1)
+        mp.add_forced_key_binding(key, name, kid_handler(b.cmd), { repeatable = true })
+        kid_keys[#kid_keys + 1] = name
+    end
+    set_osc("never")                -- the seek bar is a mouse seek we cannot intercept
+    msg.debug("kid seek keys intercepted: " .. #kid_keys)
+end
+
+local function disable_kid_seeks()
+    for _, name in ipairs(kid_keys) do
+        mp.remove_key_binding(name)
+    end
+    kid_keys = {}
+    set_osc("auto")
+end
+
 local panic_end
 
 local function panic_start()
@@ -746,7 +917,7 @@ local function panic_start()
     panic.active = true
     panic.start = math.max(0, t - (tonumber(opts.leadin) or 2))
     mp.add_forced_key_binding("RIGHT", "bonis-panic-right", function()
-        mp.commandv("no-osd", "seek", tostring(PANIC_STEP), "relative+exact")
+        safe_seek(PANIC_STEP)
     end, { repeatable = true })
     mp.add_forced_key_binding("ENTER", "bonis-panic-enter", function() panic_end() end)
     mp.add_forced_key_binding("KP_ENTER", "bonis-panic-kpenter", function() panic_end() end)
@@ -819,6 +990,11 @@ end)
 
 mp.register_script_message("set-kidmode", function(v)
     kid = (v == "1" or v == "yes" or v == "true")
+    if kid then
+        enable_kid_seeks()
+    else
+        disable_kid_seeks()
+    end
     publish()
     if kid and (not loaded or scan_status == "none") then
         fail_closed(load_error or "scan status is none")
@@ -836,4 +1012,13 @@ end)
 math.randomseed(os.time())
 initial_load()
 cover_start()
+if kid then
+    enable_kid_seeks()
+end
+-- The OSC may load after us; hide its seek bar again once the file is open.
+mp.register_event("file-loaded", function()
+    if kid then
+        set_osc("never")
+    end
+end)
 publish()
