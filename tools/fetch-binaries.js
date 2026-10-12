@@ -174,7 +174,7 @@ function extractTarget(table, target, files, stage, written) {
       var src = lib.inside(tmp, t.member);
       var st = fs.lstatSync(src);
       if (!st.isFile()) { fail(t.member + ' did not come out of ' + table.archives[id].file + ' as a regular file'); }
-      writeFile(stage, t.dest, fs.readFileSync(src), t.mode || 493, written, id);
+      writeFile(stage, t.dest, fs.readFileSync(src), t.mode || (/\.(exe|dll)$/i.test(t.dest) ? 493 : 420), written, id);
     });
     lib.rmrf(tmp);
   });

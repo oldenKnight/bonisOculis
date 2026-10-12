@@ -16,7 +16,8 @@
   var BO = root.BO = root.BO || {};
   var CATEGORIES = ['nudity', 'sex', 'implied', 'kissing', 'gore', 'language'];
   var LEVELS = ['off', 'light', 'moderate', 'strict'];
-  var DEFAULT_LEVELS = { nudity: 'strict', sex: 'strict', implied: 'strict', kissing: 'strict', gore: 'strict', language: 'off' };
+  /* fresh install = the "Little kids" preset, as in desktop/main/settings.js defaults() */
+  var DEFAULT_LEVELS = { nudity: 'strict', sex: 'strict', implied: 'strict', kissing: 'strict', gore: 'strict', language: 'strict' };
   var PRESETS = {
     little: { nudity: 'strict', sex: 'strict', implied: 'strict', kissing: 'strict', gore: 'strict', language: 'strict' },
     teens: { nudity: 'moderate', sex: 'moderate', implied: 'light', kissing: 'light', gore: 'moderate', language: 'off' }

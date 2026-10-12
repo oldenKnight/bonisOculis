@@ -223,13 +223,15 @@ test('bridge: HLS WebVTT X-TIMESTAMP-MAP shifts each segment onto the video time
   assert.deepStrictEqual(times(t), [[5, 6, 'Plain.']]);
 });
 
-test('levels: language defaults to off (a muted category the parent opts into); presets match the desktop app', function () {
+test('levels: fresh default is the Little kids preset (language strict, muted), as on the desktop; presets match the desktop app', function () {
   var ctx = { self: {} }, store, desk = fs.readFileSync(path.join(EXT, '..', 'desktop', 'main', 'settings.js'), 'utf8');
   ctx.self.self = ctx.self;
   vm.createContext(ctx);
   vm.runInContext(read('common/store.js'), ctx, { filename: 'common/store.js' });
   store = JSON.parse(JSON.stringify(ctx.self.BO.store));
-  assert.deepStrictEqual(store.DEFAULT_LEVELS, { nudity: 'strict', sex: 'strict', implied: 'strict', kissing: 'strict', gore: 'strict', language: 'off' });
+  assert.deepStrictEqual(store.DEFAULT_LEVELS, { nudity: 'strict', sex: 'strict', implied: 'strict', kissing: 'strict', gore: 'strict', language: 'strict' });
+  assert.deepStrictEqual(store.DEFAULT_LEVELS, store.PRESETS.little);
+  assert.ok(/levels:\s*copy\(PRESETS\['little-kids'\]\)/.test(desk), 'desktop default is the little-kids preset');
   [['little', 'little-kids'], ['teens', 'teens']].forEach(function (p) {
     var m = new RegExp("'?" + p[1] + "'?:\\s*(\\{[^}]*\\})").exec(desk);
     assert.ok(m, 'desktop preset ' + p[1]);

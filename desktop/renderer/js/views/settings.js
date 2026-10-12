@@ -240,7 +240,11 @@
       explain(null);
       if (params && params.section) {
         var target = BO.qs('#settings-' + params.section, content);
-        if (target) { target.scrollIntoView({ block: 'start' }); }
+        if (target) {
+          target.scrollIntoView({ block: 'start' });
+          BO.focus(BO.qs('#settings-' + params.section + '-h', content));
+          BO.qsa('.bo-nav__item', nav).forEach(function (x) { if (x.getAttribute('data-section') === params.section) { x.setAttribute('aria-current', 'true'); } else { x.removeAttribute('aria-current'); } });
+        }
       }
     },
     hide: function () {}

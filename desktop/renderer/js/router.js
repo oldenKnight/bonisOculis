@@ -43,7 +43,7 @@
     view.show(currentParams);
     listeners.forEach(function (fn) { try { fn(name, currentParams); } catch (e) { /* listener */ } });
     var heading = BO.qs('[data-view-heading]', sec);
-    if (heading && !(params && params.keepFocus)) { BO.focus(heading); }
+    if (heading && !(params && (params.keepFocus || params.section))) { BO.focus(heading); }
   }
 
   function refresh() { if (current) { go(current, currentParams); } }
