@@ -427,8 +427,11 @@ test('resuming inside a hide range is covered from the first frame and restored 
     .then(function () { return rec.waitTime(27, 10000); })
     .then(function () {
       assert.ok(rec.samples[0].t >= 20.9 && rec.samples[0].t < 22, 'resumed at 21: ' + rec.samples[0].t);
-      assertAll(rec, 0, 24.7, function (s) { return s.black && s.mute === true; }, 'covered on resume');
-      assertAll(rec, 25.3, 27, function (s) { return !s.black && s.mute === false; }, 'restored');
+      // the script's own state (covered before the first frame, from the open hook), not the IPC
+      // snapshot, which can deliver the first time-pos before the state change
+      assertState(rec, 20.9, 24.95, function (st) { return st.black && st.mute; }, 'covered on resume');
+      assertState(rec, 25.2, 27, function (st) { return !st.black && !st.mute; }, 'restored');
+      assertAll(rec, 25.8, 27, function (s) { return s.mute === false; }, 'mute property restored');
     })
     .then(rec.stop, function (err) { return rec.stop().then(function () { throw err; }); });
 });

@@ -321,7 +321,9 @@ function startRecorder(extra) {
     var i;
     var found = null;
     for (i = 0; i < rec.transitions.length; i++) {
-      if (typeof rec.transitions[i].at === 'number' && rec.transitions[i].at <= t) { found = rec.transitions[i]; }
+      // a change published before playback started has no position: it is in force from the start
+      var at = typeof rec.transitions[i].at === 'number' ? rec.transitions[i].at : -Infinity;
+      if (at <= t) { found = rec.transitions[i]; }
     }
     return found;
   };
