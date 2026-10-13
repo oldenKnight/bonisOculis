@@ -557,3 +557,74 @@ test('a level that is Off is counted as "off", not "below your level"', function
   assert.strictEqual(pv.totals.off, 1);
   assert.strictEqual(pv.totals.below, 0);
 });
+
+test('before each scan the models are hashed again (cached by size and time): damaged after the first check -> the next scan is refused', function (t, done) {
+  var crypto = require('crypto');
+  var integrity = require('../main/integrity.js');
+  var res = h.tmpDir('brd-preflight-res');
+  fs.mkdirSync(path.join(res, 'models'), { recursive: true });
+  var model = path.join(res, 'models', 'm.onnx');
+  fs.writeFileSync(model, 'model bytes v1');
+  fs.writeFileSync(path.join(res, 'models', 'manifest.json'), JSON.stringify({ files: [{ file: 'm.onnx', sha256: crypto.createHash('sha256').update('model bytes v1').digest('hex'), size: 14 }] }));
+  var s = setup('brd-preflight', doc([{ start: 10, end: 20, review: 'approved' }]));
+  var ig = integrity.createIntegrity({ resources: res, settings: s.settings, version: '1.0.0', pauseMs: 0 });
+  var T = new Date('2026-01-01T00:00:00Z');
+  fs.utimesSync(model, T, T);
+  ig.run(false, function () {
+    ig.verify('scan', function (bad1) {
+      assert.strictEqual(bad1, false);
+      // Same size and time: the cached hash is trusted (the file is not read again).
+      fs.writeFileSync(model, 'model bytes X1');
+      fs.utimesSync(model, T, T);
+      ig.verify('scan', function (bad2) {
+        assert.strictEqual(bad2, false, 'unchanged size and time: not re-read');
+        fs.utimesSync(model, new Date(), new Date(Date.now() + 5000));
+        var spawned = 0;
+        var sup = require('../main/scanner-supervisor.js').createSupervisor({ store: s.store, library: s.library, skips: s.skips, paths: s.paths, settings: s.settings,
+          spawn: function () { spawned++; throw new Error('must not spawn'); }, emit: function () {},
+          preflight: function (cb) { ig.verify('scan', cb); } });
+        sup.load();
+        sup.enqueue(ITEM.id);
+        setTimeout(function () {
+          var it = s.library.get(ITEM.id);
+          assert.strictEqual(spawned, 0, 'the analyzer never started');
+          assert.strictEqual(it.status, 'needsAttention');
+          assert.strictEqual(it.error, 'bundleDamaged');
+          assert.deepStrictEqual(s.settings.value('integrity').damaged, [{ file: 'models/m.onnx', reason: 'mismatch' }]);
+          fs.writeFileSync(model, 'model bytes v1');
+          ig.verify('scan', function (bad3) {
+            assert.strictEqual(bad3, false, 'restored file');
+            assert.deepStrictEqual(s.settings.value('integrity').damaged, [], 'taken off the list');
+            sup.shutdown(function () { done(); });
+          });
+        }, 300);
+      });
+    });
+  });
+});
+
+test('before each play mpv and bonis.lua are hashed again; a mismatch refuses to start the player', function (t, done) {
+  var crypto = require('crypto');
+  var integrity = require('../main/integrity.js');
+  var res = h.tmpDir('brd-preflight-play');
+  fs.mkdirSync(path.join(res, 'player'), { recursive: true });
+  fs.writeFileSync(path.join(res, 'player', 'bonis.lua'), '-- lua v1');
+  fs.writeFileSync(path.join(res, 'player', 'player.lock.json'), JSON.stringify({ files: { 'bonis.lua': { sha256: crypto.createHash('sha256').update('-- lua v1').digest('hex'), size: 9 } } }));
+  var s = setup('brd-preflight-p', doc([{ start: 10, end: 20, review: 'approved' }]));
+  var ig = integrity.createIntegrity({ resources: res, settings: s.settings, version: '1.0.0', pauseMs: 0 });
+  var log = [];
+  var svc = createPlayerService({ createPlayer: fakePlayer(log), paths: s.paths, settings: s.settings, library: s.library, skips: s.skips,
+    supervisor: { setPlayerOpen: function () {} }, preflight: function (cb) { ig.verify('play', cb); } });
+  svc.play(ITEM.id, {}, function (e, r) {
+    assert.strictEqual(r.ok, true);
+    svc.stop(function () {
+      fs.writeFileSync(path.join(res, 'player', 'bonis.lua'), '-- lua XX');
+      fs.utimesSync(path.join(res, 'player', 'bonis.lua'), new Date(), new Date(Date.now() + 5000));
+      svc.play(ITEM.id, {}, function (e2, r2) {
+        assert.deepStrictEqual(r2, { ok: false, error: 'bundleDamaged' });
+        assert.strictEqual(log.length, 1, 'mpv started only the first time');
+        done();
+      });
+    });
+  });
+});

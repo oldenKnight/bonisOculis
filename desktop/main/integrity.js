@@ -62,12 +62,15 @@ function targets(resources) {
 
 // What a damaged file stops: {scan, play}. Scans need the models and ffmpeg/ffprobe/whisper; the
 // player needs mpv (and its bundle) and bonis.lua.
+function forScan(f) { return /^models\//.test(f) || /^bin\/(ffmpeg|ffprobe|whisper)/.test(f); }
+function forPlay(f) { return /^player\//.test(f) || /^bin\/mpv/.test(f) || /^bin\/d3dcompiler/.test(f); }
+
 function blocks(result) {
   var out = { scan: false, play: false };
   ((result && result.damaged) || []).forEach(function (d) {
     var f = String(d.file || '');
-    if (/^models\//.test(f) || /^bin\/(ffmpeg|ffprobe|whisper)/.test(f)) { out.scan = true; }
-    if (/^player\//.test(f) || /^bin\/mpv/.test(f) || /^bin\/d3dcompiler/.test(f)) { out.play = true; }
+    if (forScan(f)) { out.scan = true; }
+    if (forPlay(f)) { out.play = true; }
   });
   return out;
 }
@@ -147,7 +150,53 @@ function createIntegrity(opts) {
     next();
   }
 
-  return { run: run, needed: needed, last: last, stop: function () { stopped = true; }, targets: function () { return targets(o.resources); } };
+  // Right before each scan ('scan': models, ffmpeg, ffprobe, whisper) and each play ('play': mpv,
+  // bonis.lua), the files it will use are hashed again (security round 3: a file damaged after the
+  // first check must not be used). Low priority and chunked like run(); a file whose size and
+  // modification time did not change since its last good hash is not read again.
+  // cb(damaged: true|false). A mismatch is added to the stored result (so the banner and blocks()
+  // see it); a file that matches again is taken off it.
+  var cache = {};
+  function verify(kind, cb) {
+    var done = typeof cb === 'function' ? cb : noop;
+    var pick = kind === 'play' ? forPlay : forScan;
+    var list = targets(o.resources).filter(function (t) { return pick(t.label); });
+    var bad = [];
+    var good = [];
+    var i = 0;
+    function finish() {
+      var prev = last() || { version: o.version, resources: o.resources, at: null, checked: 0, missing: 0, damaged: [] };
+      var damaged = (prev.damaged || []).filter(function (d) { return good.indexOf(d.file) < 0 && !bad.some(function (b) { return b.file === d.file; }); }).concat(bad);
+      var changed = JSON.stringify(damaged) !== JSON.stringify(prev.damaged || []);
+      if (changed) {
+        var res = { version: prev.version || o.version, resources: o.resources, at: now(), checked: prev.checked || 0, missing: prev.missing || 0, damaged: damaged };
+        o.settings.set({ integrity: res }, false);
+        if (bad.length && o.onDamaged) { try { o.onDamaged(res); } catch (e) { log.error('onDamaged', e); } }
+      }
+      done(bad.length > 0);
+    }
+    function next() {
+      if (i >= list.length) { finish(); return; }
+      var t = list[i++];
+      fs.stat(t.file, function (se, st) {
+        if (se) { next(); return; }
+        var key = st.size + ':' + st.mtimeMs;
+        var c = cache[t.file];
+        if (c && c.key === key && c.sha === t.sha256) { good.push(t.label); next(); return; }
+        if (t.size !== null && st.size !== t.size) { delete cache[t.file]; bad.push({ file: t.label, reason: 'size' }); next(); return; }
+        hashFile(t.file, chunk, pause, function (he, hex) {
+          if (he) { bad.push({ file: t.label, reason: 'unreadable' }); } else if (hex !== t.sha256) { delete cache[t.file]; bad.push({ file: t.label, reason: 'mismatch' }); } else {
+            cache[t.file] = { key: key, sha: hex };
+            good.push(t.label);
+          }
+          next();
+        });
+      });
+    }
+    next();
+  }
+
+  return { run: run, verify: verify, needed: needed, last: last, stop: function () { stopped = true; }, targets: function () { return targets(o.resources); } };
 }
 
 module.exports = { createIntegrity: createIntegrity, targets: targets, hashFile: hashFile, blocks: blocks };

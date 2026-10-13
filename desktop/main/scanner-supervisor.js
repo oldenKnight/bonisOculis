@@ -258,7 +258,8 @@ function createSupervisor(options) {
     kick();
   }
 
-  function start(id, restarts) {
+  // checked: the bundled files were just verified (o.preflight), see below.
+  function start(id, restarts, checked) {
     cur = null;
     if (shuttingDown) { return; }
     var item = library.get(id);
@@ -274,6 +275,19 @@ function createSupervisor(options) {
       dropFromQueue(id);
       attention(id, 'fileMissing');
       kick();
+      return;
+    }
+    // Security round 3: the models and programs this scan will use are hashed again first (cached
+    // by size and time, so usually nothing is re-read). A mismatch refuses the scan.
+    if (o.preflight && !checked) {
+      var pre = { id: id, placeholder: true, work: paths.workDir(id), stage: null, p: 0, eta: null, restarts: restarts || 0, restartTimer: null };
+      cur = pre;
+      o.preflight(function (bad) {
+        if (cur !== pre || shuttingDown) { return; }
+        cur = null;
+        if (bad) { dropFromQueue(id); attention(id, 'bundleDamaged'); emitThrottled(true); kick(); return; }
+        start(id, restarts, true);
+      });
       return;
     }
     var work = paths.workDir(id);

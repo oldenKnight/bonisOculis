@@ -175,13 +175,15 @@ function boot() {
 
   var supervisor = createSupervisor({
     store: store, library: library, skips: skips, paths: paths, settings: settings, log: log.child('scan'), emit: emit,
-    power: electron.powerMonitor, blocked: function () { return bundleBlocks().scan; }
+    power: electron.powerMonitor, blocked: function () { return bundleBlocks().scan; },
+    preflight: integrity ? function (cb) { integrity.verify('scan', cb); } : null
   });
   supervisor.load();
   var player = createPlayerService({
     createPlayer: createPlayer, paths: paths, settings: settings, library: library, skips: skips, supervisor: supervisor,
     activity: activity, t: function (k, p) { return i18n.t(k, p); }, log: log.child('player'), emit: emit,
-    blocked: function () { return bundleBlocks().play; }
+    blocked: function () { return bundleBlocks().play; },
+    preflight: integrity ? function (cb) { integrity.verify('play', cb); } : null
   });
   player.recover();
   var thumbs = createThumbs({ paths: paths, library: library, skips: skips });
