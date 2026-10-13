@@ -2,9 +2,10 @@
 
 Offline scanner that reads a movie once and writes its skip file
 (`spec/SKIPFILE.md`). Runs as a separate, low-priority process supervised by
-Electron main (`docs/PLAN.md` §2.4). Python 3.11+, runtime deps: `numpy`,
-`onnxruntime` (DirectML build on Windows), optionally `llama-cpp-python`
-(dialogue + caption LM) and `pywhispercpp` (speech-to-text). ffmpeg/ffprobe are
+Electron main (`docs/PLAN.md` §2.4). Python 3.11+, runtime deps (exact pins in
+`requirements.txt`): `numpy`, `onnxruntime` (DirectML build on Windows; pinned to releases without
+the telemetry client, see "Privacy"), optionally `llama-cpp-python` (dialogue + caption LM) and
+`pywhispercpp` (speech-to-text). ffmpeg/ffprobe are
 external binaries. Weights and thresholds: `TUNING.md`; timings and memory:
 `BENCH.md`.
 
@@ -19,7 +20,7 @@ cd analyzer && python -m bonis_analyzer scan --input movie.mkv --work /tmp/w --o
 | `scan --input F --work DIR --out F.bonis.json [--lang es-MX\|en-US] [--levels JSON] [--stages subtitles,frames,audio,speech,captions] [--threads N] [--device auto\|cpu\|dml\|coreml] [--priority low\|normal] [--models DIR] [--restart] [--force-speech] [--whisper-cli EXE] [--profile] [--scores-from JSON]` | scan, checkpoint, write/merge the skip file |
 | `evaluate --truth a.bonis.json --pred b.bonis.json [--tolerance 3] [--out report.json]` | per-category precision / recall / F1 (1 s resolution), range hit rate ±tolerance, seconds missed / falsely flagged; markdown table on stdout, JSON to `--out` |
 | `probe --input F` | one `{"t":"probe",...}` line: duration, streams, subtitle tracks, keyframe interval, fingerprint |
-| `version [--cpu-features]` | one `{"t":"version",...}` line: analyzer, Python, ORT (+providers), llama.cpp versions; `--cpu-features` adds `"cpu": {arch, avx2, flags, source, ggmlStages: ok\|skipped, skippedStages}` (llama.cpp is not imported when AVX2 is missing) |
+| `version [--cpu-features]` | one `{"t":"version",...}` line: analyzer, Python, ORT (+providers, `ortTelemetry`), llama.cpp versions; `--cpu-features` adds `"cpu": {arch, avx2, flags, source, ggmlStages: ok\|skipped, skippedStages}` (llama.cpp is not imported when AVX2 is missing) |
 
 `--levels` is a JSON object `{"nudity":"strict",...}` (missing categories use the defaults:
 strict for the five visual categories, `language` off), or a preset name string
@@ -70,7 +71,10 @@ per-second float32 `.npz` (`subtitles.npz`, `speech.npz`, `frames.npz` (+ `cuts`
 `captioned`; scores only, never caption text), `fusion.npz`).
 The frames stage flushes its arrays every 30 media-seconds and updates `resumeAt`; a restarted scan
 with the same fingerprint skips done stages and decodes from `resumeAt - 2 s` (pre-roll so a cut
-at the resume point is still seen; frames before `resumeAt` are dropped). LM windows are
+at the resume point is still seen; frames before `resumeAt` are dropped, and so are scene cuts
+before `resumeAt` from the resumed decoder: ffmpeg's scene detector compares the first frames
+after a seek against nothing and fires on grain or motion (review B5); the checkpoint keeps the
+real cuts there, so a resumed scan's cuts and scores equal an uninterrupted run's). LM windows are
 checkpointed every 10 windows. The audio stage flushes `audio.npz` + `resumeAt` every 6 chunks
 (60 s) and resumes at that chunk boundary with its 1 s overlap; speech checkpoints every 30 s
 window (`speech.windows.json`, deleted at the end); captions checkpoint every 10 shots
@@ -82,7 +86,12 @@ After `done` the work dir holds only `state.json`, the stage `.npz` files and `t
 
 Pause: the analyzer polls `<work>/PAUSE` once per second (frames, audio, speech, LM and caption
 loops; a speech window or caption already started finishes first). While it exists
-the decode pipe is not read, so ffmpeg blocks; the frames checkpoint is flushed on pause.
+the decode pipe is not read, so ffmpeg blocks; the frames checkpoint is flushed on pause. After
+`PAUSE_RELEASE_AFTER` (20 s) of pause the running stage's model set is released (close, `gc`,
+`malloc_trim`; `models.ModelSlot`) and loaded again when the pause ends, so a scan paused for
+playback holds ~65 MB instead of 0.4-1 GB (measured: frames stage 415 MB -> 65 MB, `BENCH.md`).
+A model that cannot be loaded again (file removed meanwhile) ends the scan with exit 3; it
+resumes from the checkpoint.
 Priority: `os.nice(10)` (POSIX) / `BELOW_NORMAL_PRIORITY_CLASS` (Windows) unless
 `--priority normal`; ffmpeg children inherit it.
 
@@ -97,6 +106,25 @@ Transcripts of the subtitle track / speech (`subtitles.cues.json`, `speech.cues.
 while the scan runs (the LM stage needs them after frames). Caption text exists only in memory.
 stdout is moved to a private file descriptor at scan start (fd 1 then points at stderr), so a
 native library that prints cannot corrupt the protocol.
+
+## Privacy: no network, no telemetry (review A1)
+ONNX Runtime 1.29+ (Linux, macOS) contains Microsoft's 1DS telemetry client: it uploads usage
+events to `mobile.events.data.microsoft.com` and writes `~/.cache/Microsoft/DeveloperTools/
+.onnxruntime/` plus `mat-debug-<pid>.log` / `.ses` in `$TMPDIR`; `disable_telemetry_events()`
+alone does not stop it. Defences, in order:
+1. `requirements.txt` pins releases without the client: `onnxruntime==1.28.0` (Linux, macOS
+   arm64), `1.23.2` (macOS x64, last Intel wheel), `onnxruntime-directml==1.24.4` (Windows).
+   Checked in the wheels' native libraries; 1.29.0 is the first with the client.
+2. `bonis_analyzer/__init__.py` (and `packaging/analyzer-entry.py`) set
+   `ORT_DISABLE_TELEMETRY=1` before onnxruntime can be imported: the client's own off switch
+   (found in the 1.29 library; strace: 0 connects, 0 files with it, 4 connects in 80 s without).
+3. `models._ort()` also calls `onnxruntime.disable_telemetry_events()` (Windows ETW provider).
+4. `privacy.py`: any of those files that appear during a command anyway are deleted at exit, with
+   a warning in the log; files that existed before are left alone.
+`tests/test_privacy.py` proves it: a full real-model scan (whisper.cpp, YAMNet, ViT + CLIP, Qwen3
+via llama.cpp, Florence-2) under `strace -f -e trace=connect,socket` with private HOME/TMPDIR
+must make zero AF_INET/AF_INET6 connects and leave no telemetry file (needs strace and
+`BONIS_MODELS_DIR`). `version` reports `"ortTelemetry"`.
 
 ## Signals and fusion (all constants in `bonis_analyzer/config.py`)
 - **Subtitles**: embedded text tracks (ffprobe; `--lang` first, SDH/non-forced preferred) or
@@ -187,8 +215,8 @@ instead of 1131 MB, see `BENCH.md`).
 
 ## Tests
 ```
-python3 -m unittest discover -s analyzer/tests                                  # 189 tests, ~50 s
-BONIS_MODELS_DIR=/path/to/models python3 -m unittest discover -s analyzer/tests  # + real-model tests, ~4-5 min
+python3 -m unittest discover -s analyzer/tests                                  # 198 tests, ~55 s
+BONIS_MODELS_DIR=/path/to/models python3 -m unittest discover -s analyzer/tests  # + real-model tests incl. the strace network gate, ~3-5 min
 ```
 All inputs are synthetic: ffmpeg `testsrc2`/`color`/sine/silence/noise clips, hand-written subtitle
 fixtures, fed score streams, fed class scores / transcripts / captions. Real models run a handful
@@ -260,5 +288,11 @@ M7 (analyzer v2):
   `BENCH.md`; the gate brings frame scoring to 114-319 ms per frame depending on how often CLIP
   leans towards nudity) and is a whole-image sfw/nsfw call: expect more false alarms on swimwear /
   shirtless / medical scenes and misses on small figures until tuned on hand-marked films.
+- A scan's first comparison also yields a cut at ~0.1 s on grainy or fast-moving footage (same
+  ffmpeg scene-detector start-up effect as B5, present in every run, so resumed and
+  uninterrupted scans agree); harmless for snapping (a 0.1 s shot), not filtered.
+- numpy is pinned to 2.4.6 on Python 3.11 (CI, build runners) and 2.5.3 on 3.12+; only 2.5.3 was
+  tested here. The Windows (onnxruntime-directml 1.24.4) and macOS x64 (onnxruntime 1.23.2) pins
+  were checked for the telemetry client by inspecting their libraries, not run.
 - The AVX2 guard was tested with the detection patched both ways; no pre-AVX2 machine was
   available to confirm that the wheels really crash there or that ONNX Runtime keeps working.

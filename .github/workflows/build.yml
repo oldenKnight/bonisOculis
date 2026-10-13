@@ -51,13 +51,13 @@ jobs:
           cache: npm
       - uses: actions/setup-python@v5
         with:
-          python-version: "3.11"
+          python-version: "3.13"
           cache: pip
           cache-dependency-path: analyzer/requirements*.txt
       - name: System packages (ffmpeg, mpv, xvfb)
         run: |
           sudo apt-get update
-          sudo apt-get install -y --no-install-recommends ffmpeg mpv xvfb xauth
+          sudo apt-get install -y --no-install-recommends ffmpeg mpv xvfb xauth strace
       - run: npm ci
       - name: Python dependencies
         env:
@@ -73,6 +73,19 @@ jobs:
         run: npm run test:extension
       - name: Analyzer unit tests (synthetic fixtures, no models)
         run: python -m unittest discover -s analyzer/tests
+      - name: Model cache
+        id: models
+        uses: actions/cache@v4
+        with:
+          path: analyzer/models
+          key: models-${{ hashFiles('analyzer/models/manifest.json') }}
+      - name: Fetch models (pinned sha256)
+        if: steps.models.outputs.cache-hit != 'true'
+        run: node tools/fetch-models.js
+      - name: Analyzer privacy proof (strace, real models, zero sockets)
+        env:
+          BONIS_MODELS_DIR: ${{ github.workspace }}/analyzer/models
+        run: python -m unittest analyzer.tests.test_privacy -v || python -m unittest discover -s analyzer/tests -p "test_privacy.py" -v
       - name: Electron end-to-end (xvfb)
         run: npm run test:e2e
       - name: Source checks (lint, no-network, forbidden words)
@@ -124,7 +137,7 @@ jobs:
           cache: npm
       - uses: actions/setup-python@v5
         with:
-          python-version: "3.11"
+          python-version: "3.13"
           cache: pip
           cache-dependency-path: analyzer/requirements*.txt
       - run: npm ci

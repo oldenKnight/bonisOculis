@@ -161,6 +161,13 @@ the table was written, and where the publisher offers a checksum it matched (BIN
 - **Models next to the analyzer, not inside it.** `<resources>/models` is the one copy;
   `analyzer-entry.py` points the analyzer at it. Only the three small committed sidecars are
   also inside `_internal/models` so the bare analyzer can run `--scores-from` tests.
+- **Analyzer dependencies are pinned exactly** (`analyzer/requirements.txt`,
+  `requirements-build.txt`; review A9). ONNX Runtime is pinned to releases without Microsoft's
+  1DS telemetry client (1.28.0; 1.23.2 on macOS x64; onnxruntime-directml 1.24.4 on Windows) and
+  the analyzer also sets `ORT_DISABLE_TELEMETRY=1` in `analyzer-entry.py` and its package
+  `__init__` (review A1). Do not raise the ONNX Runtime pin without re-running
+  `analyzer/tests/test_privacy.py` (strace network gate) on the new version. A hash lock
+  (`--require-hashes`) is not done yet.
 - **No model archives.** Every model is a plain file from the manifest. NudeNet (previously
   extracted from its sdist) was dropped for licence ambiguity (ledger D22); the nudity classifier
   is `nsfw-vit-int8.onnx` (Apache-2.0).

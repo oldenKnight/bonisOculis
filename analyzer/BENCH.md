@@ -109,6 +109,20 @@ scores above 0.10. A 2 h film at 2 threads: ~14 min (stride only) to ~38 min
 the same day: the shared host is noisy. `scan --profile` reports
 `framesClassified` next to `framesProcessed`.
 
+### ONNX Runtime 1.28.0 (pinned) vs 1.29.0
+
+`requirements.txt` pins 1.28.0 (no telemetry client, `README.md` "Privacy"). Same gate bench,
+2 threads: gated 106 / 106 ms per frame, worst case 283 / 299 ms per frame (1.28 / 1.29),
+i.e. no measurable difference. The full suite with real models passes on both; the noise-frame
+classifier output is identical to 4 decimals.
+
+## Pause releases the model set (review B6)
+
+A real-model frames scan of a 600 s clip at 2 threads, `PAUSE` created mid-stage: resident set
+415 MB while scanning, 415 MB after 5 s of pause, **65 MB** after 25 s (released at 20 s,
+`PAUSE_RELEASE_AFTER`), 435 MB again 4 s after the pause ended (reload ~0.5 s for ViT + CLIP).
+The LM (0.93 GB), speech, audio and Florence-2 (~1 GB) stages use the same `ModelSlot`; only the frames stage was measured with real models (the others through the registry tests).
+
 ## Keyframe extraction: per-shot seek vs. one `select` pass
 
 | input | shots | per-shot `-ss T -i F -frames:v 1` | one pass `select='eq(n,...)'` |
