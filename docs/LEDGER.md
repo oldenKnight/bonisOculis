@@ -71,6 +71,19 @@ D18 Peek (review screen): a parent may reveal a flagged frame only behind the PI
     5 min), rendered LIVE from the video into memory (ffmpeg pipe -> data URL), shown while the
     button is held, never written to disk, never available in kid mode. Thumbnails on disk stay
     blurred (overrides the designer's "lighter blur" reading).
+D25 Board round 1 (both halves FAILED; reviews in docs/reviews/). Fixes in flight, decisions:
+    privacy: ONNX Runtime telemetry and Electron dictionary download must be off and proven by a
+    socket-trace test; scan output path moved outside the work dir + real-analyzer integration
+    test; clean copy becomes an exact re-encode (hardware encoder when present, libx264 fallback)
+    because stream copy leaked frames and drifted audio; tampered/imported lists never Protected
+    without a parent click; Lock also locks a running player; exports use the player's enforced
+    set; parent mode fails closed on a damaged list; zero-finding scans need a parent click;
+    activity log; parents card never claims "none found" for allowed or unchecked categories;
+    toasts never cover the review panel; wording Skip this scene / Let it play; Spanish analizar
+    vs revisar; auto-relock; accuracy compared against the automatic scan; Fire TV help rewritten;
+    INSTALL docs ship next to the installer; peek described honestly; child panic stays enforced
+    and is flagged for the parent (not changed to pending).
+D24 (reserved for the clean-copy agent's decision line)
 D22 NudeNet dropped (2026-10-12): the 3.4.2 sdist ships the AGPL-3.0 licence text while its
     metadata says MIT; too ambiguous to ship. Replaced by AdamCodd/vit-base-nsfw-detector
     (Apache-2.0, ViT-B/16 384, int8 ONNX, 84 MiB) plus a CLIP "nudity" prompt group. Loses
