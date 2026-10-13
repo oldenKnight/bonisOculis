@@ -8,7 +8,8 @@ var fs = require('fs');
 var path = require('path');
 
 var ROOT = path.join(__dirname, '..', '..');
-var ALLOWED = [path.join('desktop', 'main', 'player-controller.js')];
+// The e2e also talks to mpv's local IPC socket (BONIS_TEST_HOOKS) to press keys as a parent would.
+var ALLOWED = [path.join('desktop', 'main', 'player-controller.js'), path.join('desktop', 'test', 'e2e', 'app.e2e.js')];
 
 function walk(dir, out) {
   fs.readdirSync(dir).forEach(function (n) {

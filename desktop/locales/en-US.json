@@ -823,5 +823,6 @@
   "acc.handCount.other": "You marked {count} scenes by hand for this movie.",
   "acc.yourHandMarks": "your hand marks",
   "error.noHandMarks.title": "No hand marks yet",
-  "error.noHandMarks.text": "Open the movie's More menu and choose Mark by hand."
+  "error.noHandMarks.text": "Open the movie's More menu and choose Mark by hand.",
+  "hand.marked": "Hand mark {start} – {end}"
 }

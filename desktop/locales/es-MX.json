@@ -823,5 +823,6 @@
   "acc.handCount.other": "Marcaste {count} escenas a mano en esta película.",
   "acc.yourHandMarks": "tus marcas a mano",
   "error.noHandMarks.title": "Todavía no hay marcas a mano",
-  "error.noHandMarks.text": "Abre el menú Más de la película y elige Marcar a mano."
+  "error.noHandMarks.text": "Abre el menú Más de la película y elige Marcar a mano.",
+  "hand.marked": "Marca a mano {start} – {end}"
 }

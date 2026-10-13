@@ -20,7 +20,7 @@
     if (o.hidden) { node.hidden = true; }
     if (o.disabled) { node.disabled = true; }
     if (o.attrs) { for (k in o.attrs) { if (Object.prototype.hasOwnProperty.call(o.attrs, k) && o.attrs[k] !== null && o.attrs[k] !== undefined && o.attrs[k] !== false) { node.setAttribute(k, o.attrs[k] === true ? '' : String(o.attrs[k])); } } }
-    if (o.data) { for (k in o.data) { if (Object.prototype.hasOwnProperty.call(o.data, k)) { node.setAttribute('data-' + k, String(o.data[k])); } } }
+    if (o.data) { for (k in o.data) { if (Object.prototype.hasOwnProperty.call(o.data, k)) { node.setAttribute('data-' + k.replace(/[A-Z]/g, function (c) { return '-' + c.toLowerCase(); }), String(o.data[k])); } } }
     if (o.vars) { for (k in o.vars) { if (Object.prototype.hasOwnProperty.call(o.vars, k)) { node.style.setProperty(k, String(o.vars[k])); } } }
     if (o.on) { for (k in o.on) { if (Object.prototype.hasOwnProperty.call(o.on, k)) { node.addEventListener(k, o.on[k]); } } }
     append(node, children);

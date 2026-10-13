@@ -113,7 +113,7 @@ test('file paths cross the bridge only where a parent chose them; scenes and thu
       if (pathy) { assert.ok(allowed[ch] && allowed[ch].indexOf(k) >= 0, ch + '.' + k + ' carries a path'); }
     });
     if (/^skip:|^library:poster$|^player:/.test(ch)) {
-      Object.keys(shape).forEach(function (k) { assert.ok(['id', 'rangeId', 'rangeIds', 'patch', 'doc', 'start', 'end', 'category', 'n', 'kidMode', 'unprotected', 'mode', 'action', 'note'].indexOf(k) >= 0 || /Ids?$/.test(k), ch + '.' + k); });
+      Object.keys(shape).forEach(function (k) { assert.ok(['id', 'rangeId', 'rangeIds', 'patch', 'doc', 'start', 'end', 'category', 'n', 'kidMode', 'unprotected', 'handMark', 'mode', 'action', 'note'].indexOf(k) >= 0 || /Ids?$/.test(k), ch + '.' + k); });
     }
   });
 });

@@ -271,6 +271,15 @@ function buttonsClearOfToasts(label) {
   };
 }
 
+// Waits until main has counted a wrong PIN (scrypt takes a moment under load).
+function triesLeft(n) {
+  return function () {
+    return poll(function (want) {
+      return new Promise(function (res) { window.bo.invoke('pin:status', {}, function (r) { res(r.ok && r.data.triesLeft === want); }); });
+    }, n, 15000);
+  };
+}
+
 function rangeSel(i) { return '.bo-range-list li:nth-child(' + (i + 1) + ') .bo-range-row'; }
 
 function main() {
@@ -587,7 +596,8 @@ function main() {
     waitSel('.bo-nowplaying__state[data-state="playing"]', { timeout: 30000 }),
     invoke('player:status', {}, function (r) { assert.strictEqual(r.data.handMark, true); }),
     mpvKeys(['i', 'o'], 1500),
-    waitSel('[data-mark-category]', { timeout: 15000 }),
+    function () { log('hand marks sent'); },
+    function () { return poll(function () { return document.querySelectorAll('[data-mark-category]').length; }, null, 40000).then(function () { log('hand mark shown'); }); },
     function () { return page.selectOption('[data-mark-category]', 'nudity'); },
     sleep(300),
     shot('es-light-handmark'),
@@ -603,8 +613,8 @@ function main() {
     waitFor(function () { var b = document.querySelector('[data-act="use-hand"]'); return b && !b.disabled; }),
     waitText('Marcaste 1 escena a mano en esta película.'),
     click('[data-act="use-hand"]'),
+    waitFor(function () { var n = document.querySelector('[data-compared]'); return n && n.textContent.indexOf('tus marcas a mano') >= 0; }, null, 30000),
     waitSel('.bo-acc__table'),
-    function () { return page.textContent('[data-compared]').then(function (t) { assert.ok(t.indexOf('tus marcas a mano') >= 0, t); }); },
     sleep(200), shot('es-light-accuracy-hand'),
     // ---- X6: two error toasts on the library never cover a button
     go('library'), sleep(400),
@@ -885,8 +895,10 @@ function main() {
     // wrong PIN cooldown (kept last: it blocks the PIN pad for 30 s)
     click('[data-act="parent"]'),
     waitSel('.bo-modal .bo-pin'),
-    keys('1111'), press('Enter'), sleep(250), keys('1111'), press('Enter'), sleep(250), keys('1111'), press('Enter'), sleep(250),
-    keys('1111'), press('Enter'), sleep(250),
+    // each wrong PIN is checked (scrypt) before the next one is typed
+    keys('1111'), press('Enter'), triesLeft(4), sleep(150), keys('1111'), press('Enter'), triesLeft(3), sleep(150),
+    keys('1111'), press('Enter'), triesLeft(2), sleep(150),
+    keys('1111'), press('Enter'), triesLeft(1),
     waitText('Te queda 1 intento'),
     keys('1111'), press('Enter'),
     waitText('Demasiados intentos. Espera'),

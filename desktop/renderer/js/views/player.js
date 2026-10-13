@@ -29,6 +29,7 @@
   }
 
   function markText(m) {
+    if (m.handMark && m.type === 'mark') { return BO.t('hand.marked', { start: BO.fmt.time(m.range.start), end: BO.fmt.time(m.range.end) }); }
     if (m.type === 'mark') { return BO.t('player.markAdded', { start: BO.fmt.time(m.range.start), end: BO.fmt.time(m.range.end) }); }
     if (m.type === 'undo') { return BO.t('player.markUndone'); }
     return BO.t('player.panicSaved');

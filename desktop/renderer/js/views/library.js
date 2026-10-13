@@ -203,7 +203,15 @@
       header = BO.el('header', { 'class': 'bo-page__header' });
       grid = BO.el('div', { 'class': 'bo-grid--tiles' });
       section.appendChild(BO.el('div', { 'class': 'bo-page' }, [header, grid]));
-      BO.store.subscribe('library', function () { if (BO.router.current() === 'library') { render(); } });
+      // Only redraw when something changed: the refresh on every visit (X8) must not close an open
+      // menu or move focus when the library is the same.
+      var lastSeen = null;
+      BO.store.subscribe('library', function (items) {
+        var snap = JSON.stringify(items || []);
+        if (snap === lastSeen) { return; }
+        lastSeen = snap;
+        if (BO.router.current() === 'library') { render(); }
+      });
       BO.store.subscribe('settings', function () { if (BO.router.current() === 'library') { renderHeader(); } });
       BO.store.subscribe('scan', function (s) {
         if (BO.router.current() !== 'library') { return; }
