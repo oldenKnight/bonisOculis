@@ -37,7 +37,9 @@
     if (dup) { BO.toast.show({ kind: 'info', title: BO.tn('add.duplicate', dup) }); }
     if (failed.length) {
       var reason = failed[0].reason === 'notFound' ? 'notFound' : 'notVideo';
-      BO.toast.show({ kind: 'error', title: BO.t('add.failed.' + reason + '.title'), text: BO.t('add.failed.' + reason + '.text') });
+      // Name the file (round 1, N2.5); more than one: the first, then "and N more" in the count.
+      var name = String(failed[0].path || '').split(/[\\/]/).pop();
+      BO.toast.show({ kind: 'error', title: BO.t('add.failed.' + reason + '.title', { file: name + (failed.length > 1 ? ' (+' + (failed.length - 1) + ')' : '') }), text: BO.t('add.failed.' + reason + '.text') });
     }
     refreshLibrary();
   }
@@ -134,7 +136,7 @@
     BO.on('toast', function (ev) {
       // Kid mode stays quiet about scans and about parents' data messages (a damaged list, a
       // changed file): a kid gets "ask a grown-up" from the kid screen itself; player messages show.
-      if (BO.store.get('locked') && ev && /^toast\.(scan|integrity|list|skipTampered|tampered|recovered|lostFile)/.test(ev.key || '')) { return; }
+      if (BO.store.get('locked') && ev && /^toast\.(scan|integrity|list|skipTampered|tampered|recovered|lost)/.test(ev.key || '')) { return; }
       BO.toast.fromMain(ev);
     });
     BO.on('app:locked', function (ev) {

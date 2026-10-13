@@ -36,11 +36,12 @@
     if (!found.length) {
       return isChecked ? { kind: 'none', text: BO.t('parents.none'), count: 0 } : { kind: 'unchecked', text: BO.t('parents.notChecked'), count: 0 };
     }
-    var filtered = 0, letPlay = 0, below = 0, max = 1;
+    var filtered = 0, letPlay = 0, below = 0, max = 0;
     found.forEach(function (r) {
       var e = BO.effective.of(r, settings);
       if (e === 'letPlay') { letPlay++; } else if (e === 'below') { below++; } else { filtered++; }
-      if (r.intensity > max) { max = r.intensity; }
+      // Only the scan measures strength: hand and panic marks get no dots (round 2, X10).
+      if (r.source === 'auto' && r.intensity > max) { max = r.intensity; }
     });
     var n = found.length;
     var key;
@@ -66,7 +67,7 @@
       var st = rowState(cat, o.doc, o.settings);
       if (cat === 'other' && !st.count) { return; }
       var quiet = st.kind === 'none' || st.kind === 'unchecked';
-      var meter = quiet ? [] : [dots(cat, st.max), BO.el('span', { 'class': 'bo-parents-row__word', text: BO.t(WORDS[st.max]) })];
+      var meter = quiet || !st.max ? [] : [dots(cat, st.max), BO.el('span', { 'class': 'bo-parents-row__word', text: BO.t(WORDS[st.max]) })];
       var row = BO.el('li', { 'class': 'bo-parents-row bo-parents-row--' + cat + (quiet ? ' is-none' : '') + ' is-' + st.kind, data: { category: cat, state: st.kind } }, [
         BO.el('span', { 'class': 'bo-parents-row__icon' }, BO.icon('cat-' + cat)),
         BO.el('span', { 'class': 'bo-parents-row__name', text: BO.t('cat.' + cat) }),

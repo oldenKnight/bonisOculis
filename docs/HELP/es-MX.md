@@ -76,6 +76,8 @@ Para cada escena puedes:
 
 Algunas escenas dicen **Por debajo de tu nivel: se verá a menos que la omitas**. Las encontramos, pero no estamos lo bastante seguros para el nivel que elegiste, así que se ven. Presiona **Omitir esta escena** si quieres quitarlas.
 
+**Solo para esta película.** Los niveles de Ajustes se aplican a todas las películas. Para ser más estricto o más flexible con una sola, presiona **Solo para esta película** en su revisión (o en el resumen antes de Ver). **Usar mis niveles de siempre** lo deshace. El reproductor, la lista para Kodi y la copia limpia siguen los niveles propios de la película. Las escenas que ya decidiste se quedan como las decidiste.
+
 **Teclas.** Cuando eliges una escena, el teclado pasa al panel. **S** omite la escena, **L** deja que se vea, **N** va a la siguiente escena y **P** a la anterior. En la línea de tiempo, **Inicio** y **Fin** saltan al corte de escena más cercano.
 
 Cada cambio se guarda en cuanto lo haces. Un mensaje abajo a la izquierda ofrece **Deshacer** durante unos segundos.
@@ -95,7 +97,7 @@ Cuando la app está bloqueada, los niños ven solo las películas que aprobaste,
 - Una película aparece para los niños solo cuando ya se analizó y un adulto decidió cada escena (o aprobó una película donde no se encontró nada).
 - Si algo anda mal con su lista de escenas, la película no se reproduce para los niños. En modo infantil nunca se reproduce sin protección.
 - Para volver a la biblioteca, presiona **Adulto** y escribe el PIN.
-- Bloquea la app con **Bloquear para niños** en la barra lateral. También se bloquea sola después de 10 minutos sin uso. Cámbialo en Ajustes › PIN (5, 10 o 30 minutos, o nunca). Un mensaje te avisa 30 segundos antes.
+- Bloquea la app con **Bloquear para niños** en la barra lateral. También se bloquea sola después de 10 minutos sin uso. Cámbialo en Ajustes › PIN (5, 10 o 30 minutos, o nunca). Un mensaje te avisa 30 segundos antes. Una película nunca bloquea la app mientras se ve, pero su tiempo cuenta: si el tiempo se acabó durante la película, la app se bloquea en cuanto termina. En Ajustes › PIN también puedes activar **Bloquear al cambiar a otra app**.
 
 **Antes de ver en modo de adulto** un resumen breve dice qué pasará, por ejemplo "Se omitirán 12 escenas · 1 se silenciará · 2 se verán (debajo de tu nivel)". Presiona **Ver**, o **Revisar primero** para volver a mirar. En modo infantil la película empieza de inmediato.
 

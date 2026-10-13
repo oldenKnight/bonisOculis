@@ -368,3 +368,123 @@ test('locking while a parent-mode player is open switches it to kid mode, or sto
     });
   });
 });
+
+/* ------------------------------------------------------------------ round 2 */
+
+function handlersFor(s, service, outDir) {
+  var dialog = { showOpenDialog: function () { return Promise.resolve({ canceled: false, filePaths: [outDir] }); } };
+  return createHandlers({ electron: { dialog: dialog }, getWindow: function () { return null; }, store: s.store, pin: s.pin, settings: s.settings, library: s.library, skips: s.skips,
+    paths: s.paths, player: service || { status: function () { return { state: 'idle' }; } }, supervisor: {}, log: h.noopLog(), emit: function () {},
+    i18n: { t: function (k) { return k; } }, versions: {}, activity: createActivity({ dir: s.dir }) });
+}
+
+test('"For this movie" levels: kept in the library index, used by the player, the preview and the Kodi list alike', function (t, done) {
+  // A pending kissing scene at 0.7: Little kids (strict) skips it; a per-movie Light level lets it play.
+  var s = setup('brd-movie-levels', doc([{ start: 10, end: 20, category: 'kissing', confidence: 0.7 }, { start: 40, end: 50, category: 'gore', review: 'approved' }]));
+  var log = [];
+  var svc = service(s, log, []);
+  var outDir = h.tmpDir('brd-movie-levels-out');
+  var hd = handlersFor(s, svc, outDir);
+  assert.strictEqual(svc.preview(ITEM.id).data.totals.skipped, 2);
+  var light = { nudity: 'strict', sex: 'strict', implied: 'strict', kissing: 'light', gore: 'strict', language: 'strict' };
+  hd['library:setLevels']({ id: ITEM.id, levels: { nudity: 'loud' } }, {}, function (eBad) {
+    assert.strictEqual(eBad, 'badValue');
+    hd['library:setLevels']({ id: ITEM.id, levels: light }, {}, function (e, it) {
+      assert.ifError(e);
+      assert.deepStrictEqual(it.levels, light, 'stored in the library entry');
+      assert.strictEqual(s.skips.load(ITEM.id).doc.levels, undefined, 'not in the skip file');
+      assert.deepStrictEqual(s.settings.value('levels').kissing, 'strict', 'the usual levels are unchanged');
+      var pv = svc.preview(ITEM.id).data;
+      assert.strictEqual(pv.perMovie, true);
+      assert.strictEqual(pv.totals.below, 1, 'kissing at 0.7 is below Light for this movie');
+      svc.play(ITEM.id, {}, function (e2, r) {
+        assert.ok(r.ok);
+        var cuts = BO.enforced(log[0].doc || JSON.parse(fs.readFileSync(path.join(s.paths.playDir(), ITEM.id + '.play.bonis.json'), 'utf8'))).map(function (x) { return x.start; });
+        assert.deepStrictEqual(cuts, [40], 'the player follows the movie\'s own levels');
+        svc.stop(function () {
+          hd['export:pickFolder']({}, {}, function () {
+            hd['export:edl']({ id: ITEM.id, dir: outDir }, {}, function (e3, res) {
+              assert.ifError(e3);
+              var lines = fs.readFileSync(res.path, 'utf8').trim().split('\n');
+              assert.deepStrictEqual(lines.map(function (l) { return Number(l.split(/\s+/)[0]); }), [40], 'and so does the Kodi list');
+              hd['library:setLevels']({ id: ITEM.id, levels: null }, {}, function (e4, it2) {
+                assert.strictEqual(it2.levels, null, '"Use my usual levels"');
+                assert.strictEqual(svc.preview(ITEM.id).data.totals.skipped, 2);
+                done();
+              });
+            });
+          });
+        });
+      });
+    });
+  });
+});
+
+test('the parents card can only say "checked by you" when the parent finished: reviewedAt is set on Protected', function () {
+  var s = setup('brd-reviewed', doc([{ start: 10, end: 20 }]));
+  assert.strictEqual(s.library.get(ITEM.id).reviewedAt, undefined);
+  s.skips.approve(ITEM.id, 'all');
+  var it = s.library.get(ITEM.id);
+  assert.strictEqual(it.status, 'protected');
+  assert.ok(!isNaN(Date.parse(it.reviewedAt)), 'date of the finished review');
+});
+
+test('a kid-mode panic flag clears only when the parent opens that scene', function (t, done) {
+  var s = setup('brd-panic-seen', doc([{ start: 10, end: 20, review: 'approved' }]));
+  var log = [];
+  var svc = service(s, log, []);
+  var hd = handlersFor(s, svc, h.tmpDir('brd-panic-out'));
+  svc.play(ITEM.id, { kidMode: true }, function (e, r) {
+    assert.ok(r.ok);
+    log.player.emit('panic', { t: 'panic', phase: 'end', at: 90, range: { id: 'rpanic901', start: 88, end: 90 } });
+    log.player.emit('panic', { t: 'panic', phase: 'end', at: 120, range: { id: 'rpanic902', start: 118, end: 120 } });
+    svc.stop(function () {
+      assert.deepStrictEqual(s.library.get(ITEM.id).panicUnseen.rangeIds, ['rpanic901', 'rpanic902']);
+      hd['skip:get']({ id: ITEM.id }, {}, function () {
+        assert.ok(s.library.get(ITEM.id).panicUnseen, 'opening the review alone keeps the flag');
+        hd['skip:seen']({ id: ITEM.id, rangeId: 'rpanic901' }, {}, function () {
+          assert.deepStrictEqual(s.library.get(ITEM.id).panicUnseen.rangeIds, ['rpanic902']);
+          hd['skip:seen']({ id: ITEM.id, rangeId: 'rpanic902' }, {}, function () {
+            assert.strictEqual(s.library.get(ITEM.id).panicUnseen, null);
+            done();
+          });
+        });
+      });
+    });
+  });
+});
+
+test('a list damaged on disk while the app runs is noticed when the library is listed', function (t, done) {
+  var s = setup('brd-list-check', doc([{ start: 10, end: 20, review: 'approved' }]));
+  var damaged = [];
+  s.skips = require('../main/skips.js').createSkips({ store: s.store, library: s.library, onDamaged: function (id) {
+    damaged.push(id);
+    s.library.setStatus(id, 'needsAttention', { error: 'skipCorrupt' });
+  } });
+  var hd = handlersFor(s, null, h.tmpDir('brd-list-out'));
+  hd['library:list']({}, {}, function (e, items) {
+    assert.strictEqual(items[0].status, 'protected');
+    var f = path.join(s.dir, 'library', ITEM.id + '.bonis.json');
+    fs.writeFileSync(f, '{ broken');
+    fs.writeFileSync(f + '.bak', '{ broken');
+    hd['library:list']({}, {}, function (e2, items2) {
+      assert.deepStrictEqual(damaged, [ITEM.id]);
+      assert.strictEqual(items2[0].status, 'needsAttention', 'never "Protected" on a damaged list');
+      done();
+    });
+  });
+});
+
+test('player crashes go to the activity log', function (t, done) {
+  var s = setup('brd-crash-log', doc([{ start: 10, end: 20, review: 'approved' }]));
+  var log = [];
+  var acts = createActivity({ dir: s.dir });
+  var svc = service(s, log, [], acts);
+  svc.play(ITEM.id, { kidMode: true }, function () {
+    log.player.emit('crashed', { final: true });
+    var a = acts.list()[0];
+    assert.strictEqual(a.type, 'playerStopped');
+    assert.strictEqual(a.mode, 'kid');
+    done();
+  });
+});

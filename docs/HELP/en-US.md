@@ -76,6 +76,8 @@ For each scene you can:
 
 Some scenes say **Below your level — will play unless you skip it**. We found them, but we are not sure enough for the level you chose, so they play. Press **Skip this scene** if you want them gone.
 
+**For this movie.** The levels in Settings apply to every movie. To be stricter or gentler with one movie only, press **For this movie** in its review (or in the summary before Play). **Use my usual levels** undoes it. The player, the Kodi list and the clean copy follow the movie's own levels. Scenes you already decided stay as you decided.
+
 **Keys.** When you pick a scene, the keyboard goes to the panel. **S** skips the scene, **L** lets it play, **N** goes to the next scene and **P** to the previous one. In the timeline, **Home** and **End** jump to the nearest scene cut.
 
 Every change is saved the moment you make it. A message at the bottom left offers **Undo** for a few seconds.
@@ -95,7 +97,7 @@ When the app is locked, kids see only the movies you approved, as big tiles. The
 - A movie appears for kids only when it has been scanned and a parent has decided every scene (or approved a movie where nothing was found).
 - If anything is wrong with its list of scenes, the movie does not play for kids. It never plays unprotected in kid mode.
 - To get back to the library, press **Parent** and enter the PIN.
-- Lock the app with **Lock for kids** in the side bar. It also locks by itself after 10 minutes without use. Change this in Settings › PIN (5, 10 or 30 minutes, or never). A message warns you 30 seconds before.
+- Lock the app with **Lock for kids** in the side bar. It also locks by itself after 10 minutes without use. Change this in Settings › PIN (5, 10 or 30 minutes, or never). A message warns you 30 seconds before. A movie never locks the app while it plays, but its time counts: if the time ran out during a movie, the app locks as soon as the movie ends. In Settings › PIN you can also turn on **Lock when I switch to another app**.
 
 **Before you play in parent mode** a short summary says what will happen, for example "12 scenes will be skipped · 1 muted · 2 will play (below your level)". Press **Play**, or **Review first** to look again. In kid mode the movie plays straight away.
 

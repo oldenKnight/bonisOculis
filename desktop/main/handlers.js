@@ -136,7 +136,23 @@ function createHandlers(c) {
     cb(null, true);
   };
 
+  // Round 2, X8: a list damaged or changed on disk while the app runs is noticed when the library
+  // is listed, not only at Play. Only files whose size or time changed are read again.
+  var seenFiles = {};
+  function verifyLists() {
+    c.library.list().forEach(function (it) {
+      if (it.status === 'queued' || it.status === 'scanning' || it.status === 'notScanned') { return; }
+      var key;
+      try { var st = fs.statSync(c.store.full('library/' + it.id + '.bonis.json')); key = st.size + ':' + st.mtimeMs; } catch (e) { key = 'missing'; }
+      if (seenFiles[it.id] === key) { return; }
+      seenFiles[it.id] = key;
+      var r = c.skips.load(it.id);
+      if (r.doc) { c.library.applyDoc(it.id, r.doc, BO.validate); }
+    });
+  }
+
   h['library:list'] = function (p, ctx, cb) {
+    try { verifyLists(); } catch (e) { c.log.warn('list check failed'); }
     var items = c.library.list();
     if (c.pin.isLocked()) { items = items.filter(function (it) { return it.status === 'protected'; }).map(kidItem); }
     cb(null, items);
@@ -190,8 +206,20 @@ function createHandlers(c) {
     var it = c.library.get(p.id);
     if (!it) { cb('notFound'); return; }
     var r = c.skips.load(p.id);
-    if (it.panicUnseen) { c.library.update(p.id, { panicUnseen: null }); it = c.library.get(p.id); }
+    // An old flag without scene ids clears on opening; a new one only when its scenes are opened.
+    if (it.panicUnseen && !Array.isArray(it.panicUnseen.rangeIds)) { c.library.update(p.id, { panicUnseen: null }); it = c.library.get(p.id); }
     cb(null, { doc: r.doc || c.skips.blank(p.id), item: c.library.get(p.id) || it, tampered: r.tampered, scanned: !!r.doc, damaged: !!r.corrupt });
+  };
+  // The parent opened a scene hidden with the panic key: that one is seen.
+  h['skip:seen'] = function (p, ctx, cb) {
+    var it = c.library.get(p.id);
+    if (!it) { cb('notFound'); return; }
+    var pu = it.panicUnseen;
+    if (pu && Array.isArray(pu.rangeIds) && pu.rangeIds.indexOf(p.rangeId) >= 0) {
+      var left = pu.rangeIds.filter(function (x) { return x !== p.rangeId; });
+      c.library.update(p.id, { panicUnseen: left.length ? { count: left.length, at: pu.at, mode: pu.mode, rangeIds: left } : null });
+    }
+    cb(null, c.library.get(p.id));
   };
   h['skip:save'] = function (p, ctx, cb) {
     if (!c.library.get(p.id)) { cb('notFound'); return; }

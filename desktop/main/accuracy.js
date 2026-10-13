@@ -65,6 +65,10 @@ function createAccuracy(opts) {
     // The movie's own list (or an export of it) already holds the scan: comparing it with the scan
     // would always look perfect. Refuse with a plain message.
     if (truth.doc.id === current.id || truth.doc.id === pred.id) { done('sameList'); return; }
+    // A copy of the list under a new id still carries the scan's own scenes (round 2, X13).
+    var known = {};
+    current.ranges.concat(pred.ranges).forEach(function (r) { if (r.source === 'auto') { known[r.id] = true; } });
+    if (truth.doc.ranges.some(function (r) { return known[r.id]; })) { done('sameList'); return; }
     var fp = truth.doc.media.fingerprint || {};
     var sameCopy = fp.oshash === item.oshash && fp.size === item.size;
 

@@ -314,3 +314,7 @@ ol.bo-help__list { list-style: decimal; }
 /* Toasts stay under an open dialog (round 2, X6). */
 .bo-toast-region { z-index: calc(var(--bo-z-modal) - 1); }
 .bo-icon--up { transform: rotate(180deg); }
+.bo-range-row__panic { display: flex; align-items: center; gap: 0.25rem; margin-top: 0.125rem; font-size: var(--bo-fs-xs); color: var(--bo-text-2); }
+.bo-range-row__panic.is-unseen { color: var(--bo-status-attention-fg); font-weight: var(--bo-fw-semibold); }
+/* Round 1 N2.1 (still open in round 2): the wizard's Continue stays on screen at 1024x640. */
+.bo-setup__footer { position: sticky; bottom: 0; z-index: 2; background: var(--bo-bg); padding-block: var(--bo-space-3); margin-top: var(--bo-space-2); box-shadow: 0 -0.75rem 0.75rem -0.75rem rgba(0, 0, 0, 0.12); }

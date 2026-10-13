@@ -212,6 +212,21 @@ function toastClearOfPanel(label) {
   };
 }
 
+// Round 2, X1: category names in the parents card never break inside a word.
+function namesWhole(label) {
+  return function () {
+    return page.$$eval('.bo-parents-row__name, .bo-preplay__cat', function (nodes) {
+      return nodes.filter(function (n) {
+        var r = document.createRange();
+        r.selectNodeContents(n);
+        var tops = {};
+        Array.prototype.forEach.call(r.getClientRects(), function (q) { if (q.width > 1) { tops[Math.round(q.top)] = true; } });
+        return n.textContent.indexOf(' ') < 0 && Object.keys(tops).length > 1;
+      }).map(function (n) { return n.textContent; });
+    }).then(function (broken) { assert.deepStrictEqual(broken, [], label + ': category names broken mid-word'); });
+  };
+}
+
 function activeAct() { return page.evaluate(function () { return document.activeElement ? document.activeElement.getAttribute('data-act') : null; }); }
 
 function rangeSel(i) { return '.bo-range-list li:nth-child(' + (i + 1) + ') .bo-range-row'; }
@@ -305,6 +320,10 @@ function main() {
     function () { return page.$$eval('.bo-range', function (n) { return n.length; }).then(function (n) { assert.strictEqual(n, 3, 'three ranges on the timeline'); }); },
     waitFor(function () { return document.querySelectorAll('.bo-strip-tile__img').length >= 20; }, null, 30000),
     shot('es-light-review-overview'),
+    // round 2, X2: nobody has checked this yet, and the card says so
+    waitSel('.bo-parents-card__footer [data-footer="unchecked"]'),
+    waitText('ningún adulto las ha revisado todavía'),
+    namesWhole('es review overview'),
     // decision 6: with Kissing at Light, the 0.66 kissing scene is below the level and says so
     invoke('settings:set', { patch: { levels: { nudity: 'strict', sex: 'strict', implied: 'strict', kissing: 'light', gore: 'strict', language: 'strict' } } }, function (r) { assert.ok(r.ok); }),
     evaluate(function () { return new Promise(function (res) { window.bo.invoke('settings:get', {}, function (r) { window.BO.store.set('settings', r.data); res(); }); }); }),
@@ -383,6 +402,11 @@ function main() {
     waitFor(function () { return document.querySelectorAll('.bo-range.is-pending').length === 0; }),
     waitFor(function () { return document.querySelector('.bo-review__summary .bo-pill--protected'); }),
     shot('es-light-review-done'),
+    function () { return page.click('[data-act="back"]').then(function () { return page.click('.bo-title-card[data-id="' + ids['Family Picnic'] + '"] [data-act="more"]'); }); },
+    click('[data-menu="review"]'),
+    waitSel('.bo-parents-card__footer [data-footer="checked"]'),
+    waitText('y las revisaste el'),
+    shot('es-light-review-checked'),
     // ---- export: JSON + EDL + clean copy
     click('[data-act="back"]'),
     click('[data-nav="export"]'),
@@ -521,8 +545,16 @@ function main() {
       steps.push(go('setup', { step: 'preset' }), sleep(150), shot(p + 'setup-4-preset'));
       steps.push(go('library'), sleep(500), shot(p + 'library'), noHorizontalScroll(p + 'library'));
       steps.push(function () { return page.click('.bo-title-card[data-id="' + ids['Family Picnic'] + '"] [data-act="more"]'); }, sleep(150), shot(p + 'library-menu'), press('Escape'));
-      steps.push(go('review', function () { return { id: ids['River Trip'] }; }), waitSel('.bo-range'), sleep(600), shot(p + 'review-overview'), noHorizontalScroll(p + 'review'));
+      steps.push(go('review', function () { return { id: ids['River Trip'] }; }), waitSel('.bo-range'), sleep(600), shot(p + 'review-overview'), noHorizontalScroll(p + 'review'), namesWhole(p + 'review'));
       steps.push(function () { return page.click(rangeSel(0)); }, waitSel('.bo-panel .bo-thumb'), sleep(200), shot(p + 'review-panel'), noHorizontalScroll(p + 'review-panel'));
+      // round 2, P9: the scan ran in Spanish; the note follows the UI language
+      steps.push((function (lang) {
+        return function () {
+          return page.textContent('.bo-panel__note').then(function (t) {
+            assert.strictEqual(t, lang === 'en-US' ? 'Possible nudity. Seen in the picture.' : 'Posible desnudez. Se ve en la imagen.', 'note in ' + lang);
+          });
+        };
+      }(L[0])));
       steps.push(function () { return page.$eval('.bo-panel__scroll', function (n) { n.scrollTop = n.scrollHeight; }); }, sleep(100), shot(p + 'review-panel-edges'));
       steps.push(go('settings'), sleep(400), shot(p + 'settings-protection'), noHorizontalScroll(p + 'settings'));
       steps.push(click('[data-section="playback"]'), sleep(200), shot(p + 'settings-playback'));
@@ -552,7 +584,27 @@ function main() {
   // in parent mode it never shows Protected and Play asks first (decision 1); activity; auto-relock.
   function lakeFiles() { return [path.join(UD, 'library', ids.lake + '.bonis.json'), path.join(UD, 'library', ids.lake + '.bonis.json.bak')]; }
   steps.push(
-    setLang('es-MX'), setTheme('light'), go('library'), sleep(300),
+    // round 2, decision 6: "For this movie" levels from the review header, then back to the usual ones
+    setLang('es-MX'), setTheme('light'),
+    go('review', function () { return { id: ids['River Trip'] }; }), waitSel('.bo-range'),
+    click('[data-act="movie-levels"]'),
+    waitSel('.bo-modal .bo-level[data-category="kissing"]'),
+    function () { return page.click('.bo-modal .bo-level[data-category="kissing"] .bo-segmented__opt--light'); },
+    sleep(200), shot('es-light-movie-levels'),
+    click('.bo-modal [data-action="save-levels"]'),
+    waitFor(function () { var b = document.querySelector('[data-act="movie-levels"]'); return b && b.getAttribute('aria-pressed') === 'true'; }),
+    waitSel('.bo-range-row [data-below]'),
+    invoke('library:list', {}, function (r) {
+      var it = r.data.filter(function (x) { return x.id === ids['River Trip']; })[0];
+      assert.strictEqual(it.levels.kissing, 'light', 'kept in the library entry');
+    }),
+    invoke('settings:get', {}, function (r) { assert.strictEqual(r.data.levels.kissing, 'strict', 'the usual levels did not change'); }),
+    shot('es-light-review-movie-levels'),
+    click('[data-act="movie-levels"]'),
+    click('.bo-modal [data-action="use-usual"]'),
+    waitFor(function () { var b = document.querySelector('[data-act="movie-levels"]'); return b && b.getAttribute('aria-pressed') === 'false'; }),
+    function () { return page.$('.bo-range-row [data-below]').then(function (n) { assert.strictEqual(n, null, 'usual levels again'); }); },
+    go('library'), sleep(300),
     invoke('library:add', { paths: [garden, lake] }, function (r) { assert.strictEqual(r.data.added.length, 2); ids.garden = r.data.added[0]; ids.lake = r.data.added[1]; }),
     function () { return poll(function (id) { var c = document.querySelector('.bo-title-card[data-id="' + id + '"]'); return c && c.getAttribute('data-status') === 'needsReview'; }, ids.lake, 40000); },
     function () { return poll(function (id) { return !!document.querySelector('.bo-title-card[data-id="' + id + '"] [data-act="approve-clean"]'); }, ids.garden, 40000); },
@@ -612,7 +664,7 @@ function main() {
     function () { return page.click('.bo-title-card[data-id="' + ids.lake + '"] [data-act="more"]'); },
     click('[data-menu="play"]'),
     waitSel('.bo-modal [data-action="play-unprotected"]'),
-    waitText('Esta película no tiene lista de escenas. ¿Verla sin protección?'),
+    waitText('La lista de escenas de esta película está dañada. ¿Verla sin protección?'),
     sleep(400),
     shot('es-light-play-unprotected'),
     click('.bo-modal [data-action="cancel"]'),
@@ -638,6 +690,25 @@ function main() {
     sleep(300),
     invoke('settings:get', {}, function (r) { assert.strictEqual(r.data.autoLockMinutes, 5); }),
     shot('es-light-settings-autolock'),
+    // round 2, K5: a movie never locks mid-way, but its time counts: when it ends, the app locks at once
+    go('library'), sleep(200),
+    function () { return page.click('.bo-title-card[data-id="' + ids['Family Picnic'] + '"] [data-act="play"]'); },
+    waitSel('.bo-modal [data-action="play"]'),
+    click('.bo-modal [data-action="play"]'),
+    waitSel('.bo-nowplaying__state[data-state="playing"]', { timeout: 30000 }),
+    waitText('Atrás o adelante 5 segundos'),
+    evaluate(function () { window.BO.idle._setLast(Date.now() - 6 * 60000); window.BO.idle.tick(); }),
+    sleep(1500),
+    invoke('pin:status', {}, function (r) { assert.ok(!r.data.locked, 'not while the movie plays'); }),
+    evaluate(function () { window.BO.idle._setLast(Date.now() - 6 * 60000); }),
+    // the movie ends by itself (no click in the app: a click would count as a parent being there)
+    invoke('player:stop', {}),
+    waitSel('[data-view="kid"]:not([hidden])', { timeout: 20000 }),
+    invoke('pin:status', {}, function (r) { assert.ok(r.data.locked, 'locked as soon as the movie ended'); }),
+    click('[data-act="parent"]'),
+    waitSel('.bo-modal .bo-pin'),
+    keys(PIN), press('Enter'),
+    waitSel('[data-view="library"]:not([hidden])', { timeout: 20000 }),
     go('library'), sleep(200),
     evaluate(function () { window.BO.idle._setLast(Date.now() - 5 * 60000 + 20000); window.BO.idle.tick(); }),
     waitText('Se bloqueará para niños en 30 segundos'),

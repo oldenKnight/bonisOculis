@@ -105,7 +105,9 @@ function boot() {
       }
       return;
     }
-    emit('toast', { kind: 'warning', key: ev.lost ? 'toast.lostFile' : 'toast.recovered' });
+    // Say which file and what it means (round 2, Err-1), not "check your settings and the library".
+    var LOST = { 'settings.json': 'toast.lostSettings', 'library.json': 'toast.lostLibrary', 'queue.json': 'toast.lostQueue' };
+    emit('toast', { kind: 'warning', key: ev.lost ? (LOST[ev.file] || 'toast.lostFile') : 'toast.recovered', params: { file: ev.file || '' } });
   });
   store.on('tampered', function () { emit('toast', { kind: 'warning', key: 'toast.tampered' }); });
   var pin = createPin({ store: store });

@@ -37,6 +37,7 @@ var CHANNELS = {
   'skip:markReviewed': { shape: { id: 'id' } },
   'skip:approveClean': { shape: { id: 'id' } },
   'skip:trust': { shape: { id: 'id' } },
+  'skip:seen': { shape: { id: 'id', rangeId: 'rangeId' } },
   'skip:thumbs': { shape: { id: 'id', rangeIds: 'rangeIdList' } },
   'skip:strip': { shape: { id: 'id', n: 'count' } },
   'skip:peek': { shape: { id: 'id', rangeId: 'rangeId' } },

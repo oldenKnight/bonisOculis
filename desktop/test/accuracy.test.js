@@ -16,11 +16,11 @@ var createAccuracy = require('../main/accuracy.js').createAccuracy;
 var ITEM = { id: 'eeeeeeeeeeeeeeee', path: '/m/e.mkv', filename: 'e.mkv', title: 'Echo', size: 50, oshash: 'eeeeeeeeeeeeeeee', status: 'notScanned', duration: 120 };
 var ROOT = path.join(__dirname, '..', '..');
 
-function doc(ranges, fp) {
+function doc(ranges, fp, prefix) {
   return BO.newDoc({
     media: { title: 'Echo', duration: 120, fingerprint: fp || { size: 50, oshash: ITEM.oshash } },
     ranges: ranges.map(function (r, i) {
-      return BO.newRange({ id: 'racc0000' + i, start: r[0], end: r[1], category: r[2], source: r[3] || 'auto', review: r[4] || 'pending', confidence: 0.9, action: r[5] || 'skip' });
+      return BO.newRange({ id: (prefix || 'racc0000') + i, start: r[0], end: r[1], category: r[2], source: r[3] || 'auto', review: r[4] || 'pending', confidence: 0.9, action: r[5] || 'skip' });
     }),
     scan: { status: 'complete' }
   });
@@ -51,7 +51,7 @@ function scanned(s, ranges) {
 
 function truthFile(s, fp) {
   var f = path.join(s.dir, 'hand marked.bonis.json');
-  fs.writeFileSync(f, JSON.stringify(doc(TRUTH, fp)));
+  fs.writeFileSync(f, JSON.stringify(doc(TRUTH, fp, 'rhand000')));
   return f;
 }
 
@@ -109,6 +109,10 @@ test('refuses what it cannot compare and reports a failed analyzer plainly', fun
     }],
     [function () { fs.copyFileSync(s.paths.autoScan(ITEM.id), autoCopy); }, autoCopy, function (err) {
       assert.strictEqual(err, 'sameList', 'the automatic result itself is refused too');
+    }],
+    // the scan's scenes saved under a new document id: still the same list
+    [function () { var d = JSON.parse(fs.readFileSync(s.paths.autoScan(ITEM.id), 'utf8')); d.id = BO.newDoc({ media: d.media }).id; fs.writeFileSync(autoCopy, JSON.stringify(d)); }, autoCopy, function (err) {
+      assert.strictEqual(err, 'sameList', 'same scene ids under another document id');
     }]
   ];
   function next(i) {

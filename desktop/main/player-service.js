@@ -144,8 +144,11 @@ function createPlayerService(options) {
       skips.addRange(cur.id, { id: m.range.id, start: m.range.start, end: m.range.end, category: 'other', action: 'skip', source: 'panic', review: 'approved',
         note: t(cur.kidMode ? 'panic.note.kid' : 'panic.note.parent') }, 'panic');
       var it = library.get(cur.id);
-      var prev = it && it.panicUnseen ? it.panicUnseen.count || 0 : 0;
-      library.update(cur.id, { panicUnseen: { count: prev + 1, at: new Date().toISOString(), mode: mode } });
+      var prev = it && it.panicUnseen ? it.panicUnseen : null;
+      // The flag stays until the parent opens THAT scene in the review (round 2, X7).
+      var ids = prev && Array.isArray(prev.rangeIds) ? prev.rangeIds.slice(0, 200) : [];
+      if (ids.indexOf(m.range.id) < 0) { ids.push(m.range.id); }
+      library.update(cur.id, { panicUnseen: { count: ids.length, at: new Date().toISOString(), mode: prev && prev.mode === 'kid' ? 'kid' : mode, rangeIds: ids } });
       activity.add('panic', { mode: mode, id: cur.id, title: it ? it.title : '', movieTime: Math.round(m.range.start) });
       send({ type: 'panic', phase: 'end', range: { id: m.range.id, start: m.range.start, end: m.range.end } });
     } else {
@@ -174,6 +177,7 @@ function createPlayerService(options) {
     p.on('crashed', function (c) {
       var kid = cur && cur.kidMode;
       emit('toast', { kind: c.final ? 'error' : 'warning', key: c.final ? (kid ? 'kid.crashedFinal' : 'player.crashedFinal') : (kid ? 'kid.crashed' : 'player.crashedRelaunch') });
+      if (cur) { activity.add('playerStopped', { mode: kid ? 'kid' : 'parent', id: cur.id, title: (library.get(cur.id) || {}).title || '', detail: c.final ? 'final' : 'relaunched' }); }
       if (c.final) { finishSession('crashed'); }
     });
     p.on('error', function (e) {

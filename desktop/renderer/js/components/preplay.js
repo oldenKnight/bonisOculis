@@ -20,7 +20,7 @@
   function askUnprotected(item, reason) {
     var damaged = reason === 'damaged';
     BO.modal.open({
-      title: BO.t('preplay.noList.title'), icon: 'alert', danger: true,
+      title: BO.t(damaged ? 'preplay.noList.titleDamaged' : 'preplay.noList.title'), icon: 'alert', danger: true,
       body: [BO.el('p', { text: BO.t(damaged ? 'preplay.noList.damaged' : 'preplay.noList.notScanned', { title: item.title || '' }) }),
         BO.el('p', { text: BO.t('preplay.noList.consequence') })],
       actions: [

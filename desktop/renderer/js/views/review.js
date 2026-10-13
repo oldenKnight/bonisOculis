@@ -132,6 +132,7 @@
       after: function () {
         selected = nextId;
         focusPanel = true;
+        markSeen(nextId);
       }
     });
   }
@@ -420,7 +421,9 @@
       var b = BO.el('button', { 'class': 'bo-range-row bo-cat--' + r.category + (r.id === selected ? ' is-selected' : ''), type: 'button', attrs: { 'aria-pressed': r.id === selected ? 'true' : 'false' }, data: { range: r.id } }, [
         BO.el('span', { 'class': 'bo-range-row__icon' }, BO.icon('cat-' + r.category)),
         BO.el('span', null, [BO.el('span', { 'class': 'bo-range-row__title', text: BO.t('cat.' + r.category) }), BO.el('span', { 'class': 'bo-range-row__time', text: span(r) + ' · ' + BO.fmt.duration(r.end - r.start) }),
-          eff(r) === 'below' ? BO.el('span', { 'class': 'bo-range-row__below', data: { below: '' } }, [BO.icon('alert', 'bo-icon--sm'), belowText(r)]) : null]),
+          eff(r) === 'below' ? BO.el('span', { 'class': 'bo-range-row__below', data: { below: '' } }, [BO.icon('alert', 'bo-icon--sm'), belowText(r)]) : null,
+          r.source === 'panic' ? BO.el('span', { 'class': 'bo-range-row__panic' + (unseen(r.id) ? ' is-unseen' : ''), data: { panic: unseen(r.id) ? 'unseen' : 'seen' } },
+            [BO.icon('panic', 'bo-icon--sm'), BO.t(unseen(r.id) ? 'review.panicUnseen' : 'review.panicBadge')]) : null]),
         statePill(r)
       ]);
       b.addEventListener('click', function () { select(r.id); });
@@ -429,9 +432,21 @@
     listEl.appendChild(ul);
   }
 
+  function unseen(rid) {
+    var pu = item && item.panicUnseen;
+    return !!(pu && Array.isArray(pu.rangeIds) && pu.rangeIds.indexOf(rid) >= 0);
+  }
+
+  // Round 2, X7: the "A moment was hidden" flag goes only when the parent opens that scene.
+  function markSeen(rid) {
+    if (!rid || !unseen(rid)) { return; }
+    BO.invoke('skip:seen', { id: id, rangeId: rid }, function (r) { if (r.ok && r.data) { item = r.data; renderSummary(); } });
+  }
+
   function select(rid, viaTimelineKeys) {
     endPeek();
     selected = rid;
+    markSeen(rid);
     focusPanel = !viaTimelineKeys;
     render();
     if (timeline && rid) { timeline.reveal(rid); }
