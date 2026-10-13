@@ -72,6 +72,12 @@ function createHandlers(c) {
 
   function rememberExport(p) { exported[p] = true; return p; }
 
+  function act(type, fields) { if (c.activity) { c.activity.add(type, fields || {}); } }
+
+  function titleOf(id) { var it = c.library.get(id); return it ? it.title : ''; }
+
+  function mode() { return c.pin.isLocked() ? 'kid' : 'parent'; }
+
   var h = {};
 
   h['app:state'] = function (p, ctx, cb) {
@@ -130,6 +136,7 @@ function createHandlers(c) {
     c.supervisor.cancel(p.id);
     c.skips.remove(p.id);
     try { fs.rmSync(c.paths.workDir(p.id), { recursive: true, force: true }); } catch (e) { c.log.warn('work dir not removed'); }
+    act('remove', { id: p.id, title: titleOf(p.id) });
     c.library.remove(p.id);
     cb(null, true);
   };
@@ -146,15 +153,29 @@ function createHandlers(c) {
     var it = c.library.get(p.id);
     if (!it) { cb('notFound'); return; }
     var r = c.skips.load(p.id);
-    cb(null, { doc: r.doc || c.skips.blank(p.id), item: it, tampered: r.tampered, scanned: !!r.doc });
+    if (it.panicUnseen) { c.library.update(p.id, { panicUnseen: null }); it = c.library.get(p.id); }
+    cb(null, { doc: r.doc || c.skips.blank(p.id), item: c.library.get(p.id) || it, tampered: r.tampered, scanned: !!r.doc, damaged: !!r.corrupt });
   };
   h['skip:save'] = function (p, ctx, cb) {
     if (!c.library.get(p.id)) { cb('notFound'); return; }
     if (!BO.validate(p.doc).ok) { cb('invalidSkip'); return; }
     skipResult(cb)(c.skips.replace(p.id, p.doc, true));
   };
-  h['skip:approve'] = function (p, ctx, cb) { skipResult(cb)(c.skips.approve(p.id, p.rangeIds)); };
-  h['skip:reject'] = function (p, ctx, cb) { skipResult(cb)(c.skips.reject(p.id, p.rangeIds)); };
+  h['skip:approve'] = function (p, ctx, cb) {
+    var r = c.skips.approve(p.id, p.rangeIds);
+    if (r.ok) { act(p.rangeIds === 'all' ? 'skipAll' : 'skip', { id: p.id, title: titleOf(p.id), count: p.rangeIds === 'all' ? null : p.rangeIds.length }); }
+    skipResult(cb)(r);
+  };
+  h['skip:reject'] = function (p, ctx, cb) {
+    var r = c.skips.reject(p.id, p.rangeIds);
+    if (r.ok) { act('letPlay', { id: p.id, title: titleOf(p.id), count: p.rangeIds === 'all' ? null : p.rangeIds.length }); }
+    skipResult(cb)(r);
+  };
+  h['skip:approveClean'] = function (p, ctx, cb) {
+    var r = c.skips.approveClean(p.id);
+    if (r.ok) { act('approveClean', { id: p.id, title: titleOf(p.id) }); }
+    skipResult(cb)(r);
+  };
   h['skip:edit'] = function (p, ctx, cb) {
     var allowed = ['start', 'end', 'category', 'action', 'note', 'intensity'];
     var patch = {};
@@ -174,7 +195,11 @@ function createHandlers(c) {
   };
   h['skip:delete'] = function (p, ctx, cb) { skipResult(cb)(c.skips.deleteRange(p.id, p.rangeId)); };
   h['skip:undo'] = function (p, ctx, cb) { skipResult(cb)(c.skips.undo(p.id)); };
-  h['skip:markReviewed'] = function (p, ctx, cb) { skipResult(cb)(c.skips.markReviewed(p.id)); };
+  h['skip:markReviewed'] = function (p, ctx, cb) {
+    var r = c.skips.markReviewed(p.id);
+    if (r.ok) { act('markReviewed', { id: p.id, title: titleOf(p.id) }); }
+    skipResult(cb)(r);
+  };
   h['skip:thumbs'] = function (p, ctx, cb) { cb(null, c.thumbs.rangeThumbs(p.id, p.rangeIds)); };
   h['skip:strip'] = function (p, ctx, cb) { c.thumbs.strip(p.id, p.n, function (e, list) { cb(null, list || []); }); };
   h['skip:peek'] = function (p, ctx, cb) {
@@ -193,8 +218,9 @@ function createHandlers(c) {
 
   h['player:play'] = function (p, ctx, cb) {
     var kid = c.pin.isLocked() ? true : !!p.kidMode;
-    c.player.play(p.id, { kidMode: kid }, function (e, r) { if (r.ok) { cb(null, r.data); } else { cb(r.error); } });
+    c.player.play(p.id, { kidMode: kid, unprotected: !kid && p.unprotected === true }, function (e, r) { if (r.ok) { cb(null, r.data); } else { cb(r.error, r.data); } });
   };
+  h['player:preview'] = function (p, ctx, cb) { var r = c.player.preview(p.id); if (r.ok) { cb(null, r.data); } else { cb(r.error); } };
   h['player:stop'] = function (p, ctx, cb) { c.player.stop(function () { cb(null, true); }); };
   h['player:status'] = function (p, ctx, cb) { cb(null, c.player.status()); };
 
@@ -202,35 +228,56 @@ function createHandlers(c) {
   h['pin:set'] = function (p, ctx, cb) {
     var r = c.pin.setPin(p.pin);
     if (!r.ok) { cb(r.error); return; }
+    act('setup');
     cb(null, { recoveryCode: r.recoveryCode });
   };
   h['pin:verify'] = function (p, ctx, cb) {
     var wasLocked = c.pin.isLocked();
     var r = c.pin.verify(p.pin, p.purpose);
-    if (r.ok && wasLocked && !c.pin.isLocked()) { c.emit('app:locked', { locked: false }); }
+    if (r.ok && wasLocked && !c.pin.isLocked()) { act('unlock'); c.emit('app:locked', { locked: false }); }
+    if (!r.ok) { act(r.cooldownMs ? 'cooldown' : 'pinFailed', { mode: wasLocked ? 'kid' : 'parent', purpose: p.purpose, seconds: r.cooldownMs ? Math.ceil(r.cooldownMs / 1000) : null }); }
     cb(null, r);
   };
   h['pin:recover'] = function (p, ctx, cb) {
     var wasLocked = c.pin.isLocked();
     var r = c.pin.recover(p.code, p.newPin);
+    if (r.ok) { act('pinRecovered'); }
+    if (!r.ok && !r.error) { act(r.cooldownMs ? 'cooldown' : 'pinFailed', { mode: wasLocked ? 'kid' : 'parent', purpose: 'recover' }); }
     if (r.ok && wasLocked) { c.emit('app:locked', { locked: false }); }
     cb(null, r);
   };
   h['pin:lock'] = function (p, ctx, cb) {
     if (!c.pin.hasPin()) { cb('noPin'); return; }
     c.pin.lock();
+    act('lock', { reason: p.reason || 'manual' });
     c.emit('app:locked', { locked: true });
     cb(null, true);
   };
-  h['pin:change'] = function (p, ctx, cb) { cb(null, c.pin.changePin(p.oldPin, p.newPin)); };
+  h['pin:change'] = function (p, ctx, cb) {
+    var r = c.pin.changePin(p.oldPin, p.newPin);
+    if (r.ok) { act('pinChanged'); }
+    cb(null, r);
+  };
 
   h['settings:get'] = function (p, ctx, cb) {
     var s = c.settings.get();
     cb(null, c.pin.isLocked() ? { lang: s.lang, reduceMotion: s.reduceMotion } : publicSettings());
   };
   h['settings:set'] = function (p, ctx, cb) {
+    var before = c.settings.get();
     var r = c.settings.set(p.patch, true);
     if (!r.ok) { cb(r.error); return; }
+    var changes = [];
+    r.changed.forEach(function (k) {
+      if (k === 'levels') {
+        Object.keys(r.data.levels).forEach(function (cat) {
+          if (before.levels[cat] !== r.data.levels[cat]) { changes.push('levels.' + cat + ' ' + before.levels[cat] + ' -> ' + r.data.levels[cat]); }
+        });
+      } else if (k !== 'windowBounds') {
+        changes.push(k + ' ' + JSON.stringify(before[k]) + ' -> ' + JSON.stringify(r.data[k]));
+      }
+    });
+    if (changes.length) { act('settings', { detail: changes.join('; ') }); }
     if (r.changed.indexOf('lang') >= 0) { c.onLangChanged(r.data.lang); }
     c.supervisor.settingsChanged();
     var out = publicSettings();
@@ -291,6 +338,7 @@ function createHandlers(c) {
   function runImport(text, targetId, cb) {
     var r = importJson({ text: text, library: c.library, skips: c.skips, targetId: targetId });
     if (!r.ok) { cb(r.error); return; }
+    if (r.data && r.data.id) { act('import', { id: r.data.id, title: titleOf(r.data.id) }); }
     if (r.data && r.data.needsPick) {
       var token = crypto.randomBytes(16).toString('hex');
       importTokens[token] = text;
@@ -337,6 +385,8 @@ function createHandlers(c) {
       c.accuracy.run(p.id, r.filePaths[0], function (err, res) { if (err) { cb(err); } else { cb(null, res); } });
     }, function () { cb('dialogFailed'); });
   };
+
+  h['activity:list'] = function (p, ctx, cb) { cb(null, c.activity ? c.activity.list(500) : []); };
 
   h['app:copyText'] = function (p, ctx, cb) {
     try { c.electron.clipboard.writeText(p.text); } catch (e) { cb('failed'); return; }

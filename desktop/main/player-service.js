@@ -57,6 +57,8 @@ function createPlayerService(options) {
   var library = o.library;
   var skips = o.skips;
   var supervisor = o.supervisor;
+  var activity = o.activity || { add: noop };
+  var t = o.t || function (k) { return k; };
   var log = o.log || silentLog;
   var emit = o.emit || noop;
   var player = null;
@@ -157,7 +159,14 @@ function createPlayerService(options) {
     if (!cur) { return; }
     if (m.phase === 'end' && m.range) {
       cur.handled[m.range.id] = true;
-      skips.addRange(cur.id, { id: m.range.id, start: m.range.start, end: m.range.end, category: 'other', action: 'skip', source: 'panic', review: 'approved' }, 'panic');
+      var mode = cur.kidMode ? 'kid' : 'parent';
+      // Stays enforced (approved skip); the parent is told on the library card until the review is opened.
+      skips.addRange(cur.id, { id: m.range.id, start: m.range.start, end: m.range.end, category: 'other', action: 'skip', source: 'panic', review: 'approved',
+        note: t(cur.kidMode ? 'panic.note.kid' : 'panic.note.parent') }, 'panic');
+      var it = library.get(cur.id);
+      var prev = it && it.panicUnseen ? it.panicUnseen.count || 0 : 0;
+      library.update(cur.id, { panicUnseen: { count: prev + 1, at: new Date().toISOString(), mode: mode } });
+      activity.add('panic', { mode: mode, id: cur.id, title: it ? it.title : '', movieTime: Math.round(m.range.start) });
       send({ type: 'panic', phase: 'end', range: { id: m.range.id, start: m.range.start, end: m.range.end } });
     } else {
       send({ type: 'panic', phase: 'start', at: m.at });
@@ -183,12 +192,14 @@ function createPlayerService(options) {
       finishSession(e.reason);
     });
     p.on('crashed', function (c) {
-      emit('toast', { kind: c.final ? 'error' : 'warning', key: c.final ? 'player.crashedFinal' : 'player.crashedRelaunch' });
+      var kid = cur && cur.kidMode;
+      emit('toast', { kind: c.final ? 'error' : 'warning', key: c.final ? (kid ? 'kid.crashedFinal' : 'player.crashedFinal') : (kid ? 'kid.crashed' : 'player.crashedRelaunch') });
       if (c.final) { finishSession('crashed'); }
     });
     p.on('error', function (e) {
       var key = { 'kid-refused': 'player.kidRefused', skipfile: 'player.skipfileError', 'start-failed': 'player.startFailed',
         'spawn-failed': 'player.notFound', 'ipc-timeout': 'player.startFailed' }[e.code] || null;
+      if (key && cur && cur.kidMode && key !== 'player.notFound') { key = 'kid.cannotPlay'; }
       if (key) { emit('toast', { kind: 'error', key: key }); }
       if (e.code === 'kid-refused' || e.code === 'start-failed' || e.code === 'spawn-failed') { finishSession('error'); }
     });
@@ -207,6 +218,15 @@ function createPlayerService(options) {
       var ok = item.status === 'protected' && doc && BO.validate(doc).ok && doc.scan && doc.scan.status === 'complete' &&
         !loaded.tampered && !doc.ranges.some(function (r) { return r.review === 'pending'; });
       if (!ok) { done(null, { ok: false, error: 'kidRefused' }); return; }
+    }
+    var unprotected = false;
+    if (!kidMode && (!doc || loaded.corrupt)) {
+      // Planner decision 1: never start an unprotected play without an explicit answer.
+      if (!(opts && opts.unprotected)) { done(null, { ok: false, error: 'needsConfirm', data: { reason: loaded.corrupt ? 'damaged' : 'notScanned' } }); return; }
+      unprotected = true;
+      activity.add('playUnprotected', { id: id, title: item.title, reason: loaded.corrupt ? 'damaged' : 'notScanned' });
+    } else {
+      activity.add('play', { mode: kidMode ? 'kid' : 'parent', id: id, title: item.title });
     }
     if (!doc) { doc = skips.blank(id); }
     var s = settings.get();
@@ -233,7 +253,7 @@ function createPlayerService(options) {
       cur = { id: id, kidMode: kidMode, playFile: playFile, marksPath: marksPath, pos: resumeAt, lastPosSave: Date.now(), handled: {} };
       supervisor.setPlayerOpen(true);
       var enforcedCount = BO.enforced(playDoc).length;
-      send({ type: 'starting', title: item.title, enforced: enforcedCount, panicKey: s.panicKey || 'p' });
+      send({ type: 'starting', title: item.title, enforced: enforcedCount, panicKey: s.panicKey || 'p', unprotected: unprotected });
       player.play(item.path, playFile, { kidMode: kidMode, lang: s.lang, marksPath: marksPath, resumeAt: resumeAt }, function (err) {
         if (err && cur && cur.id === id && player && player.status().state === 'idle') { finishSession('error'); }
       });
@@ -245,6 +265,31 @@ function createPlayerService(options) {
     } else {
       launch();
     }
+  }
+
+  // Pre-play sheet (planner decision 7): what will happen to each scene with the current settings.
+  function preview(id) {
+    var item = library.get(id);
+    if (!item) { return { ok: false, error: 'notFound' }; }
+    var loaded = skips.load(id);
+    var doc = loaded.doc;
+    if (!doc) { return { ok: true, data: { id: id, title: item.title, list: false, damaged: !!loaded.corrupt } }; }
+    var s = settings.get();
+    var play = buildPlaybackDoc(doc, { levels: s.levels, skipScenes: s.skipScenes, nonSkipAction: s.nonSkipAction });
+    var eff = {};
+    play.ranges.forEach(function (r) { eff[r.id] = r.action; });
+    var totals = { skipped: 0, covered: 0, muted: 0, letPlay: 0, below: 0 };
+    var byCategory = {};
+    doc.ranges.forEach(function (r) {
+      var k;
+      if (r.review === 'rejected' || r.action === 'none') { k = r.review === 'rejected' ? 'letPlay' : 'below'; } else if (eff[r.id] === 'none') { k = 'below'; } else if (eff[r.id] === 'mute') { k = 'muted'; } else if (eff[r.id] === 'hide' || eff[r.id] === 'blur') { k = 'covered'; } else { k = 'skipped'; }
+      totals[k] += 1;
+      var c = byCategory[r.category] = byCategory[r.category] || { skipped: 0, covered: 0, muted: 0, letPlay: 0, below: 0 };
+      c[k] += 1;
+    });
+    return { ok: true, data: { id: id, title: item.title, list: true, damaged: false, status: item.status,
+      complete: !!(doc.scan && doc.scan.status === 'complete'), pending: doc.ranges.filter(function (r) { return r.review === 'pending'; }).length,
+      totals: totals, byCategory: byCategory } };
   }
 
   function stop(cb) {
@@ -261,7 +306,7 @@ function createPlayerService(options) {
     return { state: cur ? st.state : 'idle', id: cur ? cur.id : null, kidMode: cur ? cur.kidMode : false, pos: cur ? cur.pos : 0 };
   }
 
-  return { play: play, stop: stop, status: status, recover: recover, isOpen: function () { return !!cur; } };
+  return { play: play, stop: stop, status: status, recover: recover, preview: preview, isOpen: function () { return !!cur; } };
 }
 
 module.exports = { createPlayerService: createPlayerService, buildPlaybackDoc: buildPlaybackDoc, THRESHOLDS: THRESHOLDS };

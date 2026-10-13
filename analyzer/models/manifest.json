@@ -1,8 +1,8 @@
 {
   "manifestVersion": 1,
   "verifiedOn": "2026-10-12",
-  "shippedBytes": 1015866599,
-  "shippedMiB": 968.8,
+  "shippedBytes": 1093771855,
+  "shippedMiB": 1043.1,
   "notes": [
     "Every file is verified by sha256 after download (tools/fetch-models.js) and at first app run.",
     "No file is fetched at runtime by the app; models ship inside the installer.",
@@ -10,15 +10,35 @@
   ],
   "files": [
     {
-      "file": "nudenet-3.4.2.tar.gz",
-      "url": "https://files.pythonhosted.org/packages/source/n/nudenet/nudenet-3.4.2.tar.gz",
-      "sha256": "b20645d5f06bbb10006e6d4dc8a9513cf684269bbcffb0557a3ed6831aa90d75",
-      "size": 10596676,
-      "model": "NudeNet 3.4.2 (320n detector inside the sdist, nudenet/320n.onnx)",
+      "file": "nsfw-vit-int8.onnx",
+      "url": "https://huggingface.co/AdamCodd/vit-base-nsfw-detector/resolve/main/onnx/model_int8.onnx",
+      "sha256": "d25aa73fe1eec78459e35ff911e2af98f652ee919b48d9c54316c86d5ff435fa",
+      "size": 88500985,
+      "model": "AdamCodd/vit-base-nsfw-detector (ViT-B/16, 384 px, sfw/nsfw classifier), int8 ONNX",
       "role": "frames.nudity",
-      "license": "MIT",
-      "licenseUrl": "https://pypi.org/project/nudenet/",
-      "note": "Extract nudenet/320n.onnx at build time. 640m is optional and not bundled."
+      "license": "Apache-2.0",
+      "licenseUrl": "https://huggingface.co/AdamCodd/vit-base-nsfw-detector",
+      "note": "Replaces NudeNet 3.4.2 (dropped 2026-10-12: its sdist ships the AGPL-3.0 text while its metadata says MIT; ledger D22). Input pixel_values [N,3,384,384], output logits [N,2]."
+    },
+    {
+      "file": "nsfw-vit-config.json",
+      "url": "https://huggingface.co/AdamCodd/vit-base-nsfw-detector/resolve/main/config.json",
+      "sha256": "604d1da5e3cc8b6dc3f2768a911ed61a44a331cfcee9ecde2ce2cba9a1e7972b",
+      "size": 715,
+      "model": "nsfw classifier config (id2label {0: sfw, 1: nsfw})",
+      "role": "frames.nudity",
+      "license": "Apache-2.0",
+      "licenseUrl": "https://huggingface.co/AdamCodd/vit-base-nsfw-detector"
+    },
+    {
+      "file": "nsfw-vit-preprocessor_config.json",
+      "url": "https://huggingface.co/AdamCodd/vit-base-nsfw-detector/resolve/main/preprocessor_config.json",
+      "sha256": "f2ca775909d2237bd31440280cefcaceb3ac66753c19f7a344e385e68982a9b2",
+      "size": 232,
+      "model": "nsfw classifier preprocessor config (resize 384, mean/std 0.5)",
+      "role": "frames.nudity",
+      "license": "Apache-2.0",
+      "licenseUrl": "https://huggingface.co/AdamCodd/vit-base-nsfw-detector"
     },
     {
       "file": "clip-vit-b32-vision_quantized.onnx",

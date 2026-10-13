@@ -9,6 +9,12 @@ questions were decided by the planner (see "Decisions on open questions"). docs/
 Active milestones: M1 (design, Sonnet), M2 (spec + shared lib), M3 (player). Agents run in parallel.
 
 ## Timeline
+- 2026-10-13  00:20 UTC session rate limit killed four agents mid-task: (a) player lockdown
+              (bindings off, screenshots, console, panic hint) in player/bonis.lua + controller,
+              (b) app board fixes (fail-closed parent mode, activity log, parents card, toasts,
+              wording, relock, accuracy vs auto scan, help/Fire TV/INSTALL), (c) NudeNet ->
+              AdamCodd ViT replacement + AVX2 guard in analyzer/, (d) security+video board
+              review (read-only). Partial work committed as wip; agents resumed from transcripts.
 - 2026-10-12  Owner delegated full authority. M1a plan+spec, M1b design, M2 shared lib done.
               M3 player and M4 analyzer v1 running as agents.
 - 2026-10-12  Session 1 (Fable 5.1). Repo was empty. Researched models/licences, mpv EDL, Fire TV,

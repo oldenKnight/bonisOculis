@@ -133,15 +133,18 @@ def cmd_version(args: argparse.Namespace, proto: Protocol) -> int:
         info["providers"] = onnxruntime.get_available_providers()
     except Exception:  # noqa: BLE001
         info["onnxruntime"] = None
-    try:
-        import llama_cpp  # noqa: PLC0415
+    from . import cpu  # noqa: PLC0415
 
-        info["llamaCpp"] = llama_cpp.__version__
-    except Exception:  # noqa: BLE001
-        info["llamaCpp"] = None
+    if cpu.ggml_supported():
+        try:
+            import llama_cpp  # noqa: PLC0415
+
+            info["llamaCpp"] = llama_cpp.__version__
+        except Exception:  # noqa: BLE001
+            info["llamaCpp"] = None
+    else:
+        info["llamaCpp"] = None  # not imported: its native code may need AVX2 (cpu.py)
     if getattr(args, "cpu_features", False):
-        from . import cpu  # noqa: PLC0415
-
         info["cpu"] = cpu.report()
     proto.emit(info)
     return EXIT_OK

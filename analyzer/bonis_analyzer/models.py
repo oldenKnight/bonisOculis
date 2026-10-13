@@ -52,7 +52,10 @@ def choose_providers(device: str, warn: Callable[[str], None]) -> Tuple[List[str
 
 def session_factory(threads: int, device: str, warn: Callable[[str], None],
                     arena: bool = True) -> Tuple[Callable[[Any], Any], str]:
-    """Returns (make_session(path_or_bytes), device actually used).
+    """Returns (make_session(model path), device actually used). Every ORT
+    model (nsfw classifier, CLIP, YAMNet, Florence-2) goes through here; the
+    int8 classifier and CLIP use the same provider order, and an accelerator
+    that cannot place their quantized ops falls back to the CPU with a warn.
     ``arena=False`` returns activation memory to the OS after every run (the
     Florence-2 vision encoder needs ~0.4 GB of scratch at 768 px; with the arena
     on it stays resident, see analyzer/BENCH.md)."""

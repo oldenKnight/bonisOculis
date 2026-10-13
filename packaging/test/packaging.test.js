@@ -214,10 +214,10 @@ test('binaries.json: every target entry names a known archive/script/build; pins
   });
 });
 
-test('fetch-models: shipped list = manifest minus build-only and the NudeNet tarball, plus 320n and committed files', function () {
+test('fetch-models: shipped list = manifest minus build-only, plus committed files; no NudeNet (D22)', function () {
   var names = fm.shipped().map(function (f) { return f.file; });
-  assert.ok(names.indexOf('nudenet-320n.onnx') >= 0);
-  assert.ok(names.indexOf('nudenet-3.4.2.tar.gz') < 0);
+  ['nsfw-vit-int8.onnx', 'nsfw-vit-config.json', 'nsfw-vit-preprocessor_config.json'].forEach(function (n) { assert.ok(names.indexOf(n) >= 0, n); });
+  assert.ok(!names.some(function (n) { return /nudenet|320n|\.tar\.gz$/i.test(n); }), names.join(','));
   assert.ok(names.indexOf('clip-vit-b32-text_quantized.onnx') < 0);
   assert.ok(names.indexOf('clip_prompts.npz') >= 0);
   fm.shipped().forEach(function (f) { assert.ok(/^[0-9a-f]{64}$/.test(f.sha256), f.file); });

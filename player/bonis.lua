@@ -44,6 +44,10 @@ local STRINGS = {
     en = {
         skipped = "Scene skipped",
         hidden = "Scene hidden",
+        hidden_label = "Hidden",
+        panic_hint = "Press %s to hide the picture at once",
+        mute_on = "Sound stays off after this scene",
+        mute_off = "Sound comes back after this scene",
         mark_in = "Mark set at %s",
         mark_out = "Scene marked %s - %s",
         need_in = "Press %s first to mark where the scene starts",
@@ -63,6 +67,10 @@ local STRINGS = {
     es = {
         skipped = "Escena omitida",
         hidden = "Escena oculta",
+        hidden_label = "Oculto",
+        panic_hint = "Presiona %s para ocultar la imagen",
+        mute_on = "El sonido seguirá apagado después de esta escena",
+        mute_off = "El sonido vuelve después de esta escena",
         mark_in = "Marca puesta en %s",
         mark_out = "Escena marcada %s - %s",
         need_in = "Primero presiona %s donde empieza la escena",
@@ -88,6 +96,13 @@ end
 
 local function osd(text, seconds)
     mp.osd_message(text, seconds or 1.5)
+    -- mirrored for the app and the tests (the OSD itself cannot be read back)
+    mp.set_property_native("user-data/bonis-osd", { text = text, seconds = seconds or 1.5 })
+end
+
+local function panic_hint(seconds, prefix)
+    local text = string.format(tr("panic_hint"), string.upper(opts.panickey))
+    osd(prefix and (prefix .. "\n" .. text) or text, seconds)
 end
 
 local function hms(t)
@@ -305,8 +320,11 @@ local function draw_black()
     local h = (type(d.h) == "number" and d.h > 0) and d.h or 1080
     overlay.res_x = w
     overlay.res_y = h
+    -- full-window black box, plus a small grey label so a parent knows it is the app, not a fault
     overlay.data = string.format("{\\an7\\pos(0,0)\\1c&H000000&\\1a&H00&\\bord0\\shad0\\p1}"
-        .. "m 0 0 l %d 0 %d %d 0 %d{\\p0}", w, w, h, h)
+        .. "m 0 0 l %d 0 %d %d 0 %d{\\p0}\n"
+        .. "{\\an5\\pos(%d,%d)\\fs%d\\1c&H707070&\\bord0\\shad0}%s",
+        w, w, h, h, math.floor(w / 2), math.floor(h / 2), math.max(12, math.floor(h / 20)), tr("hidden_label"))
     overlay:update()
 end
 
@@ -431,7 +449,7 @@ local function notify_entries(act)
         if not inside[r.id] then
             send({ t = "skipped", rangeId = r.id, action = r.action })
             if r.action == "skip" then
-                osd(tr("skipped"), 1.5)
+                panic_hint(2, tr("skipped"))
             elseif r.action == "hide" or r.action == "blur" then
                 osd(tr("hidden"), 1.5)
             end
@@ -740,10 +758,11 @@ local function on_undo()
 end
 
 -------------------------------------------------------------------------------------------------
--- Kid-mode seek interception. In kid mode every key bound to a seek-like command is taken over:
--- the script computes the target first and, when it falls inside an enforced range, asks mpv for
--- the range end (forward) or start - 1 s (backward) instead, so a kid's seek never lands inside a
--- range. The post-hoc enforcement above stays as the safety net (IPC seeks, other scripts).
+-- Seek interception (both modes). The app starts mpv with --input-default-bindings=no, so the only
+-- keys that do anything are the ones bound below. Seek keys go through the script: it computes the
+-- target first and, when it falls inside an enforced range, asks mpv for the range end (forward)
+-- or start - 1 s (backward) instead, so a keyboard seek never lands inside a range. The post-hoc
+-- enforcement above stays as the safety net (IPC seeks from the app, other scripts).
 -------------------------------------------------------------------------------------------------
 local function safe_target(target, forward)
     local dur = mp.get_property_number("duration")
@@ -799,117 +818,6 @@ local function safe_chapter(delta)
     end
 end
 
-local function safe_frame_step(dir)
-    local fps = mp.get_property_number("container-fps") or 25
-    local t = now_t()
-    local next_t = t + dir / fps
-    if #active_at(next_t) > 0 then
-        mp.set_property_bool("pause", true)
-        seek_to(safe_target(next_t, dir > 0), "kid")
-    elseif dir > 0 then
-        mp.commandv("frame-step")
-    else
-        mp.commandv("frame-back-step")
-    end
-end
-
-local CMD_PREFIXES = { "no%-osd", "osd%-auto", "osd%-bar", "osd%-msg%-bar", "osd%-msg", "raw",
-    "expand%-properties", "repeatable", "nonrepeatable", "async", "sync" }
-
--- Returns a replacement handler for a seek-like input command, or nil.
-local function kid_handler(cmd)
-    if type(cmd) ~= "string" or cmd:find(";", 1, true) then
-        return nil
-    end
-    local c = cmd:gsub("^%s+", ""):gsub("%s+$", "")
-    local changed = true
-    while changed do
-        changed = false
-        for _, p in ipairs(CMD_PREFIXES) do
-            local n = c:gsub("^" .. p .. "%s+", "")
-            if n ~= c then
-                c = n
-                changed = true
-            end
-        end
-    end
-    local w = {}
-    for word in c:gmatch("%S+") do
-        w[#w + 1] = (word:gsub('^"(.*)"$', "%1"))
-    end
-    local name = w[1]
-    if name == "seek" then
-        local amount = tonumber(w[2])
-        local flags = w[3] or ""
-        if not amount then
-            return nil
-        end
-        if flags:find("absolute%-percent") then
-            return function()
-                local d = mp.get_property_number("duration")
-                if d then safe_seek_abs(d * amount / 100) end
-            end
-        elseif flags:find("relative%-percent") then
-            return function()
-                local d = mp.get_property_number("duration")
-                if d then safe_seek(d * amount / 100) end
-            end
-        elseif flags:find("absolute") then
-            return function()
-                local d = mp.get_property_number("duration") or 0
-                safe_seek_abs(amount < 0 and d + amount or amount)
-            end
-        end
-        return function() safe_seek(amount) end
-    elseif (name == "add" or name == "cycle") and w[2] == "chapter" then
-        local delta = tonumber(w[3]) or 1
-        return function() safe_chapter(delta) end
-    elseif name == "frame-step" then
-        return function() safe_frame_step(1) end
-    elseif name == "frame-back-step" then
-        return function() safe_frame_step(-1) end
-    elseif name == "sub-seek" or name == "revert-seek" or name == "ab-loop" then
-        return function() end       -- could land inside a range; not available to kids
-    end
-    return nil
-end
-
-local kid_keys = {}
-
-local function set_osc(visibility)
-    mp.commandv("script-message-to", "osc", "osc-visibility", visibility, "no-osd")
-end
-
-local function enable_kid_seeks()
-    if #kid_keys > 0 then
-        return
-    end
-    local best = {}
-    for _, b in ipairs(mp.get_property_native("input-bindings") or {}) do
-        if type(b.key) == "string" and kid_handler(b.cmd) then
-            local cur = best[b.key]
-            if not cur or (b.priority or 0) > (cur.priority or 0) then
-                best[b.key] = b
-            end
-        end
-    end
-    for key, b in pairs(best) do
-        local name = "bonis-kidseek-" .. (#kid_keys + 1)
-        mp.add_forced_key_binding(key, name, kid_handler(b.cmd), { repeatable = true })
-        kid_keys[#kid_keys + 1] = name
-    end
-    set_osc("never")                -- the seek bar is a mouse seek we cannot intercept
-    msg.debug("kid seek keys intercepted: " .. #kid_keys)
-end
-
-local function disable_kid_seeks()
-    for _, name in ipairs(kid_keys) do
-        mp.remove_key_binding(name)
-    end
-    kid_keys = {}
-    set_osc("auto")
-end
-
 local panic_end
 
 local function panic_start()
@@ -957,11 +865,62 @@ local function on_panic()
     end
 end
 
-mp.add_forced_key_binding(opts.markin, "bonis-mark-in", on_mark_in)
-mp.add_forced_key_binding(opts.markout, "bonis-mark-out", on_mark_out)
-mp.add_forced_key_binding(opts.undo, "bonis-undo", on_undo)
-mp.add_forced_key_binding(opts.panickey, "bonis-panic", on_panic)
-mp.add_forced_key_binding("ctrl+SPACE", "bonis-panic-alt", on_panic)
+-- The complete key set. Everything not listed here does nothing when the app launches mpv
+-- (screenshots, console, speed, filters, tracks, zoom, colour, loop, playlist, ...).
+local function on_mute_key()
+    if applied.mute then
+        -- a range holds the sound off; the key changes what is restored when it ends
+        saved.mute = not (saved.mute == true)
+        osd(saved.mute and tr("mute_on") or tr("mute_off"))
+    else
+        mp.commandv("cycle", "mute")
+    end
+end
+
+local function on_escape()
+    if mp.get_property_bool("fullscreen") then
+        mp.set_property_bool("fullscreen", false)
+    elseif not kid then
+        mp.commandv("quit")
+    end
+end
+
+local function on_quit()
+    if not kid then
+        mp.commandv("quit")       -- kid mode: only the app can stop playback
+    end
+end
+
+local function bind(key, name, fn, repeatable)
+    mp.add_forced_key_binding(key, name, fn, repeatable and { repeatable = true } or nil)
+end
+
+local SEEK_KEYS = {
+    { "RIGHT", 5 }, { "LEFT", -5 }, { "UP", 60 }, { "DOWN", -60 },
+    { "Shift+RIGHT", 1 }, { "Shift+LEFT", -1 }, { "Shift+UP", 5 }, { "Shift+DOWN", -5 },
+    { "Shift+PGUP", 600 }, { "Shift+PGDWN", -600 },
+}
+for i, k in ipairs(SEEK_KEYS) do
+    local delta = k[2]
+    bind(k[1], "bonis-seek-" .. i, function() safe_seek(delta) end, true)
+end
+bind("PGUP", "bonis-chapter-next", function() safe_chapter(1) end)
+bind("PGDWN", "bonis-chapter-prev", function() safe_chapter(-1) end)
+bind("SPACE", "bonis-pause", function() mp.commandv("cycle", "pause") end)
+bind("f", "bonis-fullscreen", function() mp.commandv("cycle", "fullscreen") end)
+bind("ENTER", "bonis-fullscreen-enter", function() mp.commandv("cycle", "fullscreen") end)
+bind("MBTN_LEFT_DBL", "bonis-fullscreen-dbl", function() mp.commandv("cycle", "fullscreen") end)
+bind("m", "bonis-mute", on_mute_key)
+bind("9", "bonis-volume-down", function() mp.commandv("add", "volume", "-2") end, true)
+bind("0", "bonis-volume-up", function() mp.commandv("add", "volume", "2") end, true)
+bind("q", "bonis-quit", on_quit)
+bind("CLOSE_WIN", "bonis-close", on_quit)
+bind("ESC", "bonis-escape", on_escape)
+bind(opts.markin, "bonis-mark-in", on_mark_in)
+bind(opts.markout, "bonis-mark-out", on_mark_out)
+bind(opts.undo, "bonis-undo", on_undo)
+bind(opts.panickey, "bonis-panic", on_panic)
+bind("ctrl+SPACE", "bonis-panic-alt", on_panic)
 
 -------------------------------------------------------------------------------------------------
 -- Messages from the app: script-message-to bonis <cmd> [arg]
@@ -990,11 +949,6 @@ end)
 
 mp.register_script_message("set-kidmode", function(v)
     kid = (v == "1" or v == "yes" or v == "true")
-    if kid then
-        enable_kid_seeks()
-    else
-        disable_kid_seeks()
-    end
     publish()
     if kid and (not loaded or scan_status == "none") then
         fail_closed(load_error or "scan status is none")
@@ -1012,13 +966,10 @@ end)
 math.randomseed(os.time())
 initial_load()
 cover_start()
-if kid then
-    enable_kid_seeks()
-end
--- The OSC may load after us; hide its seek bar again once the file is open.
+-- Panic key discoverability: a hint at every file start (unless a load warning is showing).
 mp.register_event("file-loaded", function()
-    if kid then
-        set_osc("never")
+    if not closing and not load_error then
+        panic_hint(4)
     end
 end)
 publish()

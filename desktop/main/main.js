@@ -21,6 +21,7 @@ var createPlayer = require('./player-controller.js').createPlayer;
 var createThumbs = require('./thumbs.js').createThumbs;
 var createHelp = require('./help.js').createHelp;
 var createAccuracy = require('./accuracy.js').createAccuracy;
+var createActivity = require('./activity.js').createActivity;
 var createHandlers = require('./handlers.js').createHandlers;
 var ipc = require('./ipc.js');
 var windowMod = require('./window.js');
@@ -72,7 +73,21 @@ function boot() {
   var log = createLog({ dir: paths.logDir(), name: 'bonis', console: !packaged && !process.env.BONIS_QUIET, level: 'info' });
   log.info('starting', app.getVersion(), process.platform);
   var store = createStore({ dir: paths.userData, log: log.child('store') });
-  store.on('recovered', function (ev) { emit('toast', { kind: 'warning', key: ev.lost ? 'toast.lostFile' : 'toast.recovered' }); });
+  var activity = createActivity({ dir: paths.userData });
+  var library = null;
+  var markDamaged = null;
+  store.on('recovered', function (ev) {
+    var m = /^library\/([0-9a-f]{16})\.bonis\.json$/.exec(ev.file || '');
+    if (m) {
+      // A scene list: restored from its backup, or damaged beyond repair (fail closed).
+      if (ev.lost) { if (markDamaged) { markDamaged(m[1]); } } else {
+        var it0 = library && library.get(m[1]);
+        emit('toast', { kind: 'warning', key: 'toast.listRestored', params: { title: it0 ? it0.title : '' } });
+      }
+      return;
+    }
+    emit('toast', { kind: 'warning', key: ev.lost ? 'toast.lostFile' : 'toast.recovered' });
+  });
   store.on('tampered', function () { emit('toast', { kind: 'warning', key: 'toast.tampered' }); });
   var pin = createPin({ store: store });
   pin.load();
@@ -80,10 +95,20 @@ function boot() {
   var osLang = i18nMod.pickLang(app.getLocale());
   settings.load(osLang);
   var i18n = i18nMod.createI18n(paths.localesDir(), settings.value('lang'));
-  var library = createLibrary({ store: store, log: log.child('library'), ffprobe: paths.ffprobe });
+  library = createLibrary({ store: store, log: log.child('library'), ffprobe: paths.ffprobe });
   library.load();
   library.onChange(function (items) { emit('library:changed', pin.isLocked() ? null : items); });
-  var skips = createSkips({ store: store, library: library, log: log.child('skips') });
+  // Planner decision 1: a list that cannot be read or restored makes the title "Needs attention",
+  // never Protected, and says exactly what happened (once).
+  markDamaged = function (id) {
+    var it = library.get(id);
+    if (!it || (it.status === 'needsAttention' && it.error === 'skipCorrupt')) { return; }
+    if (it.status === 'queued' || it.status === 'scanning') { return; }
+    library.setStatus(id, 'needsAttention', { error: 'skipCorrupt' });
+    activity.add('damaged', { id: id, title: it.title });
+    emit('toast', { kind: 'error', key: 'toast.listDamaged', params: { title: it.title } });
+  };
+  var skips = createSkips({ store: store, library: library, log: log.child('skips'), onDamaged: function (id) { markDamaged(id); } });
 
   // Re-derive every status from its skip file; a file changed outside the app loses Protected.
   library.list().forEach(function (it) {
@@ -94,7 +119,7 @@ function boot() {
       library.applyDoc(it.id, r.doc, BO.validate);
       if (library.get(it.id).status === 'protected') { library.setStatus(it.id, 'needsReview', {}); }
     } else if (r.corrupt) {
-      library.setStatus(it.id, 'needsAttention', { error: 'skipCorrupt' });
+      markDamaged(it.id);
     } else {
       library.applyDoc(it.id, r.doc, BO.validate);
     }
@@ -107,7 +132,7 @@ function boot() {
   supervisor.load();
   var player = createPlayerService({
     createPlayer: createPlayer, paths: paths, settings: settings, library: library, skips: skips, supervisor: supervisor,
-    log: log.child('player'), emit: emit
+    activity: activity, t: function (k, p) { return i18n.t(k, p); }, log: log.child('player'), emit: emit
   });
   player.recover();
   var thumbs = createThumbs({ paths: paths, library: library, skips: skips });
@@ -127,7 +152,7 @@ function boot() {
   var handlers = createHandlers({
     electron: electron, getWindow: function () { return win; }, store: store, pin: pin, settings: settings, i18n: i18n,
     library: library, skips: skips, supervisor: supervisor, player: player, thumbs: thumbs, help: help, paths: paths,
-    accuracy: accuracy, log: log.child('ipc'), emit: emit, versions: versions,
+    accuracy: accuracy, activity: activity, log: log.child('ipc'), emit: emit, versions: versions,
     takeToasts: function () { var t = pendingToasts; pendingToasts = []; return t; },
     onLangChanged: function (lang) { i18n.setLang(lang); rebuildMenu(); }
   });

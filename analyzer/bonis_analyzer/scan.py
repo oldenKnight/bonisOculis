@@ -834,10 +834,11 @@ class Scan:
     def _lm_possible(self) -> bool:
         if self.lm_factory is None and self.fed is not None:
             return False
-        if self.lm_factory is None and not (lmmod.available()
-                                            and os.path.isfile(os.path.join(self.models_dir, config.LM_FILE))):
+        if self.lm_factory is None and not os.path.isfile(os.path.join(self.models_dir, config.LM_FILE)):
             return False
-        return not self._cpu_blocks("captions")
+        if self._cpu_blocks("captions"):  # before importing llama_cpp: its native init may need AVX2
+            return False
+        return self.lm_factory is not None or lmmod.available()
 
     def _other_signal(self) -> np.ndarray:
         """Per-second max of every other signal (visual categories) for the caption budget."""

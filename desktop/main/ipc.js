@@ -34,17 +34,19 @@ var CHANNELS = {
   'skip:delete': { shape: { id: 'id', rangeId: 'rangeId' } },
   'skip:undo': { shape: { id: 'id' } },
   'skip:markReviewed': { shape: { id: 'id' } },
+  'skip:approveClean': { shape: { id: 'id' } },
   'skip:thumbs': { shape: { id: 'id', rangeIds: 'rangeIdList' } },
   'skip:strip': { shape: { id: 'id', n: 'count' } },
   'skip:peek': { shape: { id: 'id', rangeId: 'rangeId' } },
-  'player:play': { kid: true, shape: { id: 'id', kidMode: 'boolean?' } },
+  'player:play': { kid: true, shape: { id: 'id', kidMode: 'boolean?', unprotected: 'boolean?' } },
+  'player:preview': { shape: { id: 'id' } },
   'player:stop': { kid: true, shape: {} },
   'player:status': { kid: true, shape: {} },
   'pin:status': { kid: true, shape: {} },
   'pin:set': { shape: { pin: 'pin' } },
   'pin:verify': { kid: true, shape: { pin: 'pin', purpose: ['unlock', 'peek'] } },
   'pin:recover': { kid: true, shape: { code: 'string', newPin: 'pin' } },
-  'pin:lock': { shape: {} },
+  'pin:lock': { shape: { reason: 'lockReason?' } },
   'pin:change': { shape: { oldPin: 'pin', newPin: 'pin' } },
   'settings:get': { kid: true, shape: {} },
   'settings:set': { shape: { patch: 'object' } },
@@ -56,7 +58,8 @@ var CHANNELS = {
   'import:json': { shape: { token: 'token?', targetId: 'id?' } },
   'help:open': { shape: { doc: ['help', 'licenses'] } },
   'accuracy:run': { shape: { id: 'id' } },
-  'app:copyText': { shape: { text: 'string' } }
+  'app:copyText': { shape: { text: 'string' } },
+  'activity:list': { shape: {} }
 };
 
 // main -> renderer events (webContents.send); preload.js only forwards these.
@@ -70,6 +73,7 @@ function checkType(type, v) {
     case 'id': case 'rangeId': case 'pin': case 'token': return typeof v === 'string' && RE[type].test(v);
     case 'string': return typeof v === 'string' && v.length > 0 && v.length <= 32768;
     case 'number': return typeof v === 'number' && isFinite(v);
+    case 'lockReason': return v === 'manual' || v === 'idle';
     case 'count': return typeof v === 'number' && Math.floor(v) === v && v >= 1 && v <= 200;
     case 'boolean': return typeof v === 'boolean';
     case 'object': return isPlainObject(v);

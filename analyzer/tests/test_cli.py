@@ -272,8 +272,21 @@ class ProtocolTest(unittest.TestCase):
         self.assertEqual(lines[0], {"t": "progress", "stage": "frames", "p": 0.1, "eta": 600})
         self.assertEqual([x["t"] for x in lines], ["progress", "progress", "stage", "warn", "paused", "done", "error"])
         self.assertEqual(p.warnings, ["Something to know"])
+        self.assertEqual(lines[3], {"t": "warn", "msg": "Something to know"})  # no code: unchanged shape
         with self.assertRaises(ValueError):
             P.parse_line('{"t": "mystery"}')
+
+    def test_coded_warn(self) -> None:
+        import io
+
+        buf = io.StringIO()
+        p = P.Protocol(buf)
+        p.warn("Too old", "cpu-no-avx2", stage="lm")
+        line = P.parse_line(buf.getvalue().strip())
+        self.assertEqual(line, {"t": "warn", "code": "cpu-no-avx2", "stage": "lm", "msg": "Too old"})
+        self.assertEqual(p.warnings, ["Too old"])
+        with self.assertRaises(AssertionError):
+            P.parse_line('{"t": "warn", "code": 3, "msg": "x"}')
 
     def test_exit_codes(self) -> None:
         self.assertEqual((P.EXIT_OK, P.EXIT_BAD_INPUT, P.EXIT_MODEL_MISSING, P.EXIT_INTERRUPTED, P.EXIT_INTERNAL),
@@ -287,8 +300,8 @@ if __name__ == "__main__":
 
 @unittest.skipUnless(S.HAVE_FFMPEG and S.MODELS_DIR and os.path.isdir(S.MODELS_DIR), "BONIS_MODELS_DIR not set")
 class RealModelScanTest(unittest.TestCase):
-    """The real pipeline once on a 4 s random-noise clip: one NudeNet batch, one
-    CLIP batch, at most one LM window. Checks the code path, not accuracy."""
+    """The real pipeline once on a 4 s random-noise clip: one nsfw-classifier
+    batch, one CLIP batch, at most one LM window. Checks the code path, not accuracy."""
 
     def test_noise_clip(self) -> None:
         d = os.path.join(S.tmp_root(), "real")
@@ -306,7 +319,7 @@ class RealModelScanTest(unittest.TestCase):
         self.assertEqual(rc, 0, err[-3000:])
         doc = load(out)
         self.assertTrue(sf.validate(doc)["ok"])
-        self.assertEqual(doc["scan"]["stages"]["frames"]["model"], "nudenet-320n+clip-vit-b32-int8")
+        self.assertEqual(doc["scan"]["stages"]["frames"]["model"], "nsfw-vit-int8+clip-vit-b32-int8")
         self.assertEqual(doc["scan"]["status"], "complete")
         self.assertEqual(sorted(n for n in os.listdir(work) if n != "thumbs")[-1], "subtitles.npz")
         stages = {(x["stage"], x["status"]) for x in lines if x["t"] == "stage"}

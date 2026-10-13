@@ -25,10 +25,18 @@ function noop() {}
 
 var silentLog = { debug: noop, info: noop, warn: noop, error: noop };
 
-function ipcPathFor(n) {
+// The IPC endpoint. On POSIX the socket lives in a fresh 0700 directory, so only this OS user can
+// reach mpv's command interface (screenshot-to-file and friends cannot be disabled in mpv).
+function ipcEndpointFor(n) {
   var id = 'bonis-mpv-' + process.pid + '-' + n;
-  if (process.platform === 'win32') { return '\\\\.\\pipe\\' + id; }
-  return path.join(os.tmpdir(), id + '.sock');
+  if (process.platform === 'win32') { return { path: '\\\\.\\pipe\\' + id, dir: null }; }
+  try {
+    var dir = fs.mkdtempSync(path.join(os.tmpdir(), 'bonis-mpv-'));
+    fs.chmodSync(dir, 448); // 0700
+    return { path: path.join(dir, id + '.sock'), dir: dir };
+  } catch (e) {
+    return { path: path.join(os.tmpdir(), id + '.sock'), dir: null };
+  }
 }
 
 // Reads the skip file once to decide whether blur ranges need copy-back hardware decoding.
@@ -55,8 +63,22 @@ function defaultMarksPath(skipfilePath, mediaPath) {
 
 function buildArgs(opts, req, ipcPath, resumeAt) {
   var o = req.options;
+  var inputConf = opts.inputConfPath || path.join(path.dirname(opts.scriptPath), 'input.conf');
   var args = [
     '--input-ipc-server=' + ipcPath,
+    // Only the keys bonis.lua binds do anything: no built-in or user bindings, no terminal input,
+    // no bundled scripts (console, stats, OSC, ytdl, auto profiles), no user scripts.
+    '--input-default-bindings=no',
+    '--input-conf=' + inputConf,
+    '--no-input-terminal',
+    '--osc=no',
+    '--load-scripts=no',
+    '--load-osd-console=no',
+    '--load-stats-overlay=no',
+    '--load-auto-profiles=no',
+    '--ytdl=no',
+    // A directory under a regular file can never be created: the screenshot command always fails.
+    '--screenshot-directory=' + path.join(inputConf, 'no-screenshots'),
     '--script=' + opts.scriptPath,
     '--script-opts-append=bonis-skipfile=' + (req.skipfile || ''),
     '--script-opts-append=bonis-marks=' + req.marksPath,
@@ -285,6 +307,7 @@ function createPlayer(options) {
     if (launch.sock) { try { launch.sock.destroy(); } catch (e) { /* ignore */ } }
     failPending(launch, new Error('player exited'));
     if (process.platform !== 'win32') { try { fs.unlinkSync(launch.ipcPath); } catch (e2) { /* gone */ } }
+    if (launch.ipcDir) { try { fs.rmdirSync(launch.ipcDir); } catch (e4) { /* not empty or gone */ } }
     if (launch !== cur) { return; }
     cur = null;
     log.info('mpv exited code=' + code + ' signal=' + signal);
@@ -324,8 +347,9 @@ function createPlayer(options) {
 
   function launch_(resumeAt, cb) {
     var n = ++launchCounter;
+    var endpoint = ipcEndpointFor(n);
     var launch = {
-      n: n, ipcPath: ipcPathFor(n), proc: null, sock: null, pending: {}, reqId: 0,
+      n: n, ipcPath: endpoint.path, ipcDir: endpoint.dir, proc: null, sock: null, pending: {}, reqId: 0,
       readySeq: null, played: false, exited: false, stopping: false, lastTimeposEmit: 0
     };
     var args = buildArgs(opts, req, launch.ipcPath, resumeAt);
@@ -358,6 +382,7 @@ function createPlayer(options) {
       log.error('mpv spawn error', err && err.code);
       if (launch.exited) { return; }
       launch.exited = true;
+      if (launch.ipcDir) { try { fs.rmdirSync(launch.ipcDir); } catch (e3) { /* gone */ } }
       if (cur === launch) { cur = null; phase = 'idle'; }
       emit('error', { source: 'controller', code: 'spawn-failed', msg: String(err && err.message) });
       done(err);
@@ -433,7 +458,8 @@ function createPlayer(options) {
       eof: eof,
       relaunches: relaunches,
       kidMode: !!(req && req.options.kidMode),
-      marksPath: req ? req.marksPath : null
+      marksPath: req ? req.marksPath : null,
+      ipcPath: cur ? cur.ipcPath : null
     };
   }
 

@@ -35,6 +35,21 @@ function titleFromFile(file) {
   return { title: base || path.basename(file), year: year };
 }
 
+// Planner decision 2: a scan that found nothing still needs one parent click before kids see it.
+var CLEAN_APPROVAL = 'no scenes found; approved for kids by a parent';
+var MARKED_REVIEWED = 'marked fully reviewed by a parent';
+
+// True when, since the last scan or import, a parent approved the title as a whole.
+function parentApprovedWhole(doc) {
+  var h = doc && Array.isArray(doc.history) ? doc.history : [];
+  var i;
+  for (i = h.length - 1; i >= 0; i--) {
+    if (h[i].event === 'scanned' || h[i].event === 'imported') { return false; }
+    if ((h[i].event === 'approved' && h[i].detail === CLEAN_APPROVAL) || (h[i].event === 'edited' && h[i].detail === MARKED_REVIEWED)) { return true; }
+  }
+  return false;
+}
+
 // Status from a skip document (null = never scanned). Pure; exported for tests.
 function deriveStatus(doc, validate) {
   if (!doc) { return { status: 'notScanned', pending: 0, enforced: 0, total: 0 }; }
@@ -47,8 +62,9 @@ function deriveStatus(doc, validate) {
   }
   var complete = !!(doc.scan && doc.scan.status === 'complete');
   var status;
-  if (complete) { status = pending ? 'needsReview' : 'protected'; } else { status = ranges.length ? 'needsReview' : 'notScanned'; }
-  return { status: status, pending: pending, enforced: enforced, total: ranges.length, complete: complete };
+  var clean = complete && !ranges.length && !parentApprovedWhole(doc);
+  if (complete) { status = pending || clean ? 'needsReview' : 'protected'; } else { status = ranges.length ? 'needsReview' : 'notScanned'; }
+  return { status: status, pending: pending, enforced: enforced, total: ranges.length, complete: complete, cleanPending: clean };
 }
 
 function createLibrary(options) {
@@ -172,12 +188,12 @@ function createLibrary(options) {
     if (!it) { return null; }
     if (!force && (it.status === 'queued' || it.status === 'scanning')) {
       var d0 = deriveStatus(doc, validate);
-      it.pending = d0.pending; it.enforced = d0.enforced; it.total = d0.total;
+      it.pending = d0.pending; it.enforced = d0.enforced; it.total = d0.total; it.cleanPending = !!d0.cleanPending;
       changed();
       return copy(it);
     }
     var d = deriveStatus(doc, validate);
-    it.pending = d.pending; it.enforced = d.enforced; it.total = d.total;
+    it.pending = d.pending; it.enforced = d.enforced; it.total = d.total; it.cleanPending = !!d.cleanPending;
     if (!(it.status === 'needsAttention' && d.status === 'notScanned')) {
       it.status = d.status;
       it.error = d.error || null;
@@ -192,4 +208,5 @@ function createLibrary(options) {
   };
 }
 
-module.exports = { createLibrary: createLibrary, deriveStatus: deriveStatus, titleFromFile: titleFromFile, STATUSES: STATUSES };
+module.exports = { createLibrary: createLibrary, deriveStatus: deriveStatus, titleFromFile: titleFromFile, STATUSES: STATUSES,
+  CLEAN_APPROVAL: CLEAN_APPROVAL, MARKED_REVIEWED: MARKED_REVIEWED, parentApprovedWhole: parentApprovedWhole };

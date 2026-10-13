@@ -128,11 +128,11 @@ function startRecorder(extra) {
     ao: 'null',
     savePosition: false,
     timeposHz: e.timeposHz || 1000,
-    observe: ['mute', 'vf', 'user-data/bonis'],
+    observe: ['mute', 'vf', 'user-data/bonis', 'user-data/bonis-osd'].concat(e.observe || []),
     extraArgs: ['--really-quiet', '--speed=' + (e.speed || 10)].concat(e.extraArgs || [])
   });
   var rec = {
-    player: player, events: [], samples: [], transitions: [],
+    player: player, events: [], samples: [], transitions: [], osd: [],
     state: { mute: null, vf: null, bonis: null },
     waiters: []
   };
@@ -158,6 +158,7 @@ function startRecorder(extra) {
   player.on('property', function (p) {
     if (p.name === 'mute') { rec.state.mute = p.data; }
     if (p.name === 'vf') { rec.state.vf = p.data; }
+    if (p.name === 'user-data/bonis-osd' && p.data && p.data.text) { rec.osd.push(p.data.text); }
     if (p.name === 'user-data/bonis') {
       rec.state.bonis = p.data;
       if (p.data) { rec.transitions.push(p.data); }

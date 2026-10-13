@@ -4,6 +4,7 @@
 // so there are never unsaved changes). An in-memory undo stack per title backs the undo toast.
 
 var BO = require('../../shared/skipfile.js');
+var libMod = require('./library.js');
 
 var UNDO_MAX = 30;
 var STAGES = ['subtitles', 'frames', 'audio', 'speech', 'captions', 'fusion'];
@@ -26,11 +27,16 @@ function createSkips(options) {
 
   function hmacOf(doc) { return store.hmac(JSON.stringify(doc)); }
 
-  // -> {doc|null, tampered, corrupt}
+  // -> {doc|null, tampered, corrupt}. corrupt: the list was saved once (the library remembers its
+  // HMAC) but cannot be read or restored now. Fail closed (planner decision 1): onDamaged(id).
   function load(id) {
     var r = store.readJson(rel(id), function (v) { return BO.validate(v).ok; });
-    if (!r.value) { return { doc: null, tampered: false, corrupt: !!r.lost }; }
     var it = library.get(id);
+    if (!r.value) {
+      var corrupt = !!r.lost || !!(it && it.skipHmac);
+      if (corrupt && o.onDamaged) { try { o.onDamaged(id); } catch (e) { log.error('onDamaged threw', e); } }
+      return { doc: null, tampered: false, corrupt: corrupt };
+    }
     var tampered = !!(it && it.skipHmac && !store.hmacOk(it.skipHmac, hmacOf(r.value)));
     if (tampered) { log.warn('skip file changed outside the app', id); }
     return { doc: r.value, tampered: tampered, corrupt: false };
@@ -213,7 +219,17 @@ function createSkips(options) {
       scan.stages = stages;
       if (!scan.finishedAt) { scan.finishedAt = now(); }
       doc.scan = scan;
-      BO.addHistory(doc, 'edited', null, 'marked fully reviewed by a parent', { now: now() });
+      BO.addHistory(doc, 'edited', null, libMod.MARKED_REVIEWED, { now: now() });
+      return null;
+    });
+  }
+
+  // "Looks clean - approve for kids": a complete scan with nothing pending, approved as a whole.
+  function approveClean(id) {
+    return mutate(id, function (doc) {
+      if (!doc.scan || doc.scan.status !== 'complete') { return 'notScanned'; }
+      if (doc.ranges.some(function (r) { return r.review === 'pending'; })) { return 'pendingScenes'; }
+      BO.addHistory(doc, 'approved', null, libMod.CLEAN_APPROVAL, { now: now() });
       return null;
     });
   }
@@ -240,7 +256,7 @@ function createSkips(options) {
     load: load, save: save, remove: remove, blank: blank, getOrBlank: getOrBlank,
     approve: function (id, ids) { return review(id, ids, 'approved'); },
     reject: function (id, ids) { return review(id, ids, 'rejected'); },
-    edit: edit, addRange: addRange, deleteRange: deleteRange, markReviewed: markReviewed,
+    edit: edit, addRange: addRange, deleteRange: deleteRange, markReviewed: markReviewed, approveClean: approveClean,
     replace: replace, undo: undoLast, onSaved: function (fn) { listeners.push(fn); }
   };
 }

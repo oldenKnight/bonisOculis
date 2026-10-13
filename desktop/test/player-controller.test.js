@@ -46,7 +46,10 @@ test('buildArgs follows PLAN 2.2 and only asks for copy-back decoding with blur 
   assert.ok(a.indexOf('--script-opts-append=bonis-kidmode=1') >= 0);
   assert.ok(a.indexOf('--script-opts-append=bonis-lang=es') >= 0);
   assert.ok(a.indexOf('--hwdec=auto-safe') >= 0);
-  ['--keep-open=yes', '--force-window=yes', '--osd-level=1', '--no-config', '--save-position-on-quit',
+  ['--input-default-bindings=no', '--input-conf=/x/input.conf', '--no-input-terminal', '--osc=no',
+    '--load-scripts=no', '--load-osd-console=no', '--load-stats-overlay=no', '--load-auto-profiles=no',
+    '--ytdl=no', '--screenshot-directory=' + path.join('/x/input.conf', 'no-screenshots'),
+    '--keep-open=yes', '--force-window=yes', '--osd-level=1', '--no-config', '--save-position-on-quit',
     '--title=bonis oculis', '--vo=null', '--ao=null', '--start=12.500'].forEach(function (flag) {
     assert.ok(a.indexOf(flag) >= 0, flag);
   });
@@ -63,11 +66,16 @@ test('play reports ready and throttled timepos; stop quits mpv gracefully', opts
   var skip = h.writeSkip('stop', h.standardRanges());
   var pid;
   var t0;
+  var ipcDir = null;
   return rec.play(getVideo(), skip, { marksPath: h.uniqueName('stop') + '.marks.jsonl' })
     .then(function () { return rec.waitEvent('ready', 3000); })
     .then(function () {
       pid = rec.player.status().pid;
       assert.ok(pid > 0);
+      if (process.platform !== 'win32') {
+        ipcDir = path.dirname(rec.player.status().ipcPath);
+        assert.strictEqual(fs.statSync(ipcDir).mode & 511, 448, 'IPC socket directory is private (0700)');
+      }
       assert.strictEqual(rec.eventsOf('ready')[0].enforced, 4);
       t0 = Date.now();
       return h.delay(1000);
@@ -86,6 +94,7 @@ test('play reports ready and throttled timepos; stop quits mpv gracefully', opts
       assert.strictEqual(rec.player.status().state, 'idle');
       assert.strictEqual(rec.player.status().pid, null);
       assert.strictEqual(alive(pid), false, 'mpv process is gone');
+      if (ipcDir) { assert.strictEqual(fs.existsSync(ipcDir), false, 'IPC socket directory removed'); }
       assert.strictEqual(rec.eventsOf('crashed').length, 0);
     });
 });

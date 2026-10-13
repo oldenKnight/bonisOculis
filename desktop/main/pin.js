@@ -32,6 +32,24 @@ function same(aHex, bHex) {
 
 function validPin(pin) { return typeof pin === 'string' && /^[0-9]{4,6}$/.test(pin); }
 
+// PINs kids guess first: one digit repeated, straight runs (1234, 9876), pairs (1212, 1122) and
+// the keypad column 2580 / 0852.
+var COMMON = ['1212', '1122', '2580', '0852', '6969', '4545', '1004', '2000'];
+function isWeak(pin) {
+  if (!validPin(pin)) { return true; }
+  if (/^(\d)\1+$/.test(pin)) { return true; }
+  var up = true, down = true, i;
+  for (i = 1; i < pin.length; i++) {
+    var d = pin.charCodeAt(i) - pin.charCodeAt(i - 1);
+    if (d !== 1) { up = false; }
+    if (d !== -1) { down = false; }
+  }
+  if (up || down) { return true; }
+  if (pin.length === 4 && COMMON.indexOf(pin) >= 0) { return true; }
+  if (pin.length >= 4 && pin.length % 2 === 0 && pin.slice(0, 2).repeat(pin.length / 2) === pin) { return true; }
+  return false;
+}
+
 function normaliseCode(code) { return String(code || '').toUpperCase().replace(/[^0-9A-Z]/g, ''); }
 
 function newRecoveryCode() {
@@ -101,6 +119,7 @@ function createPin(options) {
   // First PIN (or a reset after recovery). Returns {ok, recoveryCode}.
   function setPin(pin) {
     if (!validPin(pin)) { return { ok: false, error: 'pinShape' }; }
+    if (isWeak(pin)) { return { ok: false, error: 'pinWeak' }; }
     if (hasPin()) { return { ok: false, error: 'pinExists' }; }
     sec.pin = { hash: hash(pin, sec.salt) };
     var code = makeRecovery();
@@ -127,6 +146,7 @@ function createPin(options) {
     var r = verify(oldPin, 'change');
     if (!r.ok) { return r; }
     if (!validPin(newPin)) { return { ok: false, error: 'pinShape' }; }
+    if (isWeak(newPin)) { return { ok: false, error: 'pinWeak' }; }
     sec.pin = { hash: hash(newPin, sec.salt) };
     save();
     return { ok: true };
@@ -140,6 +160,7 @@ function createPin(options) {
     var c = normaliseCode(code);
     if (c.length !== CODE_LEN || !same(hash(c, sec.recovery.salt), sec.recovery.hash)) { return fail(); }
     if (!validPin(newPin)) { return { ok: false, error: 'pinShape' }; }
+    if (isWeak(newPin)) { return { ok: false, error: 'pinWeak' }; }
     succeed();
     sec.pin = { hash: hash(newPin, sec.salt) };
     var fresh = makeRecovery();
@@ -180,6 +201,6 @@ function createPin(options) {
 }
 
 module.exports = {
-  createPin: createPin, validPin: validPin, normaliseCode: normaliseCode,
+  createPin: createPin, validPin: validPin, isWeak: isWeak, normaliseCode: normaliseCode,
   MAX_TRIES: MAX_TRIES, COOLDOWN_MS: COOLDOWN_MS, PEEK_FRESH_MS: PEEK_FRESH_MS, CODE_LEN: CODE_LEN
 };

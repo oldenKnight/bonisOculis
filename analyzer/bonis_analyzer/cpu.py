@@ -131,5 +131,9 @@ def report() -> Dict[str, Any]:
     """`version --cpu-features` payload."""
     info = features()
     ok = ggml_supported()
-    return {"arch": info["arch"], "avx2": info["avx2"], "flags": info["flags"], "source": info["source"],
-            "ggmlStages": "ok" if ok else "skipped", "skippedStages": [] if ok else list(config.GGML_STAGES)}
+    out = {"arch": info["arch"], "avx2": info["avx2"], "flags": info["flags"], "source": info["source"],
+           "ggmlStages": "ok" if ok else "skipped", "skippedStages": [] if ok else list(config.GGML_STAGES)}
+    env = os.environ.get(config.CPU_ENV)
+    if env in ("0", "1"):
+        out["override"] = "%s=%s" % (config.CPU_ENV, env)
+    return out

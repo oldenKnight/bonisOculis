@@ -1,6 +1,7 @@
 'use strict';
-// "Check accuracy" (brief 6.5, LEDGER D13): compare the library's skip file for a title (the
-// prediction) with a hand-marked .bonis.json (the truth) by running the analyzer's
+// "Check accuracy" (brief 6.5, LEDGER D13): compare the AUTOMATIC scan of a title (the
+// analyzer's own output kept as <work>/auto.bonis.json, before the parent's review) with a
+// hand-marked .bonis.json (the truth) by running the analyzer's
 //   evaluate --truth T --pred P --tolerance 3 --out R.json
 // The JSON report is the result; the markdown table printed on stdout is kept for "Copy as text".
 // The last result per title is stored in library.json (item.accuracy). Never throws.
@@ -45,8 +46,14 @@ function createAccuracy(opts) {
     var done = typeof cb === 'function' ? cb : noop;
     var item = o.library.get(id);
     if (!item) { done('notFound'); return; }
-    var pred = o.skips.load(id).doc;
-    if (!pred) { done('noSkip'); return; }
+    var current = o.skips.load(id).doc;
+    if (!current) { done('noSkip'); return; }
+    // The prediction is the automatic scan as the analyzer wrote it, before any review.
+    var autoFile = path.join(o.paths.workDir(id), 'auto.bonis.json');
+    var auto = null;
+    try { auto = BO.fromJson(fs.readFileSync(autoFile, 'utf8')); } catch (e0) { auto = null; }
+    if (!auto || !auto.ok) { done('noAutoScan'); return; }
+    var pred = auto.doc;
     var text;
     try {
       var st = fs.statSync(truthPath);
@@ -55,6 +62,9 @@ function createAccuracy(opts) {
     } catch (e) { done('invalidSkip'); return; }
     var truth = BO.fromJson(text);
     if (!truth.ok) { done('invalidSkip'); return; }
+    // The movie's own list (or an export of it) already holds the scan: comparing it with the scan
+    // would always look perfect. Refuse with a plain message.
+    if (truth.doc.id === current.id || truth.doc.id === pred.id) { done('sameList'); return; }
     var fp = truth.doc.media.fingerprint || {};
     var sameCopy = fp.oshash === item.oshash && fp.size === item.size;
 
@@ -102,6 +112,7 @@ function createAccuracy(opts) {
       var md = stdout.split('\n').filter(function (l) { return /^\|/.test(l) || /resolution/.test(l); }).join('\n');
       var result = {
         at: new Date().toISOString(), truthName: path.basename(truthPath).slice(0, 200), sameCopy: sameCopy,
+        autoAt: (pred.scan && pred.scan.finishedAt) || pred.modified || null, compared: 'auto',
         report: rep, markdown: md.slice(0, 20000)
       };
       o.library.update(id, { accuracy: result });

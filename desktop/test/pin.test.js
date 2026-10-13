@@ -81,18 +81,18 @@ test('recovery code sets a new PIN once and is replaced', function () {
   assert.strictEqual(pin.verify('1357').ok, false);
   assert.strictEqual(pin.verify('8642').ok, true);
   assert.strictEqual(pin.recover(code, '1111').ok, false, 'the old code is used up');
-  assert.strictEqual(pin.recover(r.recoveryCode, '1111').ok, true);
+  assert.strictEqual(pin.recover(r.recoveryCode, '7391').ok, true);
 });
 
 test('lock state is in memory; peek needs a PIN within 5 minutes', function () {
   var dir = h.tmpDir('pin-peek');
   var clock = { t: 20000000 };
   var pin = make(dir, clock);
-  pin.setPin('5555');
+  pin.setPin('5821');
   assert.strictEqual(pin.peekAllowed(), true, 'just entered at setup');
   clock.t += pinMod.PEEK_FRESH_MS + 1;
   assert.strictEqual(pin.peekAllowed(), false);
-  assert.strictEqual(pin.verify('5555', 'peek').ok, true);
+  assert.strictEqual(pin.verify('5821', 'peek').ok, true);
   assert.strictEqual(pin.peekAllowed(), true);
   clock.t += 4 * 60000;
   pin.touchPeek();
@@ -101,9 +101,17 @@ test('lock state is in memory; peek needs a PIN within 5 minutes', function () {
   pin.lock();
   assert.strictEqual(pin.isLocked(), true);
   assert.strictEqual(pin.peekAllowed(), false, 'never while locked');
-  assert.strictEqual(pin.verify('5555', 'peek').ok, true);
+  assert.strictEqual(pin.verify('5821', 'peek').ok, true);
   assert.strictEqual(pin.isLocked(), true, 'a peek PIN does not unlock');
-  assert.strictEqual(pin.verify('5555', 'unlock').ok, true);
+  assert.strictEqual(pin.verify('5821', 'unlock').ok, true);
   assert.strictEqual(pin.isLocked(), false);
   assert.strictEqual(make(dir, clock).isLocked(), false, 'a new process decides the lock itself');
+});
+
+test('PINs kids guess first are refused', function () {
+  var pin = make(h.tmpDir('pin-weak'), { t: 1 });
+  ['0000', '1111', '1234', '4321', '123456', '1212', '2580'].forEach(function (p) {
+    assert.deepStrictEqual(pin.setPin(p), { ok: false, error: 'pinWeak' }, p);
+  });
+  assert.strictEqual(pin.setPin('4821').ok, true);
 });
