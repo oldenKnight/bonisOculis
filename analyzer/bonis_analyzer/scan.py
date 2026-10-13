@@ -259,6 +259,15 @@ class Scan:
                 new["nudity"] = np.maximum(fusion.fit(new.get("nudity"), self.n), staged).astype(np.float32)
             signals[s] = new
 
+    def _hold(self, name: str, obj: Any, factory: Callable[[], Any]) -> Any:
+        """Wrap a stage's model so a long PAUSE releases it (models.ModelSlot)."""
+        slot = modelsmod.ModelSlot(name, obj, factory, getattr(obj, "name", None) or type(obj).__name__)
+        self.pauser.slot = slot
+        return slot
+
+    def _unhold(self) -> None:
+        self.pauser.slot = None
+
     def _unit_delay(self) -> float:
         """Test hook: seconds to sleep per audio chunk / speech window / shot (fed scans only)."""
         if self.fed is None:
@@ -443,8 +452,10 @@ class Scan:
         arrays = {c: (prev[c].astype(np.float32) if prev is not None else np.zeros(n, np.float32))
                   for c in config.VISUAL_CATEGORIES}
         cuts: List[float] = [float(c) for c in (prev or {}).get("cuts", []) if float(c) < resume_at]
-        models = {"scorer": self._frame_scorer()}  # dropped in finally (one stage, one model set)
-        modelsmod.register(name, getattr(models["scorer"], "__class__").__name__)
+        scorer = self._frame_scorer()
+        modelsmod.register(name, type(scorer).__name__)
+        models = {"scorer": self._hold(name, scorer, self._frame_scorer)}  # dropped in finally
+        del scorer
         t0 = self._stage_begin(name, resumeAt=resume_at)
         if resume_at > 0:
             log.info("frames: resuming at %.0f s", resume_at)
@@ -457,12 +468,16 @@ class Scan:
         eta = Eta(resume_at / max(1, n))
         batch: List[Any] = []
         state = {"done_until": resume_at, "next_flush": resume_at + config.CHECKPOINT_EVERY, "first": None,
-                 "count": 0}
+                 "count": 0, "classified": 0}
 
         def score_pending() -> None:
             if not batch:
                 return
+            before = getattr(models["scorer"], "classified", None)
             res = models["scorer"].score_batch(batch)
+            if before is not None:  # real scorer: frames that passed the classifier gate
+                self.profiler.count("framesClassified", models["scorer"].classified - before)
+                state["classified"] += models["scorer"].classified - before
             for (t, _), sc in zip(batch, res):
                 i = int(round(t))
                 if 0 <= i < n:
@@ -505,6 +520,7 @@ class Scan:
         finally:
             self.pauser.on_pause = None
             dec.close()
+            self._unhold()
             models["scorer"].close()
             models["scorer"] = None
             modelsmod.release(name)
@@ -521,7 +537,8 @@ class Scan:
         self.ckpt.stage(name)["firstFrameThisRun"] = state["first"]
         self._stage_end(name, "done", t0, model=model, device=self.device,
                         detail="%d scene cuts" % len(final_cuts))
-        log.info("frames: %d frames this run, first at %s", state["count"], state["first"])
+        log.info("frames: %d frames this run (%d through the nudity classifier), first at %s",
+                 state["count"], state["classified"], state["first"])
         return arrays, final_cuts
 
     # lm --------------------------------------------------------------------------------
@@ -577,6 +594,7 @@ class Scan:
                 self._stage_end(name, "skipped", t0)
                 return None
             modelsmod.register(name, type(lm).__name__)
+            lm = self._hold(name, lm, lambda: self._make_lm(quiet=True))
             lex = subs.get_lexicon(self.ckpt.stage(source).get("lexicon", self.lang))
             starts = lmmod.window_starts(self.duration)
             texts: Dict[int, str] = {}
@@ -616,6 +634,7 @@ class Scan:
             self._stage_end(name, "done", t0, detail="%d of %d windows" % (len(sel), len(starts)), source=source)
             return arrays
         finally:
+            self._unhold()
             if lm is not None:
                 lm.close()
                 modelsmod.release(name)
@@ -674,6 +693,7 @@ class Scan:
         eta = Eta(k0 / max(1, nw))
         reader = None
         modelsmod.register(name, getattr(stt, "name", "stt"))
+        stt = self._hold(name, stt, self._stt)
         try:
             if k0 < nw:
                 reader = pcm.PcmReader(self.media["path"], start_at=starts[k0], threads=self.threads)
@@ -705,6 +725,7 @@ class Scan:
                        "The sound track could not be read; dialogue was not checked.")
             return None, []
         finally:
+            self._unhold()
             if reader is not None:
                 reader.close()
             stt.close()
@@ -772,6 +793,7 @@ class Scan:
                                 progress=round(min(1.0, state["t"] / max(1.0, self.duration)), 4))
 
         modelsmod.register(name, getattr(scorer, "name", "audio"))
+        scorer = self._hold(name, scorer, self._audio_scorer)
         self.pauser.on_pause = flush
         try:
             reader = pcm.PcmReader(self.media["path"], start_at=resume_at - ov_s, threads=self.threads)
@@ -807,6 +829,7 @@ class Scan:
             return None
         finally:
             self.pauser.on_pause = None
+            self._unhold()
             if reader is not None:
                 reader.close()
             scorer.close()
@@ -902,6 +925,7 @@ class Scan:
             model = getattr(cap, "name", "captioner")
             self.ckpt.set_stage(name, engine=model)
             modelsmod.register(name, getattr(cap, "name", "captioner"))
+            cap = self._hold(name, cap, self._captioner)
             self.pauser.on_pause = save_partial
             try:
                 for j, i in enumerate(need):
@@ -927,6 +951,7 @@ class Scan:
                 save_partial()
             finally:
                 self.pauser.on_pause = None
+                self._unhold()
                 cap.close()
                 del cap
                 modelsmod.release(name)
@@ -934,6 +959,7 @@ class Scan:
             lm = self._make_lm(quiet=True)
             if lm is not None:
                 modelsmod.register("captions-lm", type(lm).__name__)
+                lm = self._hold("captions-lm", lm, lambda: self._make_lm(quiet=True))
                 try:
                     order = sorted(texts)
                     for j, i in enumerate(order):
@@ -951,6 +977,7 @@ class Scan:
                         p = share + (1 - share) * (j + 1) / len(order)
                         self.proto.progress(name, p, eta(p))
                 finally:
+                    self._unhold()
                     lm.close()
                     del lm
                     modelsmod.release("captions-lm")

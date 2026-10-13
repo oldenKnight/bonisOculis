@@ -12,7 +12,7 @@ var ipcRenderer = electron.ipcRenderer;
 var webUtils = electron.webUtils;
 
 // Keep in step with desktop/main/ipc.js EVENTS (a test checks it).
-var EVENTS = ['scan:progress', 'player:event', 'library:changed', 'toast', 'app:locked', 'app:navigate', 'export:progress', 'settings:changed'];
+var EVENTS = ['scan:progress', 'player:event', 'library:changed', 'toast', 'app:locked', 'app:navigate', 'export:progress', 'settings:changed', 'app:integrity'];
 var LOCAL_EVENTS = ['files:dropped'];
 var listeners = {};
 

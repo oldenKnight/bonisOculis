@@ -39,6 +39,16 @@ function setup(name, extra) {
   return s;
 }
 
+// The scan as the analyzer wrote it (the supervisor keeps it as library/<id>.auto.bonis.json),
+// and the movie's own list made from it.
+function scanned(s, ranges) {
+  var d = doc(ranges);
+  fs.mkdirSync(path.dirname(s.paths.autoScan(ITEM.id)), { recursive: true });
+  fs.writeFileSync(s.paths.autoScan(ITEM.id), JSON.stringify(d));
+  assert.ok(s.skips.replace(ITEM.id, d, false).ok);
+  return d;
+}
+
 function truthFile(s, fp) {
   var f = path.join(s.dir, 'hand marked.bonis.json');
   fs.writeFileSync(f, JSON.stringify(doc(TRUTH, fp)));
@@ -47,7 +57,7 @@ function truthFile(s, fp) {
 
 test('evaluate runs through the analyzer command and the result is stored per title', function (t, done) {
   var s = setup('acc-run');
-  assert.ok(s.skips.replace(ITEM.id, doc(PRED), false).ok);
+  scanned(s, PRED);
   s.acc.run(ITEM.id, truthFile(s), function (err, res) {
     assert.ifError(err);
     var c = res.report.categories;
@@ -66,6 +76,7 @@ test('evaluate runs through the analyzer command and the result is stored per ti
     assert.strictEqual(res.report.tolerance, 3);
     assert.strictEqual(res.sameCopy, true);
     assert.strictEqual(res.truthName, 'hand marked.bonis.json');
+    assert.strictEqual(res.compared, 'auto');
     assert.match(res.markdown, /^\| category \| precision \| recall \| F1 \|/);
     assert.match(res.markdown, /\| nudity \| 0\.800 \| 0\.800 \| 0\.800 \|/);
     assert.deepStrictEqual(s.library.get(ITEM.id).accuracy, res, 'kept in library.json');
@@ -77,26 +88,44 @@ test('evaluate runs through the analyzer command and the result is stored per ti
 test('refuses what it cannot compare and reports a failed analyzer plainly', function (t, done) {
   var s = setup('acc-errors');
   var tf = truthFile(s, { size: 1, oshash: '0123456789abcdef' });
-  s.acc.run(ITEM.id, tf, function (err) {
-    assert.strictEqual(err, 'noSkip', 'nothing scanned yet');
-    s.skips.replace(ITEM.id, doc(PRED), false);
-    var bad = path.join(s.dir, 'bad.json');
-    fs.writeFileSync(bad, '{"format":"x"}');
-    s.acc.run(ITEM.id, bad, function (err2) {
-      assert.strictEqual(err2, 'invalidSkip');
-      s.acc.run(ITEM.id, tf, function (err3, res) {
-        assert.ifError(err3);
-        assert.strictEqual(res.sameCopy, false, 'made for another copy: the screen warns');
-        var s2 = setup('acc-fail', ['--fail-code', '5']);
-        s2.skips.replace(ITEM.id, doc(PRED), false);
-        s2.acc.run(ITEM.id, truthFile(s2), function (err4) {
-          assert.strictEqual(err4, 'evalFailed');
-          assert.strictEqual(s2.library.get(ITEM.id).accuracy, undefined);
-          done();
-        });
+  var bad = path.join(s.dir, 'bad.json');
+  fs.writeFileSync(bad, '{"format":"x"}');
+  var ownFile = path.join(s.dir, 'my marks.bonis.json');
+  var autoCopy = path.join(s.dir, 'auto copy.bonis.json');
+  // Each step: [before, file, check(err, res)]
+  var steps = [
+    [null, tf, function (err) { assert.strictEqual(err, 'noSkip', 'nothing scanned yet'); }],
+    [function () { s.skips.replace(ITEM.id, doc(PRED), false); }, tf, function (err) {
+      assert.strictEqual(err, 'noAutoScan', 'a list without the automatic result it came from');
+    }],
+    [function () { scanned(s, PRED); }, bad, function (err) { assert.strictEqual(err, 'invalidSkip'); }],
+    [null, tf, function (err, res) {
+      assert.ifError(err);
+      assert.strictEqual(res.sameCopy, false, 'made for another copy: the screen warns');
+    }],
+    // The movie's own list, even saved under another name after hand marks, is refused.
+    [function () { fs.writeFileSync(ownFile, JSON.stringify(s.skips.load(ITEM.id).doc)); }, ownFile, function (err) {
+      assert.strictEqual(err, 'sameList');
+    }],
+    [function () { fs.copyFileSync(s.paths.autoScan(ITEM.id), autoCopy); }, autoCopy, function (err) {
+      assert.strictEqual(err, 'sameList', 'the automatic result itself is refused too');
+    }]
+  ];
+  function next(i) {
+    if (i >= steps.length) {
+      var s2 = setup('acc-fail', ['--fail-code', '5']);
+      scanned(s2, PRED);
+      s2.acc.run(ITEM.id, truthFile(s2), function (err4) {
+        assert.strictEqual(err4, 'evalFailed');
+        assert.strictEqual(s2.library.get(ITEM.id).accuracy, undefined);
+        done();
       });
-    });
-  });
+      return;
+    }
+    if (steps[i][0]) { steps[i][0](); }
+    s.acc.run(ITEM.id, steps[i][1], function (err, res) { steps[i][2](err, res); next(i + 1); });
+  }
+  next(0);
 });
 
 var py = childProcess.spawnSync('python3', ['-c', 'import bonis_analyzer.evaluate'], { cwd: path.join(ROOT, 'analyzer') });

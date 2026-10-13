@@ -127,9 +127,11 @@ def cmd_version(args: argparse.Namespace, proto: Protocol) -> int:
     except Exception:  # noqa: BLE001
         pass
     try:
-        import onnxruntime  # noqa: PLC0415
+        from .models import _ort  # noqa: PLC0415 - telemetry off before import
 
+        onnxruntime = _ort()
         info["onnxruntime"] = onnxruntime.__version__
+        info["ortTelemetry"] = "off (%s=%s)" % ("ORT_DISABLE_TELEMETRY", os.environ.get("ORT_DISABLE_TELEMETRY"))
         info["providers"] = onnxruntime.get_available_providers()
     except Exception:  # noqa: BLE001
         info["onnxruntime"] = None
@@ -152,6 +154,16 @@ def cmd_version(args: argparse.Namespace, proto: Protocol) -> int:
 
 def main(argv: Optional[List[str]] = None) -> int:
     _setup_io()
+    from . import privacy  # noqa: PLC0415
+
+    before = privacy.snapshot()
+    try:
+        return _main(argv)
+    finally:
+        privacy.sweep(before)
+
+
+def _main(argv: Optional[List[str]] = None) -> int:
     proto = Protocol()
     try:
         args = build_parser().parse_args(argv)

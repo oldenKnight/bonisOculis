@@ -28,7 +28,11 @@
       }
     } else if (st === 'needsReview') {
       cls = 'review'; iconName = 'eye';
-      words = item.pending ? BO.tn('status.toReview', item.pending) : BO.t(item.cleanPending ? 'status.cleanPending' : 'status.needsReview');
+      if (item.outside === 'changed' || item.outside === 'imported') {
+        words = BO.t(item.outside === 'changed' ? 'status.outsideChanged' : 'status.outsideImported');
+      } else {
+        words = item.pending ? BO.tn('status.toReview', item.pending) : BO.t(item.cleanPending ? 'status.cleanPending' : 'status.needsReview');
+      }
     } else if (st === 'protected') {
       cls = 'protected'; iconName = 'shield-check';
       words = BO.tn('status.protected', item.enforced || 0);

@@ -12,36 +12,16 @@
 var fs = require('fs');
 var path = require('path');
 var BO = require('../../shared/skipfile.js');
+var enforce = require('./enforce.js');
 
-var THRESHOLDS = { light: 0.8, moderate: 0.6, strict: 0.4 };
+var THRESHOLDS = enforce.THRESHOLDS;
 var POS_SAVE_MS = 5000;
 
 function noop() {}
 var silentLog = { debug: noop, info: noop, warn: noop, error: noop };
 
-// Pure: the document mpv reads. Parent-reviewed, locked and manual ranges are kept as they are;
-// automatic pending ranges follow the current levels; skip becomes the cover action when the
-// parent chose not to jump over scenes.
-function buildPlaybackDoc(doc, opts) {
-  var o = opts || {};
-  var levels = o.levels || {};
-  var out = JSON.parse(JSON.stringify(doc));
-  out.ranges.forEach(function (r) {
-    if (r.source === 'auto' && r.locked !== true && r.review === 'pending' && Object.prototype.hasOwnProperty.call(levels, r.category)) {
-      var lvl = levels[r.category];
-      if (lvl === 'off' || (THRESHOLDS[lvl] && r.confidence < THRESHOLDS[lvl])) {
-        r.action = 'none';
-      } else if (r.category === 'language' && r.action !== 'none') {
-        r.action = 'mute';
-      } else if (r.action === 'none') {
-        r.action = 'skip';
-      }
-    }
-    if (o.skipScenes === false && r.action === 'skip') { r.action = o.nonSkipAction === 'blur' ? 'blur' : 'hide'; }
-  });
-  out.summary = BO.summarise(out);
-  return out;
-}
+// Pure: the document mpv reads (desktop/main/enforce.js, shared with every exporter).
+function buildPlaybackDoc(doc, opts) { return enforce.playbackDoc(doc, opts); }
 
 function writeAtomic(file, text) {
   var tmp = file + '.tmp-' + process.pid;
@@ -143,7 +123,7 @@ function createPlayerService(options) {
   }
 
   function onMark(m) {
-    if (!cur) { return; }
+    if (!cur || cur.kidMode) { return; } // marks are a parent tool; never taken in kid mode
     if (m.t === 'mark' && m.range) {
       cur.handled[m.range.id] = true;
       skips.addRange(cur.id, { id: m.range.id, start: m.range.start, end: m.range.end, category: 'other', action: 'skip', source: 'manual', review: 'pending' }, 'added');
@@ -205,6 +185,37 @@ function createPlayerService(options) {
     });
   }
 
+  // Kid mode is fail-closed: a Protected title with a valid, complete, untampered list.
+  function kidPlayable(item, loaded) {
+    var doc = loaded && loaded.doc;
+    return !!(item && item.status === 'protected' && !item.outside && doc && BO.validate(doc).ok && doc.scan && doc.scan.status === 'complete' &&
+      !loaded.tampered && !doc.ranges.some(function (r) { return r.review === 'pending'; }));
+  }
+
+  // The app was locked while a parent-mode player is open (board review A7): a kid-playable title
+  // switches the running player to kid mode (bonis.lua set-kidmode 1: no marks keys, kid seek
+  // rules); anything else is stopped. cb(null, 'none' | 'switched' | 'stopped')
+  function enterKidMode(cb) {
+    var done = typeof cb === 'function' ? cb : noop;
+    if (!cur || !player || cur.kidMode) { done(null, 'none'); return; }
+    var item = library.get(cur.id);
+    if (!kidPlayable(item, skips.load(cur.id))) {
+      log.info('locked while playing a title kids cannot play; stopping');
+      stop(function () { done(null, 'stopped'); });
+      return;
+    }
+    cur.kidMode = true;
+    try {
+      player.scriptMessage(['set-kidmode', '1'], function (err) {
+        if (err) { log.warn('set-kidmode failed; stopping'); stop(function () { done(null, 'stopped'); }); return; }
+        send({ type: 'kidMode', kidMode: true });
+        done(null, 'switched');
+      });
+    } catch (e) {
+      stop(function () { done(null, 'stopped'); });
+    }
+  }
+
   // cb(null, {ok, error?, data?})
   function play(id, opts, cb) {
     var done = typeof cb === 'function' ? cb : noop;
@@ -214,11 +225,7 @@ function createPlayerService(options) {
     if (!fs.existsSync(item.path)) { done(null, { ok: false, error: 'fileMissing' }); return; }
     var loaded = skips.load(id);
     var doc = loaded.doc;
-    if (kidMode) {
-      var ok = item.status === 'protected' && doc && BO.validate(doc).ok && doc.scan && doc.scan.status === 'complete' &&
-        !loaded.tampered && !doc.ranges.some(function (r) { return r.review === 'pending'; });
-      if (!ok) { done(null, { ok: false, error: 'kidRefused' }); return; }
-    }
+    if (kidMode && !kidPlayable(item, loaded)) { done(null, { ok: false, error: 'kidRefused' }); return; }
     var unprotected = false;
     if (!kidMode && (!doc || loaded.corrupt)) {
       // Planner decision 1: never start an unprotected play without an explicit answer.
@@ -306,7 +313,7 @@ function createPlayerService(options) {
     return { state: cur ? st.state : 'idle', id: cur ? cur.id : null, kidMode: cur ? cur.kidMode : false, pos: cur ? cur.pos : 0 };
   }
 
-  return { play: play, stop: stop, status: status, recover: recover, preview: preview, isOpen: function () { return !!cur; } };
+  return { play: play, stop: stop, status: status, recover: recover, preview: preview, enterKidMode: enterKidMode, isOpen: function () { return !!cur; } };
 }
 
 module.exports = { createPlayerService: createPlayerService, buildPlaybackDoc: buildPlaybackDoc, THRESHOLDS: THRESHOLDS };

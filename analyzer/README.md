@@ -115,7 +115,9 @@ native library that prints cannot corrupt the protocol.
   probability) and CLIP ViT-B/32 int8 (224 centre crop; cosine vs `models/clip_prompts.npz`;
   softmax over all prompts incl. 31 safe counter-prompts, summed per group → sex / kissing /
   implied / gore / nudity). Frame nudity = `max(classifier, 0.8 x CLIP nudity group)`
-  (`CLIP_NUDITY_WEIGHT`, `TUNING.md`). NudeNet was dropped (licence ambiguity, ledger D22):
+  (`CLIP_NUDITY_WEIGHT`, `TUNING.md`). Gate: CLIP runs on every frame, the classifier
+  only where the CLIP nudity group >= `CLIP_GATE` (0.10) or on every `GATE_STRIDE`-th (4)
+  media second; other frames use `0.8 x CLIP` alone (`--profile` counts `framesClassified`). NudeNet was dropped (licence ambiguity, ledger D22):
   no body-part granularity any more.
 - **Audio** (`signals/audio.py`): YAMNet ONNX (`waveform` float32 [N] at 16 kHz -> [frames, 521],
   0.96 s frames, 0.48 s hop) over 10 s chunks with the previous chunk's last 1 s prepended.
@@ -173,7 +175,7 @@ instead of 1131 MB, see `BENCH.md`).
 | hook | effect |
 |---|---|
 | `--scores-from scores.json` | `{"signals": {signal: {category: [per-second] or {"segments": [[start, end, score], ...]}}}, "cuts": [s, ...]}` replaces model signals (frames, subtitles, audio, ...); no model is loaded, ffmpeg still decodes (cuts, checkpoints). A bare `{signal: {...}}` object also works. |
-| `--scores-from` extra keys | `"framesParts": {"nsfw": [per-second] or {segments}, "clipNudity": ...}` (the two nudity inputs of the frames scorer; the scan fuses them with `fuse_nudity` exactly as the real scorer, max()ed with a fed `frames.nudity`), `"audioClasses": {"Wail, moan": [per-second] or {segments}}` (fed YAMNet class scores: decode, chunking, class mapping and checkpoints run, no model), `"transcript": [[start, end, text], ...]` (what the fake speech engine hears), `"captionsText": [[start, end, caption], ...]` (fake scene descriptions by media time; keyframes are still extracted) |
+| `--scores-from` extra keys | `"framesParts": {"nsfw": [per-second] or {segments}, "clipNudity": ...}` (the two nudity inputs of the frames scorer; the scan gates and fuses them exactly as the real scorer, max()ed with a fed `frames.nudity`), `"audioClasses": {"Wail, moan": [per-second] or {segments}}` (fed YAMNet class scores: decode, chunking, class mapping and checkpoints run, no model), `"transcript": [[start, end, text], ...]` (what the fake speech engine hears), `"captionsText": [[start, end, caption], ...]` (fake scene descriptions by media time; keyframes are still extracted) |
 | `Scan(args, proto, lm_factory=, audio_factory=, stt_factory=, captioner_factory=)` | in-process tests: stand-ins (`FakeLM`, `FedAudioScorer`, `FakeSTT`, `FakeCaptioner`) |
 | `BONIS_TEST_FRAME_DELAY=0.04` | sleep per frame (only together with `--scores-from`): a slow decoder for kill/resume/pause tests |
 | `BONIS_TEST_UNIT_DELAY=0.5` | sleep per audio chunk / speech window / caption shot (only with `--scores-from`) |
@@ -255,7 +257,8 @@ M7 (analyzer v2):
   whisper-cli binary was available here.
 - Picture-based subtitles (PGS/VobSub) cannot be read (no OCR); the scan warns.
 - The nsfw classifier is ~4x slower than NudeNet was (287 vs 67 ms per frame at 2 threads,
-  `BENCH.md`) and is a whole-image sfw/nsfw call: expect more false alarms on swimwear /
+  `BENCH.md`; the gate brings frame scoring to 114-319 ms per frame depending on how often CLIP
+  leans towards nudity) and is a whole-image sfw/nsfw call: expect more false alarms on swimwear /
   shirtless / medical scenes and misses on small figures until tuned on hand-marked films.
 - The AVX2 guard was tested with the detection patched both ways; no pre-AVX2 machine was
   available to confirm that the wheels really crash there or that ONNX Runtime keeps working.

@@ -37,7 +37,8 @@ function defaults(lang) {
     listenSpeech: true,
     autoLockMinutes: 10,
     analyzerCommand: null,
-    windowBounds: null
+    windowBounds: null,
+    integrity: null
   };
 }
 
@@ -74,6 +75,15 @@ var RULES = {
     }
     return undefined;
   },
+  // Main-only: the result of the bundled-files check (integrity.js).
+  integrity: function (v) {
+    if (v === null) { return null; }
+    if (!v || typeof v !== 'object' || typeof v.version !== 'string') { return undefined; }
+    var list = Array.isArray(v.damaged) ? v.damaged.slice(0, 50).filter(function (d) { return d && typeof d.file === 'string'; })
+      .map(function (d) { return { file: d.file.slice(0, 300), reason: String(d.reason || '').slice(0, 40) }; }) : [];
+    return { version: v.version.slice(0, 40), at: typeof v.at === 'string' ? v.at.slice(0, 40) : null, checked: typeof v.checked === 'number' ? v.checked : 0,
+      missing: typeof v.missing === 'number' ? v.missing : 0, damaged: list };
+  },
   windowBounds: function (v) {
     if (v === null) { return null; }
     if (v && ['x', 'y', 'width', 'height'].every(function (k) { return typeof v[k] === 'number' && isFinite(v[k]); })) {
@@ -83,7 +93,7 @@ var RULES = {
   }
 };
 
-// Keys the renderer may change through settings:set (analyzerCommand and windowBounds are main-only).
+// Keys the renderer may change through settings:set (analyzerCommand, windowBounds and integrity are main-only).
 var RENDERER_KEYS = ['lang', 'setupDone', 'preset', 'levels', 'skipScenes', 'nonSkipAction', 'panicKey',
   'lockOnStart', 'scanOnlyPluggedIn', 'pauseWhilePlaying', 'threads', 'reduceMotion', 'thorough', 'listenSpeech', 'autoLockMinutes'];
 

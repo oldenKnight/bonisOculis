@@ -49,5 +49,7 @@ test('no telemetry, auto-updater or crash reporter in main', function () {
     assert.ok(!/autoUpdater|crashReporter|electron-updater|net\.request|session\.[a-zA-Z]+\.fetch/.test(src), path.relative(ROOT, f));
   });
   var main = fs.readFileSync(path.join(ROOT, 'desktop', 'main', 'main.js'), 'utf8');
-  assert.ok(/onBeforeRequest\(\{ urls: \['http:\/\/\*\/\*', 'https:\/\/\*\/\*'/.test(main), 'remote requests are cancelled');
+  assert.ok(/onBeforeRequest\(function \(details, cb\) \{\s*cb\(\{ cancel: !\/\^\(file\|data\|devtools\|chrome-devtools\):\/i/.test(main), 'every request but file:, data: and DevTools is cancelled');
+  assert.ok(/setSpellCheckerEnabled\(false\)/.test(main), 'no spell-check dictionary download');
+  ['disable-component-update', 'disable-background-networking'].forEach(function (sw) { assert.ok(main.indexOf("appendSwitch('" + sw + "')") >= 0, sw); });
 });

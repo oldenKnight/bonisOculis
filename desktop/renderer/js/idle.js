@@ -15,9 +15,9 @@
   }
 
   function active() {
-    var boot = BO.store.get('boot') || {};
     var s = BO.store.get('settings') || {};
-    return minutes() > 0 && !BO.store.get('locked') && boot.hasPin !== false && s.setupDone && BO.router.current() !== 'player' && BO.router.current() !== 'setup';
+    // setupDone means a PIN exists (the wizard sets it before finishing).
+    return minutes() > 0 && !BO.store.get('locked') && s.setupDone && BO.router.current() !== 'player' && BO.router.current() !== 'setup';
   }
 
   function touch() {

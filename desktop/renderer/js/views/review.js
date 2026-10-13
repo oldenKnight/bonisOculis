@@ -342,6 +342,16 @@
     var msg;
     if (damaged) {
       msg = BO.el('div', { 'class': 'bo-notice bo-notice--error' }, [BO.icon('alert'), BO.el('p', { text: BO.t('review.damaged') })]);
+    } else if (item.outside === 'changed' || item.outside === 'imported') {
+      // Board review A4/A5: a list from outside the app reaches kids only after this click.
+      var trust = BO.el('button', { 'class': 'bo-button bo-button--primary bo-button--block', type: 'button', data: { act: 'trust' } }, [BO.icon('shield-check'), BO.t('review.trust')]);
+      trust.addEventListener('click', function () {
+        BO.modal.confirm({ title: BO.t('review.trust.title'), body: BO.tn('review.trust.text', n), okLabel: BO.t('review.trust'), okIcon: 'shield-check', icon: 'shield-check' }, function (yes) {
+          if (yes) { mutate('skip:trust', {}); }
+        });
+      });
+      msg = BO.el('div', { 'class': 'bo-review__clean', data: { outside: item.outside } }, [
+        BO.el('div', { 'class': 'bo-notice bo-notice--warning' }, [BO.icon('alert'), BO.el('p', { text: BO.t('review.outside.' + item.outside) })]), trust]);
     } else if (item.cleanPending) {
       var ok = BO.el('button', { 'class': 'bo-button bo-button--primary bo-button--block', type: 'button', data: { act: 'approve-clean' } }, [BO.icon('shield-check'), BO.t('review.approveClean')]);
       ok.addEventListener('click', function () { mutate('skip:approveClean', {}); });

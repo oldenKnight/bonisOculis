@@ -105,6 +105,33 @@ counter-prompts in "safe") covers part of that gap. Why 0.8:
   "catch too much" at strict without flooding the lighter levels.
 - `max()`, not a noisy-OR of the two: both look at the same pixels, so their
   errors are correlated; adding them would double count.
+
+**Classifier gate (`CLIP_GATE` = 0.10, `GATE_STRIDE` = 4).** The classifier
+costs ~245 ms per frame at 2 threads, CLIP ~45 ms (`BENCH.md`); scoring every
+frame with both made frames ~34 min per 2 h film on the minimum machine. CLIP
+therefore runs on every sampled frame and the classifier only where
+- the CLIP nudity group is >= 0.10, or
+- the media second is a multiple of 4 (keyed on the second, so a resumed scan
+  gates the same frames).
+Frames that skip the classifier score `0.8 x CLIP nudity` alone. Why these
+numbers, under "catch too much":
+- 0.10 is low on purpose. A frame whose nudity prompts hold 10 % of the softmax
+  mass (81 prompts, so ~8x their uniform share) is far from flagged
+  (0.8 x 0.10 = 0.08), but it is exactly where the classifier must have a say.
+  On the 4 s noise clip the group sat at ~0.07; ordinary frames sit lower.
+- The stride guarantees the classifier sees at least one frame in four seconds
+  even when CLIP is blind to a scene. A nude shot shorter than ~4 s that CLIP
+  also misses can be missed; at 1 fps sampling a 1 s shot could already be
+  missed before the gate. The fusion pads ranges (lead-in 2 s, tail 1 s,
+  minimum 1.5 s), and frames are not the only signal.
+- Measured on the synthetic 60 s testsrc2 clip (no CLIP hits, so only the
+  stride frames, 15 of 60, were classified): 114 ms per frame at 2 threads vs
+  319 ms with every frame classified (worst case, CLIP_GATE = 0). A 2 h film:
+  ~14 min instead of ~38 min at 2 threads. On a film with many CLIP hits the
+  cost moves towards the worst case; the gate never makes it slower.
+- To favour recall over speed: lower `CLIP_GATE` or `GATE_STRIDE` (1 = every
+  frame, the pre-gate behaviour).
+
 Expect more false alarms on swimwear, shirtless men and medical scenes than
 NudeNet gave until this is tuned on hand-marked films (`tools/tune.py` cannot
 tune it yet: frames.npz stores the fused score; keep the classifier and CLIP

@@ -7,8 +7,8 @@
   var page = null;
   var ICONS = { setup: 'lock', unlock: 'unlock', pinFailed: 'alert', cooldown: 'clock', lock: 'lock', pinChanged: 'edit', pinRecovered: 'unlock',
     settings: 'settings', play: 'play', playUnprotected: 'alert', panic: 'panic', skip: 'check', letPlay: 'eye', skipAll: 'check',
-    approveClean: 'shield-check', markReviewed: 'shield-check', import: 'upload', remove: 'trash', damaged: 'alert' };
-  var WARN = ['pinFailed', 'cooldown', 'playUnprotected', 'panic', 'damaged'];
+    approveClean: 'shield-check', markReviewed: 'shield-check', trust: 'shield-check', import: 'upload', remove: 'trash', damaged: 'alert', integrity: 'alert' };
+  var WARN = ['pinFailed', 'cooldown', 'playUnprotected', 'panic', 'damaged', 'integrity'];
 
   function fmtWhen(iso) {
     var d = new Date(iso);
@@ -31,7 +31,7 @@
   }
 
   function sentence(e) {
-    var p = { title: e.title || '', seconds: e.seconds || 0, time: BO.fmt.time(e.movieTime || 0), count: e.count || 0 };
+    var p = { title: e.title || '', seconds: e.seconds || 0, time: BO.fmt.time(e.movieTime || 0), count: e.count || 0, file: e.file || '' };
     switch (e.type) {
       case 'pinFailed': return BO.t(e.mode === 'kid' ? 'activity.pinFailed.kid' : 'activity.pinFailed.parent');
       case 'lock': return BO.t(e.reason === 'idle' ? 'activity.lock.idle' : 'activity.lock.manual');

@@ -8,6 +8,7 @@ import json
 import os
 import sys
 import unittest
+from unittest import mock
 
 import numpy as np
 
@@ -111,6 +112,18 @@ class NudityFusionTest(unittest.TestCase):
         self.assertLess(F.fuse_nudity(0.0, 0.99), config.LEVEL_THRESHOLDS["light"])
 
 
+class GateTest(unittest.TestCase):
+    def test_gate_selects(self) -> None:
+        self.assertEqual((config.CLIP_GATE, config.GATE_STRIDE), (0.10, 4))
+        self.assertTrue(F.gate_selects(0.0, 0.0))     # stride second
+        self.assertTrue(F.gate_selects(8.2, 0.0))     # rounds to 8
+        self.assertFalse(F.gate_selects(5.0, 0.09))
+        self.assertTrue(F.gate_selects(5.0, 0.10))    # CLIP leans towards nudity
+        self.assertTrue(F.gate_selects(5.0, 0.0, stride=1))
+        picked = [t for t in range(100) if F.gate_selects(float(t), 0.0)]
+        self.assertEqual(len(picked), 25)             # coverage never below 1 in GATE_STRIDE
+
+
 class SettingsTest(unittest.TestCase):
     def test_defaults_without_json(self) -> None:
         d = write_models(os.path.join(S.tmp_root(), "nsfw-defaults"))
@@ -153,19 +166,33 @@ class ScorerTest(unittest.TestCase):
         sc = F.ModelFrameScorer(d, factory)
         return sc, dict(sessions)
 
-    def test_batches_of_eight_and_fusion(self) -> None:
-        sc, sess = self.make([0.0, np.log(3.0)], "ok")  # softmax -> nsfw 0.75
-        frames = [(float(t), np.zeros((180, 320, 3), np.uint8)) for t in range(19)]
-        out = sc.score_batch(frames)
+    def test_classifier_batches_of_eight(self) -> None:
+        sc, sess = self.make([0.0, np.log(3.0)], "batch")  # softmax -> nsfw 0.75
+        p = sc.classify([np.zeros((180, 320, 3), np.uint8)] * 19)
         self.assertEqual([c[0] for c in sess[config.NSFW_FILE].calls], [8, 8, 3])
         self.assertEqual(sess[config.NSFW_FILE].calls[0][1:], (3, 384, 384))
-        self.assertEqual(len(out), 19)
+        self.assertTrue(np.allclose(p, 0.75))
+
+    def test_gate_and_fusion(self) -> None:
+        sc, sess = self.make([0.0, np.log(3.0)], "gate")  # classifier says 0.75 whenever asked
+        frames = [(float(t), np.zeros((180, 320, 3), np.uint8)) for t in range(19)]
         z = F.zero_shot(sc.embed([frames[0][1]]), sc.prompts, sc.groups, sc.names)[0]
-        want = max(0.75, config.CLIP_NUDITY_WEIGHT * z["nudity"])
-        for o in out:
+        self.assertLess(z["nudity"], config.CLIP_GATE)  # the fake embedding is not "nude" to CLIP
+        out = sc.score_batch(frames)
+        # only every GATE_STRIDE-th second reaches the classifier: 0, 4, 8, 12, 16
+        self.assertEqual([c[0] for c in sess[config.NSFW_FILE].calls], [5])
+        self.assertEqual((sc.scored, sc.classified), (19, 5))
+        clip_only = config.CLIP_NUDITY_WEIGHT * z["nudity"]
+        for (t, _), o in zip(frames, out):
             self.assertEqual(sorted(o), sorted(config.VISUAL_CATEGORIES))
-            self.assertAlmostEqual(o["nudity"], want, places=5)
+            self.assertAlmostEqual(o["nudity"], 0.75 if int(t) % config.GATE_STRIDE == 0 else clip_only, places=5)
             self.assertAlmostEqual(o["gore"], z["gore"], places=6)
+        # worst case: every frame through the classifier (gate 0), still in batches of 8
+        with mock.patch.object(config, "CLIP_GATE", 0.0):
+            sess[config.NSFW_FILE].calls.clear()
+            out = sc.score_batch(frames)
+        self.assertEqual([c[0] for c in sess[config.NSFW_FILE].calls], [8, 8, 3])
+        self.assertTrue(all(abs(o["nudity"] - 0.75) < 1e-6 for o in out))
         sc.close()
         self.assertIsNone(sc.nsfw)
         self.assertEqual(sc.score_batch([]), [])
@@ -176,7 +203,7 @@ class ScorerTest(unittest.TestCase):
         self.assertLess(float(p[0]), 1e-4)
         sc.prompts = np.eye(len(sc.names), 512, dtype=np.float32)[np.asarray(sc.groups)]  # one axis per group
         sc.prompts = sc.prompts / np.linalg.norm(sc.prompts, axis=1, keepdims=True)
-        nud = sc.names.index("nudity")
+        nud = sc.names.index("nudity")  # CLIP certain -> over the gate -> classifier asked (says safe)
         sc.embed = lambda frames: np.eye(1, 512, nud, dtype=np.float32).repeat(len(frames), 0)  # type: ignore
         o = sc.score_batch([(0.0, np.zeros((18, 32, 3), np.uint8))])[0]
         self.assertAlmostEqual(o["nudity"], config.CLIP_NUDITY_WEIGHT * 1.0, places=4)
@@ -238,7 +265,13 @@ class ZeroShotTest(unittest.TestCase):
         parts = {"nsfw": np.array([0.1, 0.2, 0.0], np.float32), "clipNudity": np.array([0.9, 0.0, 0.5], np.float32)}
         sc = F.FedFrameScorer({"nudity": np.array([0.0, 0.0, 0.6], np.float32)}, parts)
         out = sc.score_batch([(0.0, None), (1.0, None), (2.0, None), (9.0, None)])
-        self.assertEqual([round(o["nudity"], 4) for o in out], [0.72, 0.2, 0.6, 0.0])
+        # t=0: CLIP 0.9 (gated in; 0.72 > 0.1); t=1: CLIP 0 and not a stride second -> classifier
+        # skipped, 0; t=2: fed nudity 0.6; t=9: nothing
+        self.assertEqual([round(o["nudity"], 4) for o in out], [0.72, 0.0, 0.6, 0.0])
+        sc = F.FedFrameScorer({}, {"nsfw": np.array([0, 0, 0, 0, 0.9, 0.9], np.float32),
+                                   "clipNudity": np.array([0, 0, 0, 0, 0, 0.2], np.float32)})
+        out = sc.score_batch([(4.0, None), (5.0, None)])  # stride second; CLIP over the gate
+        self.assertEqual([round(o["nudity"], 4) for o in out], [0.9, 0.9])
 
 
 @unittest.skipUnless(S.HAVE_FFMPEG, "ffmpeg not available")

@@ -11,11 +11,15 @@ inside it (packaging/README.md, "Resource layout"):
 When those exist and the caller did not say otherwise, the matching BONIS_* variables are set
 before the CLI starts, so the Electron app can spawn the analyzer with no extra arguments.
 An explicit environment variable or --models argument always wins. Nothing here touches the
-network.
+network; ORT_DISABLE_TELEMETRY=1 is always set (ONNX Runtime telemetry off, review A1).
 """
 
 import os
 import sys
+
+# ONNX Runtime 1.29+ telemetry off switch, before anything imports onnxruntime (review A1; the
+# package __init__ sets it too). Unconditional: the user's environment cannot turn it back on.
+os.environ["ORT_DISABLE_TELEMETRY"] = "1"
 
 
 def _default_env(resources):

@@ -1,6 +1,6 @@
 'use strict';
 // "Check accuracy" (brief 6.5, LEDGER D13): compare the AUTOMATIC scan of a title (the
-// analyzer's own output kept as <work>/auto.bonis.json, before the parent's review) with a
+// analyzer's own output kept as <userData>/library/<id>.auto.bonis.json, before the parent's review) with a
 // hand-marked .bonis.json (the truth) by running the analyzer's
 //   evaluate --truth T --pred P --tolerance 3 --out R.json
 // The JSON report is the result; the markdown table printed on stdout is kept for "Copy as text".
@@ -49,7 +49,7 @@ function createAccuracy(opts) {
     var current = o.skips.load(id).doc;
     if (!current) { done('noSkip'); return; }
     // The prediction is the automatic scan as the analyzer wrote it, before any review.
-    var autoFile = path.join(o.paths.workDir(id), 'auto.bonis.json');
+    var autoFile = o.paths.autoScan(id);
     var auto = null;
     try { auto = BO.fromJson(fs.readFileSync(autoFile, 'utf8')); } catch (e0) { auto = null; }
     if (!auto || !auto.ok) { done('noAutoScan'); return; }

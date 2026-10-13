@@ -35,6 +35,7 @@ var CHANNELS = {
   'skip:undo': { shape: { id: 'id' } },
   'skip:markReviewed': { shape: { id: 'id' } },
   'skip:approveClean': { shape: { id: 'id' } },
+  'skip:trust': { shape: { id: 'id' } },
   'skip:thumbs': { shape: { id: 'id', rangeIds: 'rangeIdList' } },
   'skip:strip': { shape: { id: 'id', n: 'count' } },
   'skip:peek': { shape: { id: 'id', rangeId: 'rangeId' } },
@@ -63,7 +64,7 @@ var CHANNELS = {
 };
 
 // main -> renderer events (webContents.send); preload.js only forwards these.
-var EVENTS = ['scan:progress', 'player:event', 'library:changed', 'toast', 'app:locked', 'app:navigate', 'export:progress', 'settings:changed'];
+var EVENTS = ['scan:progress', 'player:event', 'library:changed', 'toast', 'app:locked', 'app:navigate', 'export:progress', 'settings:changed', 'app:integrity'];
 
 function isPlainObject(v) { return v !== null && typeof v === 'object' && Object.prototype.toString.call(v) === '[object Object]'; }
 

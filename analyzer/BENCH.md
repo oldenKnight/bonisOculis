@@ -84,10 +84,30 @@ together (67 ms per frame at 2 threads). Batching 8 frames does **not** help on
 this CPU (ORT already parallelises inside one image); the batch is kept at 8 to
 bound memory and match the decode batch. Frames-stage peak RSS on the 4 s noise
 scan: 478 MB (was ~310 MB). Load: 0.46 s for both sessions. A 2 h film at 1 fps
-now needs ~34 min of frame scoring at 2 threads (~20 min at 4) instead of
-~8 / 5.5 min. Levers if this is too slow on the owner's i5: score the
-classifier on every second frame and CLIP on all, or a DirectML/CoreML device
-(untested here: no GPU in this container).
+would need ~34 min of frame scoring at 2 threads (~20 min at 4) with every
+frame classified, instead of ~8 / 5.5 min; hence the gate below. A
+DirectML/CoreML device is untested here (no GPU in this container).
+
+### Classifier gate (`CLIP_GATE` 0.10, `GATE_STRIDE` 4)
+
+CLIP on every frame, the classifier only where the CLIP nudity group is
+>= 0.10 or on every 4th media second (`TUNING.md`). Measured through
+`ModelFrameScorer.score_batch` in batches of 8 on the 60 frames of a 60 s
+testsrc2 clip (scaled to 320x180, as the decoder sends them), median of 3:
+
+| | classified | 2 threads | 4 threads |
+|---|---|---|---|
+| gated, defaults (testsrc2) | 15 of 60 | **114 ms per frame** | 81 ms per frame |
+| stride only (gate forced off) | 15 of 60 | 116 ms per frame | 75 ms per frame |
+| worst case: every frame (`CLIP_GATE` = 0) | 60 of 60 | 319 ms per frame | 225 ms per frame |
+
+On testsrc2 the gate ratio means nothing: no colour bar looks like nudity to
+CLIP, so only the stride frames reach the classifier. Real films land between
+the stride-only row and the worst case, depending on how many frames CLIP
+scores above 0.10. A 2 h film at 2 threads: ~14 min (stride only) to ~38 min
+(worst case). The worst case here (319 ms) is above the 287 ms measured earlier
+the same day: the shared host is noisy. `scan --profile` reports
+`framesClassified` next to `framesProcessed`.
 
 ## Keyframe extraction: per-shot seek vs. one `select` pass
 
@@ -109,7 +129,7 @@ both.
 
 | stage | estimate |
 |---|---|
-| frames | 7200 x 162 ms ~ **19.5 min** + decode (NudeNet era: 7200 x 46 ms ~ 5.5 min); 2 threads: 7200 x 287 ms ~ 34 min |
+| frames | gated: 7200 x 75-225 ms ~ **9-27 min** + decode (NudeNet era: 7200 x 46 ms ~ 5.5 min); 2 threads: 7200 x 114-319 ms ~ 14-38 min |
 | audio | 720 chunks x 17 ms ~ 12 s + decode (~30 s) |
 | speech (only without subtitles) | 258 windows x 4.5 s ~ 19 min |
 | lm | <= 600 windows x ~1.1 s (typically far fewer) |

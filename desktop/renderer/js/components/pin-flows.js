@@ -103,7 +103,9 @@
   }
 
   /* Forgotten PIN: recovery code, then a new PIN twice; a new recovery code is shown once. */
-  function recover(cb) {
+  /* opts.lost: the PIN file is gone; this is the only way in (no Cancel into a PIN-less app). */
+  function recover(cb, opts) {
+    var lost = !!(opts && opts.lost);
     var host = BO.el('div', { 'class': 'bo-pin-host' });
     var field = BO.el('input', { 'class': 'bo-input bo-num', id: BO.nextId('code'), attrs: { autocomplete: 'off', spellcheck: 'false', maxlength: '20', placeholder: 'XXXX-XXXX-XXXX' } });
     var err = BO.el('span', { 'class': 'bo-field__error' }, [BO.icon('alert'), BO.el('span', { text: BO.t('recover.bad') })]);
@@ -111,7 +113,8 @@
       BO.el('span', { 'class': 'bo-field__help', text: BO.t('recover.help') }), err]);
     host.appendChild(wrap);
     var m = BO.modal.open({
-      title: BO.t('recover.title'), icon: 'unlock', variant: 'pin', body: [BO.el('p', { text: BO.t('recover.text') }), host],
+      title: BO.t(lost ? 'recover.lostTitle' : 'recover.title'), icon: 'unlock', variant: 'pin',
+      body: [BO.el('p', { text: BO.t(lost ? 'recover.lostText' : 'recover.text') }), host],
       actions: [
         { label: BO.t('common.cancel'), kind: 'secondary', id: 'cancel' },
         { label: BO.t('common.continue'), kind: 'primary', id: 'next', onClick: function (close, btn) {

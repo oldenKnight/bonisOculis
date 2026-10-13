@@ -24,6 +24,10 @@ function createStore(options) {
   var log = o.log || silentLog;
   var listeners = { recovered: [], tampered: [] };
   var hmacKey = null;
+  // While the PIN file is lost (pin.js), nothing but the PIN and recovery files may be written: a
+  // temporary key would otherwise re-sign the library and hide what happened.
+  var readOnly = false;
+  var WRITABLE = ['secure.json', 'recovery.json'];
 
   function emit(name, payload) {
     var i;
@@ -39,6 +43,7 @@ function createStore(options) {
   function mkdirp(p) { try { fs.mkdirSync(p, { recursive: true }); } catch (e) { /* exists */ } }
 
   function writeText(rel, text) {
+    if (readOnly && WRITABLE.indexOf(rel) < 0) { log.warn('read-only: not written', rel); return false; }
     var file = full(rel);
     var tmp = file + '.tmp-' + process.pid;
     var fd;
@@ -104,6 +109,7 @@ function createStore(options) {
   }
 
   function remove(rel) {
+    if (readOnly && WRITABLE.indexOf(rel) < 0) { return false; }
     var file = full(rel);
     var ok = true;
     [file, file + '.bak'].forEach(function (f) {
@@ -126,8 +132,10 @@ function createStore(options) {
 
   function isEnvelope(v) { return v !== null && typeof v === 'object' && Object.prototype.hasOwnProperty.call(v, 'data'); }
 
-  // Envelope = {data, hmac}. Returns the data (or null when missing), never throws.
-  function readEnvelope(rel) {
+  // Envelope = {data, hmac}. Returns the data (or null when missing), never throws. info (optional)
+  // gets info.tampered = true when the HMAC fails and no good backup exists: the caller must then
+  // not trust what the data claims (board review A4).
+  function readEnvelope(rel, info) {
     var r = readJson(rel, isEnvelope);
     var env = r.value;
     if (!env) { return null; }
@@ -141,6 +149,7 @@ function createStore(options) {
         return bak.value.data;
       }
       log.warn('hmac mismatch', rel);
+      if (info) { info.tampered = true; }
       emit('tampered', { file: rel, restored: false });
     }
     return env.data;
@@ -161,6 +170,8 @@ function createStore(options) {
     readEnvelope: readEnvelope,
     writeEnvelope: writeEnvelope,
     setHmacKey: setHmacKey,
+    setReadOnly: function (v) { readOnly = !!v; },
+    isReadOnly: function () { return readOnly; },
     hmac: hmac,
     hmacOk: hmacOk
   };

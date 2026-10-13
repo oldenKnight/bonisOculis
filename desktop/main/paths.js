@@ -73,6 +73,11 @@ function createPaths(opts) {
       return defaultAnalyzer();
     },
     workDir: function (oshash) { return path.join(userData, 'work', oshash); },
+    // The analyzer's --out lives outside the work folder (the analyzer cleans its work folder when
+    // it finishes, which deleted an --out placed inside it). After a good scan it becomes the kept
+    // automatic result, <id>.auto.bonis.json, which "Check accuracy" compares with a hand list.
+    scanOut: function (oshash) { return path.join(userData, 'library', oshash + '.scan.bonis.json'); },
+    autoScan: function (oshash) { return path.join(userData, 'library', oshash + '.auto.bonis.json'); },
     playDir: function () { return path.join(userData, 'play'); },
     tmpDir: function () { return path.join(userData, 'tmp'); },
     logDir: function () { return path.join(userData, 'logs'); },

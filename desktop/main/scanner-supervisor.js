@@ -22,7 +22,7 @@ var MAX_RESTARTS = 3;
 var PROGRESS_MIN_MS = 250;
 var PERSIST_PROGRESS_MS = 5000;
 var KILL_GRACE_MS = 3000;
-var AUTO_FILE = 'auto.bonis.json';
+var AUTO_FILE = 'auto.bonis.json'; // kept as <userData>/library/<id>.auto.bonis.json (paths.autoScan)
 var ALL_STAGES = ['subtitles', 'frames', 'audio', 'speech', 'captions'];
 var RUN_ORDER = ['subtitles', 'speech', 'frames', 'audio', 'lm', 'captions', 'fusion'];
 
@@ -177,7 +177,8 @@ function createSupervisor(options) {
       run.analyzerPaused = m.t === 'paused';
       emitThrottled(true);
     } else if (m.t === 'done') {
-      run.doneOut = typeof m.out === 'string' ? m.out : run.out;
+      // Only the file we asked for is read, whatever the analyzer says.
+      run.doneOut = run.out;
     } else if (m.t === 'error') {
       run.lastError = { code: m.code, msg: String(m.msg || '').slice(0, 300) };
     }
@@ -202,14 +203,18 @@ function createSupervisor(options) {
       if (item.headSha256) { merged.media.fingerprint.headSha256 = item.headSha256; }
       if (!old && item.title) { merged.media.title = item.title.slice(0, 500); }
     }
+    // A new scan result needs a new parent look when it found nothing (planner decision 2).
+    library.update(run.id, { wholeApproved: false }, true);
     var res = skips.replace(run.id, merged, false);
     if (!res.ok) { return false; }
     // The analyzer's own result, before the merge with the parent's review: "Check accuracy"
     // compares hand marks with this, never with the reviewed list (planner decision 13).
-    try { fs.copyFileSync(run.doneOut || run.out, path.join(run.work, AUTO_FILE)); } catch (e0) { log.warn('auto result not kept'); }
+    try { fs.renameSync(run.out, paths.autoScan(run.id)); } catch (e0) {
+      log.warn('auto result not kept');
+      try { fs.unlinkSync(run.out); } catch (e) { /* gone */ }
+    }
     library.update(run.id, { scannedAt: new Date().toISOString(), progress: 1, stage: null }, true);
     library.applyDoc(run.id, res.doc, BO.validate, true);
-    try { fs.unlinkSync(run.doneOut || run.out); } catch (e) { /* keep */ }
     var it = library.get(run.id);
     emit('toast', { kind: 'success', key: it && it.cleanPending ? 'toast.scanDoneClean' : (it && it.status === 'protected' ? 'toast.scanDoneProtected' : 'toast.scanDoneReview'),
       params: { title: it ? it.title : '', count: it ? it.pending : 0 } });
@@ -265,8 +270,9 @@ function createSupervisor(options) {
       return;
     }
     var work = paths.workDir(id);
-    var out = path.join(work, 'result.bonis.json');
+    var out = paths.scanOut(id);
     try { fs.mkdirSync(work, { recursive: true }); } catch (e) { /* exists */ }
+    try { fs.mkdirSync(path.dirname(out), { recursive: true }); } catch (e1) { /* exists */ }
     try { fs.unlinkSync(out); } catch (e2) { /* none */ }
     var b = buildArgs(item, work, out);
     var run = {

@@ -64,6 +64,16 @@ def softmax(logits: np.ndarray) -> np.ndarray:
     return e / e.sum(axis=-1, keepdims=True)
 
 
+def gate_selects(t: float, clip_nudity: float, gate: Optional[float] = None,
+                 stride: Optional[int] = None) -> bool:
+    """Does the frame at media time ``t`` go to the nsfw classifier? Yes when
+    CLIP already leans towards nudity, and on every ``stride``-th second
+    regardless (keyed on the second, not a counter, so resume is identical)."""
+    gate = config.CLIP_GATE if gate is None else gate      # read at call time (tuning, tests)
+    stride = config.GATE_STRIDE if stride is None else stride
+    return clip_nudity >= gate or stride <= 1 or int(round(t)) % int(stride) == 0
+
+
 def fuse_nudity(classifier: float, clip_group: float, weight: float = config.CLIP_NUDITY_WEIGHT) -> float:
     """Frame nudity = max(classifier nsfw probability, weight x CLIP nudity group)."""
     return float(min(1.0, max(0.0, classifier, weight * clip_group)))
@@ -190,6 +200,8 @@ class ModelFrameScorer:
         self.nsfw_in = self.nsfw.get_inputs()[0].name
         self.clip = session_factory(clip_path)
         self.clip_in = self.clip.get_inputs()[0].name
+        self.scored = 0       # frames scored / sent to the classifier (gate ratio, logged by the scan)
+        self.classified = 0
 
     def nsfw_logits(self, frames: Sequence[np.ndarray]) -> np.ndarray:
         """[N, 2] logits, the classifier run in batches of config.NSFW_BATCH."""
@@ -215,15 +227,20 @@ class ModelFrameScorer:
         return np.asarray(self.clip.run(None, {self.clip_in: batch})[0], dtype=np.float32)
 
     def score_batch(self, batch: Sequence[Frame]) -> List[Scores]:
+        """CLIP on every frame; the classifier only on gated frames (gate_selects)."""
         if not batch:
             return []
         imgs = [f for _, f in batch]
-        probs = self.classify(imgs)
         zs = zero_shot(self.embed(imgs), self.prompts, self.groups, self.names)
+        clip_nud = [float(z.get(config.CLIP_NUDITY_GROUP, 0.0)) for z in zs]
+        sel = [i for i, (t, _) in enumerate(batch) if gate_selects(t, clip_nud[i])]
+        probs = dict(zip(sel, (float(p) for p in self.classify([imgs[i] for i in sel]))))
+        self.classified += len(sel)
+        self.scored += len(batch)
         out = []
-        for p, z in zip(probs, zs):
+        for i, z in enumerate(zs):
             s = {c: 0.0 for c in config.VISUAL_CATEGORIES}
-            s["nudity"] = fuse_nudity(float(p), float(z.get(config.CLIP_NUDITY_GROUP, 0.0)))
+            s["nudity"] = fuse_nudity(probs.get(i, 0.0), clip_nud[i])
             for g, cat in config.CLIP_GROUP_CATEGORY.items():
                 if g in z:
                     s[cat] = max(s[cat], float(z[g]))
@@ -240,7 +257,7 @@ class FedFrameScorer:
     """Test hook (--scores-from): looks frame scores up in provided per-second
     arrays. ``parts`` (the "framesParts" key) feeds the two nudity inputs
     instead, {"nsfw": classifier probability, "clipNudity": CLIP nudity group},
-    so a fed scan runs the same fusion (fuse_nudity) as the real scorer; a fed
+    so a fed scan runs the same gate and fusion as the real scorer; a fed
     "nudity" array, when also given, is max()ed with the fused value."""
 
     def __init__(self, arrays: Dict[str, np.ndarray], parts: Optional[Dict[str, np.ndarray]] = None) -> None:
@@ -256,8 +273,9 @@ class FedFrameScorer:
             i = int(round(t))
             s = {c: at(a, i) for c, a in self.arrays.items()}
             if self.parts:
-                fused = fuse_nudity(at(self.parts.get("nsfw", np.zeros(0)), i),
-                                    at(self.parts.get("clipNudity", np.zeros(0)), i))
+                clip_nud = at(self.parts.get("clipNudity", np.zeros(0)), i)
+                nsfw = at(self.parts.get("nsfw", np.zeros(0)), i) if gate_selects(t, clip_nud) else 0.0
+                fused = fuse_nudity(nsfw, clip_nud)
                 s["nudity"] = max(s.get("nudity", 0.0), fused)
             out.append(s)
         return out

@@ -6,6 +6,7 @@ var fs = require('fs');
 var crypto = require('crypto');
 var childProcess = require('child_process');
 var BO = require('../../shared/skipfile.js');
+var enforce = require('./enforce.js');
 var exportJson = require('./exporters/json.js').exportJson;
 var exportEdl = require('./exporters/edl.js').exportEdl;
 var cleanCopy = require('./exporters/clean-copy.js').cleanCopy;
@@ -31,6 +32,10 @@ function createHandlers(c) {
   // c: {electron, getWindow, store, pin, settings, i18n, library, skips, supervisor, player, thumbs,
   //     help, paths, log, emit, versions, takeToasts, onLangChanged}
   var exported = {};
+  // Folders the parent chose in the folder dialog. An export goes next to the movie or into one
+  // of these, never into a folder the renderer made up (board review A10).
+  var pickedDirs = {};
+  function dirAllowed(dir) { return dir === undefined || dir === null || pickedDirs[dir] === true; }
   var importTokens = {};
   var clean = null;
   var toolVersions = null;
@@ -63,6 +68,14 @@ function createHandlers(c) {
     return r.doc;
   }
 
+  // What the player would enforce right now, for every export (board review A8).
+  function enforcedDocOf(id) {
+    var d = docOf(id);
+    if (!d) { return null; }
+    var s = c.settings.get();
+    return enforce.playbackDoc(d, { levels: s.levels, skipScenes: s.skipScenes, nonSkipAction: s.nonSkipAction });
+  }
+
   function skipResult(cb) {
     return function (r) {
       if (!r || !r.ok) { cb(r && r.error ? r.error : 'failed'); return; }
@@ -84,7 +97,7 @@ function createHandlers(c) {
     var locked = c.pin.isLocked();
     var s = c.settings.get();
     cb(null, {
-      hasPin: c.pin.hasPin(), locked: locked, setupDone: !!s.setupDone, lang: c.i18n.lang(),
+      hasPin: c.pin.hasPin(), locked: locked, pinLost: c.pin.isLost(), setupDone: !!s.setupDone, lang: c.i18n.lang(),
       strings: c.i18n.dict(c.i18n.lang()), settings: locked ? { lang: s.lang, reduceMotion: s.reduceMotion } : publicSettings(),
       toasts: c.takeToasts(), version: c.versions.app, platform: process.platform,
       player: c.player.status(), scan: locked ? null : c.supervisor.status()
@@ -136,6 +149,7 @@ function createHandlers(c) {
     c.supervisor.cancel(p.id);
     c.skips.remove(p.id);
     try { fs.rmSync(c.paths.workDir(p.id), { recursive: true, force: true }); } catch (e) { c.log.warn('work dir not removed'); }
+    [c.paths.scanOut(p.id), c.paths.autoScan(p.id)].forEach(function (f) { try { fs.unlinkSync(f); } catch (e3) { /* none */ } });
     act('remove', { id: p.id, title: titleOf(p.id) });
     c.library.remove(p.id);
     cb(null, true);
@@ -174,6 +188,11 @@ function createHandlers(c) {
   h['skip:approveClean'] = function (p, ctx, cb) {
     var r = c.skips.approveClean(p.id);
     if (r.ok) { act('approveClean', { id: p.id, title: titleOf(p.id) }); }
+    skipResult(cb)(r);
+  };
+  h['skip:trust'] = function (p, ctx, cb) {
+    var r = c.skips.trust(p.id);
+    if (r.ok) { act('trust', { id: p.id, title: titleOf(p.id) }); }
     skipResult(cb)(r);
   };
   h['skip:edit'] = function (p, ctx, cb) {
@@ -226,6 +245,7 @@ function createHandlers(c) {
 
   h['pin:status'] = function (p, ctx, cb) { cb(null, c.pin.status()); };
   h['pin:set'] = function (p, ctx, cb) {
+    if (c.pin.isLost()) { cb('pinLost'); return; }
     var r = c.pin.setPin(p.pin);
     if (!r.ok) { cb(r.error); return; }
     act('setup');
@@ -241,7 +261,8 @@ function createHandlers(c) {
   h['pin:recover'] = function (p, ctx, cb) {
     var wasLocked = c.pin.isLocked();
     var r = c.pin.recover(p.code, p.newPin);
-    if (r.ok) { act('pinRecovered'); }
+    if (r.ok && r.restored && c.onPinRestored) { c.onPinRestored(); }
+    if (r.ok) { act('pinRecovered', { detail: r.restored ? 'pin file restored' : null }); }
     if (!r.ok && !r.error) { act(r.cooldownMs ? 'cooldown' : 'pinFailed', { mode: wasLocked ? 'kid' : 'parent', purpose: 'recover' }); }
     if (r.ok && wasLocked) { c.emit('app:locked', { locked: false }); }
     cb(null, r);
@@ -250,8 +271,11 @@ function createHandlers(c) {
     if (!c.pin.hasPin()) { cb('noPin'); return; }
     c.pin.lock();
     act('lock', { reason: p.reason || 'manual' });
-    c.emit('app:locked', { locked: true });
-    cb(null, true);
+    // A movie playing in parent mode becomes a kid-mode movie (or stops) before anything else.
+    c.player.enterKidMode(function (e, how) {
+      c.emit('app:locked', { locked: true, player: how });
+      cb(null, true);
+    });
   };
   h['pin:change'] = function (p, ctx, cb) {
     var r = c.pin.changePin(p.oldPin, p.newPin);
@@ -288,8 +312,9 @@ function createHandlers(c) {
     return function (p, ctx, cb) {
       var it = c.library.get(p.id);
       if (!it) { cb('notFound'); return; }
-      var doc = docOf(p.id);
+      var doc = enforcedDocOf(p.id);
       if (!doc) { cb('noSkip'); return; }
+      if (!dirAllowed(p.dir)) { cb('forbidden'); return; }
       fn({ doc: doc, mediaPath: it.path, dir: p.dir }, function (err, file) {
         if (err) { cb(err.code || 'exportFailed'); return; }
         c.log.info('exported', kind);
@@ -304,7 +329,8 @@ function createHandlers(c) {
     var it = c.library.get(p.id);
     if (!it) { cb('notFound'); return; }
     if (clean) { cb('busy'); return; }
-    var doc = docOf(p.id);
+    if (!dirAllowed(p.dir)) { cb('forbidden'); return; }
+    var doc = enforcedDocOf(p.id);
     if (!doc) { cb('noSkip'); return; }
     var tmp = c.paths.tmpDir();
     try { fs.mkdirSync(tmp, { recursive: true }); } catch (e) { /* exists */ }
@@ -331,6 +357,7 @@ function createHandlers(c) {
   };
   h['export:pickFolder'] = function (p, ctx, cb) {
     c.electron.dialog.showOpenDialog(win(), { title: t('dialog.pickFolder'), properties: ['openDirectory', 'createDirectory'] }).then(function (r) {
+      if (!r.canceled && r.filePaths.length) { pickedDirs[r.filePaths[0]] = true; }
       cb(null, r.canceled || !r.filePaths.length ? { canceled: true } : { dir: r.filePaths[0] });
     }, function () { cb('dialogFailed'); });
   };

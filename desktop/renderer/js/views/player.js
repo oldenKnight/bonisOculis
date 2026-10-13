@@ -83,6 +83,11 @@
       render();
     } else if (ev.type === 'timepos') {
       if (session.state !== 'playing') { session.state = 'playing'; render(); }
+    } else if (ev.type === 'kidMode') {
+      // Locked while playing: the same movie goes on in kid mode, without the parent's marks.
+      session.kidMode = true;
+      session.marks = [];
+      render();
     } else if (ev.type === 'eof') {
       session.state = 'eof';
       render();

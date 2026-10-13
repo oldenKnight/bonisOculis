@@ -20,6 +20,7 @@ var createPlayerService = require('./player-service.js').createPlayerService;
 var createPlayer = require('./player-controller.js').createPlayer;
 var createThumbs = require('./thumbs.js').createThumbs;
 var createHelp = require('./help.js').createHelp;
+var createIntegrity = require('./integrity.js').createIntegrity;
 var createAccuracy = require('./accuracy.js').createAccuracy;
 var createActivity = require('./activity.js').createActivity;
 var createHandlers = require('./handlers.js').createHandlers;
@@ -29,6 +30,19 @@ var menu = require('./menu.js');
 var BO = require('../../shared/skipfile.js');
 
 if (process.env.BONIS_USER_DATA) { app.setPath('userData', process.env.BONIS_USER_DATA); }
+
+// No network, ever (brief 4.7; board review A2). Chromium's own background services are switched
+// off before the app is ready: component updates, background networking (variations, safe
+// browsing lists), DNS prefetch, pings, domain reliability, and the spell-check dictionary
+// service (its download bypasses webRequest). desktop/test/no-sockets.test.js runs a whole first
+// launch under strace and fails on any IP connect.
+app.commandLine.appendSwitch('disable-component-update');
+app.commandLine.appendSwitch('disable-background-networking');
+app.commandLine.appendSwitch('disable-domain-reliability');
+app.commandLine.appendSwitch('dns-prefetch-disable');
+app.commandLine.appendSwitch('no-pings');
+app.commandLine.appendSwitch('no-proxy-server');
+app.commandLine.appendSwitch('disable-features', 'SpellcheckService,SpellCheck,AutofillServerCommunication,OptimizationHints,MediaRouter,DialMediaRouteProvider,CertificateTransparencyComponentUpdater,NetworkTimeServiceQuerying');
 
 var win = null;
 var s = null;          // services
@@ -45,10 +59,14 @@ function emit(name, payload) {
 
 function hardenSession() {
   var ses = electron.session.defaultSession;
+  // The spell checker downloads a dictionary from Google on first use; it is never used here.
+  try { ses.setSpellCheckerEnabled(false); } catch (e0) { /* older API */ }
+  try { ses.setSpellCheckerLanguages([]); } catch (e1) { /* not on macOS */ }
   ses.setPermissionRequestHandler(function (wc, permission, cb) { cb(false); });
   try { ses.setPermissionCheckHandler(function () { return false; }); } catch (e) { /* older API */ }
-  ses.webRequest.onBeforeRequest({ urls: ['http://*/*', 'https://*/*', 'ws://*/*', 'wss://*/*', 'ftp://*/*'] }, function (details, cb) {
-    cb({ cancel: true });
+  // Everything but the app's own files, inline images and DevTools is cancelled.
+  ses.webRequest.onBeforeRequest(function (details, cb) {
+    cb({ cancel: !/^(file|data|devtools|chrome-devtools):/i.test(details.url || '') });
   });
   app.on('web-contents-created', function (e, contents) {
     contents.on('will-attach-webview', function (ev) { ev.preventDefault(); });
@@ -68,6 +86,7 @@ function checkSender(event) {
 }
 
 function boot() {
+  hardenSession();
   var packaged = app.isPackaged;
   var paths = createPaths({ isPackaged: packaged, resourcesPath: process.resourcesPath, userData: app.getPath('userData') });
   var log = createLog({ dir: paths.logDir(), name: 'bonis', console: !packaged && !process.env.BONIS_QUIET, level: 'info' });
@@ -110,20 +129,23 @@ function boot() {
   };
   var skips = createSkips({ store: store, library: library, log: log.child('skips'), onDamaged: function (id) { markDamaged(id); } });
 
-  // Re-derive every status from its skip file; a file changed outside the app loses Protected.
-  library.list().forEach(function (it) {
-    if (it.status === 'queued' || it.status === 'scanning') { return; }
-    var r = skips.load(it.id);
-    if (r.tampered && r.doc) {
-      emit('toast', { kind: 'warning', key: 'toast.skipTampered', params: { title: it.title } });
+  // Re-derive every status from its skip file. A list changed outside the app (bad or missing
+  // signature) is flagged in the library index and stays "Needs review" until the parent confirms
+  // it (skips.js, board review A4); one that cannot be read is damaged (planner decision 1).
+  function reconcile() {
+    library.list().forEach(function (it) {
+      if (it.status === 'queued' || it.status === 'scanning') { return; }
+      var r = skips.load(it.id);
+      if (r.tampered && r.doc) {
+        emit('toast', { kind: 'warning', key: 'toast.skipTampered', params: { title: it.title } });
+      } else if (r.corrupt) {
+        markDamaged(it.id);
+        return;
+      }
       library.applyDoc(it.id, r.doc, BO.validate);
-      if (library.get(it.id).status === 'protected') { library.setStatus(it.id, 'needsReview', {}); }
-    } else if (r.corrupt) {
-      markDamaged(it.id);
-    } else {
-      library.applyDoc(it.id, r.doc, BO.validate);
-    }
-  });
+    });
+  }
+  reconcile();
 
   var supervisor = createSupervisor({
     store: store, library: library, skips: skips, paths: paths, settings: settings, log: log.child('scan'), emit: emit,
@@ -153,15 +175,42 @@ function boot() {
     electron: electron, getWindow: function () { return win; }, store: store, pin: pin, settings: settings, i18n: i18n,
     library: library, skips: skips, supervisor: supervisor, player: player, thumbs: thumbs, help: help, paths: paths,
     accuracy: accuracy, activity: activity, log: log.child('ipc'), emit: emit, versions: versions,
+    // The PIN file was lost and the recovery code restored the original key: read everything again
+    // with it, and start the scan queue that stayed stopped meanwhile.
+    onPinRestored: function () {
+      settings.load(osLang);
+      i18n.setLang(settings.value('lang'));
+      library.load();
+      reconcile();
+      supervisor.load();
+      supervisor.start();
+      emit('library:changed', library.list());
+    },
     takeToasts: function () { var t = pendingToasts; pendingToasts = []; return t; },
     onLangChanged: function (lang) { i18n.setLang(lang); rebuildMenu(); }
   });
   ipc.createIpc(handlers, { isLocked: pin.isLocked, log: log.child('ipc'), checkSender: checkSender }).register(electron.ipcMain);
 
-  hardenSession();
   rebuildMenu();
   win = windowMod.createWindow({ paths: paths, settings: settings, packaged: packaged, title: 'bonis oculis', onClosed: function () { win = null; } });
-  supervisor.start();
+  if (!pin.isLost()) { supervisor.start(); }
+
+  // Bundled models and binaries, hashed once per app version in the background (board review A9).
+  // Packaged builds check process.resourcesPath; BONIS_VERIFY_RESOURCES points a dev run or a test
+  // at another tree.
+  var verifyRoot = process.env.BONIS_VERIFY_RESOURCES || (packaged ? process.resourcesPath : null);
+  if (verifyRoot) {
+    var integrity = createIntegrity({
+      resources: verifyRoot, settings: settings, version: app.getVersion(), log: log.child('integrity'),
+      onDamaged: function (res) {
+        res.damaged.forEach(function (d) { activity.add('integrity', { file: d.file, detail: d.reason }); });
+        emit('toast', { kind: 'error', key: 'toast.integrity', params: { file: res.damaged[0].file, count: res.damaged.length } });
+        emit('app:integrity', res);
+      }
+    });
+    s.integrity = integrity;
+    setTimeout(function () { integrity.run(false); }, process.env.BONIS_VERIFY_RESOURCES ? 500 : 15000);
+  }
 }
 
 function shutdown() {

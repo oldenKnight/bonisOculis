@@ -18,6 +18,7 @@ from typing import Any, Dict, Iterable, Optional
 
 import numpy as np
 
+from .. import config
 from ..protocol import BadInput
 
 STATE = "state.json"
@@ -197,15 +198,22 @@ class Checkpoint:
 
 class Pauser:
     """Polls <work>/PAUSE at most once per second; blocks while it exists.
-    While blocked nothing reads the decode pipe, so ffmpeg stalls on it."""
+    While blocked nothing reads the decode pipe, so ffmpeg stalls on it.
+
+    ``slot`` (models.ModelSlot, set by the running stage): after
+    ``release_after`` seconds of pause the stage's model set is released
+    (close, gc, heap trim) so a paused scan does not hold ~1 GB while the
+    player runs (review B6); it is loaded again when the pause ends."""
 
     def __init__(self, ckpt: Checkpoint, protocol: Any = None, interval: float = 1.0,
-                 sleep: Any = time.sleep, on_pause: Any = None) -> None:
+                 sleep: Any = time.sleep, on_pause: Any = None, release_after: Optional[float] = None) -> None:
         self.ckpt = ckpt
         self.protocol = protocol
         self.interval = interval
         self.sleep = sleep
         self.on_pause = on_pause
+        self.release_after = config.PAUSE_RELEASE_AFTER if release_after is None else release_after
+        self.slot: Any = None
         self._last = 0.0
         self.pauses = 0
 
@@ -221,8 +229,16 @@ class Pauser:
             self.on_pause()
         if self.protocol:
             self.protocol.paused()
+        started = time.monotonic()
+        released = False
         while self.ckpt.pause_requested():
+            if (not released and self.slot is not None and self.slot.loaded
+                    and time.monotonic() - started >= self.release_after):
+                self.slot.release()
+                released = True
             self.sleep(self.interval)
+        if released and self.slot is not None:
+            self.slot.reload()
         self._last = time.monotonic()
         if self.protocol:
             self.protocol.resumed()

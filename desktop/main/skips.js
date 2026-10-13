@@ -37,8 +37,14 @@ function createSkips(options) {
       if (corrupt && o.onDamaged) { try { o.onDamaged(id); } catch (e) { log.error('onDamaged threw', e); } }
       return { doc: null, tampered: false, corrupt: corrupt };
     }
-    var tampered = !!(it && it.skipHmac && !store.hmacOk(it.skipHmac, hmacOf(r.value)));
-    if (tampered) { log.warn('skip file changed outside the app', id); }
+    // A list without a signature, or with a wrong one, was changed outside the app (board review
+    // A4): flag it in the (HMAC'd) library index; it stays "Needs review" until the parent
+    // confirms it with trust(). The flag is not cleared by later edits.
+    var tampered = !!(it && (!it.skipHmac || !store.hmacOk(it.skipHmac, hmacOf(r.value))));
+    if (tampered) {
+      log.warn('skip file changed outside the app', id);
+      if (it.outside !== 'changed' && it.outside !== 'imported') { library.update(id, { outside: 'changed', wholeApproved: false }, true); }
+    }
     return { doc: r.value, tampered: tampered, corrupt: false };
   }
 
@@ -201,25 +207,31 @@ function createSkips(options) {
 
   // "Mark as fully reviewed" (SKIPFILE.md, kid mode): approves what is pending, sets
   // scan.status complete, stages that did not run become skipped.
+  function completeByParent(doc, detail) {
+    var scan = doc.scan && typeof doc.scan === 'object' ? doc.scan : {};
+    var stages = scan.stages && typeof scan.stages === 'object' ? scan.stages : {};
+    doc.ranges.forEach(function (r) {
+      if (r.review === 'pending') {
+        if (r.action === 'none') { r.action = 'skip'; }
+        r.review = 'approved';
+        r.locked = true;
+        BO.addHistory(doc, 'approved', r.id, null, { now: now() });
+      }
+    });
+    STAGES.forEach(function (s) {
+      if (!stages[s] || stages[s].status !== 'done') { stages[s] = { status: 'skipped', detail: 'reviewed by a parent' }; }
+    });
+    scan.status = 'complete';
+    scan.stages = stages;
+    if (!scan.finishedAt) { scan.finishedAt = now(); }
+    doc.scan = scan;
+    BO.addHistory(doc, 'edited', null, detail, { now: now() });
+  }
+
   function markReviewed(id) {
     return mutate(id, function (doc) {
-      var scan = doc.scan && typeof doc.scan === 'object' ? doc.scan : {};
-      var stages = scan.stages && typeof scan.stages === 'object' ? scan.stages : {};
-      doc.ranges.forEach(function (r) {
-        if (r.review === 'pending') {
-          r.review = 'approved';
-          r.locked = true;
-          BO.addHistory(doc, 'approved', r.id, null, { now: now() });
-        }
-      });
-      STAGES.forEach(function (s) {
-        if (!stages[s] || stages[s].status !== 'done') { stages[s] = { status: 'skipped', detail: 'reviewed by a parent' }; }
-      });
-      scan.status = 'complete';
-      scan.stages = stages;
-      if (!scan.finishedAt) { scan.finishedAt = now(); }
-      doc.scan = scan;
-      BO.addHistory(doc, 'edited', null, libMod.MARKED_REVIEWED, { now: now() });
+      completeByParent(doc, libMod.MARKED_REVIEWED);
+      library.update(id, { wholeApproved: true }, true);
       return null;
     });
   }
@@ -230,6 +242,20 @@ function createSkips(options) {
       if (!doc.scan || doc.scan.status !== 'complete') { return 'notScanned'; }
       if (doc.ranges.some(function (r) { return r.review === 'pending'; })) { return 'pendingScenes'; }
       BO.addHistory(doc, 'approved', null, libMod.CLEAN_APPROVAL, { now: now() });
+      library.update(id, { wholeApproved: true }, true);
+      return null;
+    });
+  }
+
+  // "Use this list for kids": the parent confirms a list that was imported or changed outside
+  // the app. Scenes still waiting are skipped (as with Skip all), the flag goes, the list is
+  // signed again. Refused while the list cannot be read.
+  function trust(id) {
+    var cur = load(id);
+    if (!cur.doc) { return { ok: false, error: cur.corrupt ? 'skipCorrupt' : 'noSkip' }; }
+    return mutate(id, function (doc) {
+      completeByParent(doc, libMod.TRUSTED);
+      library.update(id, { outside: null, wholeApproved: true }, true);
       return null;
     });
   }
@@ -256,7 +282,7 @@ function createSkips(options) {
     load: load, save: save, remove: remove, blank: blank, getOrBlank: getOrBlank,
     approve: function (id, ids) { return review(id, ids, 'approved'); },
     reject: function (id, ids) { return review(id, ids, 'rejected'); },
-    edit: edit, addRange: addRange, deleteRange: deleteRange, markReviewed: markReviewed, approveClean: approveClean,
+    edit: edit, addRange: addRange, deleteRange: deleteRange, markReviewed: markReviewed, approveClean: approveClean, trust: trust,
     replace: replace, undo: undoLast, onSaved: function (fn) { listeners.push(fn); }
   };
 }

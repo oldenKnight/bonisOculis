@@ -36,24 +36,19 @@ function titleFromFile(file) {
 }
 
 // Planner decision 2: a scan that found nothing still needs one parent click before kids see it.
+// These texts go into the skip file's history for the record only. Status never trusts history
+// (board review A4): the parent's whole-title approval lives in the HMAC'd library index
+// (item.wholeApproved), and a list changed outside the app or imported is flagged there too
+// (item.outside = 'changed' | 'imported') until the parent confirms it ("Use this list for kids").
 var CLEAN_APPROVAL = 'no scenes found; approved for kids by a parent';
 var MARKED_REVIEWED = 'marked fully reviewed by a parent';
+var TRUSTED = 'list confirmed for kids by a parent';
 
-// True when, since the last scan or import, a parent approved the title as a whole.
-function parentApprovedWhole(doc) {
-  var h = doc && Array.isArray(doc.history) ? doc.history : [];
-  var i;
-  for (i = h.length - 1; i >= 0; i--) {
-    if (h[i].event === 'scanned' || h[i].event === 'imported') { return false; }
-    if ((h[i].event === 'approved' && h[i].detail === CLEAN_APPROVAL) || (h[i].event === 'edited' && h[i].detail === MARKED_REVIEWED)) { return true; }
-  }
-  return false;
-}
-
-// Status from a skip document (null = never scanned). Pure; exported for tests.
-function deriveStatus(doc, validate) {
+// Status from a skip document (null = never scanned) and its library item. Pure; exported for tests.
+function deriveStatus(doc, validate, item) {
   if (!doc) { return { status: 'notScanned', pending: 0, enforced: 0, total: 0 }; }
   if (validate && !validate(doc).ok) { return { status: 'needsAttention', error: 'skipCorrupt', pending: 0, enforced: 0, total: 0 }; }
+  var it = item || {};
   var ranges = doc.ranges || [];
   var pending = 0, enforced = 0, i;
   for (i = 0; i < ranges.length; i++) {
@@ -62,9 +57,10 @@ function deriveStatus(doc, validate) {
   }
   var complete = !!(doc.scan && doc.scan.status === 'complete');
   var status;
-  var clean = complete && !ranges.length && !parentApprovedWhole(doc);
-  if (complete) { status = pending || clean ? 'needsReview' : 'protected'; } else { status = ranges.length ? 'needsReview' : 'notScanned'; }
-  return { status: status, pending: pending, enforced: enforced, total: ranges.length, complete: complete, cleanPending: clean };
+  var clean = complete && !ranges.length && it.wholeApproved !== true;
+  var outside = it.outside === 'changed' || it.outside === 'imported' ? it.outside : null;
+  if (complete) { status = pending || clean || outside ? 'needsReview' : 'protected'; } else { status = ranges.length || outside ? 'needsReview' : 'notScanned'; }
+  return { status: status, pending: pending, enforced: enforced, total: ranges.length, complete: complete, cleanPending: clean && !outside, outside: outside };
 }
 
 function createLibrary(options) {
@@ -82,12 +78,23 @@ function createLibrary(options) {
     listeners.forEach(function (fn) { try { fn(list()); } catch (e) { log.error('library listener', e); } });
   }
 
+  // A library index that fails its HMAC (and has no good backup) was edited outside the app:
+  // nothing in it is trusted, so every title with a list goes back to Needs review (board A4).
   function load() {
-    var d = store.readEnvelope(FILE);
+    var info = {};
+    var d = store.readEnvelope(FILE, info);
     items = d && Array.isArray(d.items) ? d.items.filter(function (it) {
       return it && typeof it.id === 'string' && /^[0-9a-f]{16}$/.test(it.id) && typeof it.path === 'string';
     }) : [];
-    items.forEach(function (it) { if (STATUSES.indexOf(it.status) < 0) { it.status = 'notScanned'; } });
+    items.forEach(function (it) {
+      if (STATUSES.indexOf(it.status) < 0) { it.status = 'notScanned'; }
+      if (info.tampered) {
+        it.wholeApproved = false;
+        if (it.status !== 'notScanned') { it.outside = 'changed'; }
+        if (it.status === 'protected') { it.status = 'needsReview'; }
+      }
+    });
+    if (info.tampered) { log.warn('library index changed outside the app; every list needs review'); save(); }
     return list();
   }
 
@@ -187,12 +194,12 @@ function createLibrary(options) {
     var it = find(id);
     if (!it) { return null; }
     if (!force && (it.status === 'queued' || it.status === 'scanning')) {
-      var d0 = deriveStatus(doc, validate);
+      var d0 = deriveStatus(doc, validate, it);
       it.pending = d0.pending; it.enforced = d0.enforced; it.total = d0.total; it.cleanPending = !!d0.cleanPending;
       changed();
       return copy(it);
     }
-    var d = deriveStatus(doc, validate);
+    var d = deriveStatus(doc, validate, it);
     it.pending = d.pending; it.enforced = d.enforced; it.total = d.total; it.cleanPending = !!d.cleanPending;
     if (!(it.status === 'needsAttention' && d.status === 'notScanned')) {
       it.status = d.status;
@@ -209,4 +216,4 @@ function createLibrary(options) {
 }
 
 module.exports = { createLibrary: createLibrary, deriveStatus: deriveStatus, titleFromFile: titleFromFile, STATUSES: STATUSES,
-  CLEAN_APPROVAL: CLEAN_APPROVAL, MARKED_REVIEWED: MARKED_REVIEWED, parentApprovedWhole: parentApprovedWhole };
+  CLEAN_APPROVAL: CLEAN_APPROVAL, MARKED_REVIEWED: MARKED_REVIEWED, TRUSTED: TRUSTED };

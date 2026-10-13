@@ -2,6 +2,9 @@
 // Import a native skip file (SKIPFILE.md "Matching rules"): validate with BO.skipfile.fromJson,
 // match by oshash + size, then by headSha256 (with a warning), else the parent picks the movie
 // and the file is applied with offset 0 and a warning (the edition may differ).
+// Nothing in an imported file is trusted for kids (board review A5): every imported scene arrives
+// as "pending", its scan status counts only for an exact fingerprint match, and the title is
+// flagged (library item.outside = 'imported') until the parent presses "Use this list for kids".
 
 var BO = require('../../../shared/skipfile.js');
 
@@ -40,14 +43,18 @@ function importJson(opts) {
   incoming.media.fingerprint = { size: target.size, oshash: target.oshash };
   if (target.headSha256) { incoming.media.fingerprint.headSha256 = target.headSha256; }
   if (m.match === 'manual') { incoming.media.offset = 0; }
+  incoming.ranges.forEach(function (r) { r.review = 'pending'; delete r.locked; });
   var existing = opts.skips.load(target.id).doc;
+  if (m.match !== 'exact') { incoming.scan = existing && existing.scan ? JSON.parse(JSON.stringify(existing.scan)) : { status: 'none' }; }
   var out = existing ? BO.merge(existing, incoming) : incoming;
   if (existing) { out.media.fingerprint = incoming.media.fingerprint; }
+  if (m.match !== 'exact') { out.scan = incoming.scan; }
   if (m.match === 'manual') { out.media.offset = 0; }
   BO.addHistory(out, 'imported', null, m.match === 'exact' ? 'matched by fingerprint' : (m.match === 'head' ? 'matched by file start' : 'chosen by a parent; offset 0'));
   out.summary = BO.summarise(out);
   var v = BO.validate(out);
   if (!v.ok) { return { ok: false, error: 'invalidSkip' }; }
+  opts.library.update(target.id, { outside: 'imported', wholeApproved: false }, true);
   var r = opts.skips.replace(target.id, out, true);
   if (!r.ok) { return { ok: false, error: r.error }; }
   return { ok: true, data: { id: target.id, match: m.match, warning: m.match === 'exact' ? null : (m.match === 'head' ? 'headOnly' : 'offsetUnknown'), ranges: out.ranges.length } };

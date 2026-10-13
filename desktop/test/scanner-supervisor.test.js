@@ -71,6 +71,13 @@ test('a scan reports progress at most 4 times a second and lands in the library'
       var args = s.spawns[0];
       ['scan', '--input', '--work', '--out', '--lang', '--levels', '--stages', '--threads', '--priority'].forEach(function (a) { assert.ok(args.indexOf(a) >= 0, a); });
       assert.strictEqual(args[args.indexOf('--input') + 1], video);
+      var outArg = args[args.indexOf('--out') + 1];
+      assert.strictEqual(outArg, s.paths.scanOut(id), '--out is outside the work folder the analyzer cleans');
+      assert.ok(path.relative(s.paths.workDir(id), outArg).indexOf('..') === 0);
+      assert.ok(!fs.existsSync(outArg), 'the raw output was moved');
+      var auto = JSON.parse(fs.readFileSync(s.paths.autoScan(id), 'utf8'));
+      assert.strictEqual(auto.ranges.length, 3, 'the automatic result is kept for Check accuracy');
+      assert.ok(auto.ranges.every(function (r) { return r.review === 'pending'; }), 'before any review');
       assert.deepStrictEqual(JSON.parse(args[args.indexOf('--levels') + 1]).nudity, 'strict');
       var progressLines = s.lines[0].filter(function (m) { return m.t === 'progress'; }).length;
       var emits = s.events.filter(function (e) { return e.name === 'scan:progress'; });

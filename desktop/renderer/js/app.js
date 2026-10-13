@@ -114,6 +114,9 @@
   }
 
   function firstView(state) {
+    // PIN file lost: never the setup ("create a PIN"); the kid screen, where only the recovery
+    // code opens the app.
+    if (state.pinLost) { BO.router.go('kid'); BO.pinFlows.recover(null, { lost: true }); return; }
     if (!state.setupDone) { BO.router.go('setup'); return; }
     if (state.player && state.player.state !== 'idle' && state.player.id) {
       BO.router.go(state.locked ? 'kid' : 'library');
@@ -130,14 +133,16 @@
     BO.on('player:event', function (ev) { BO.views.player.onEvent(ev); });
     BO.on('toast', function (ev) {
       // Kid mode stays quiet about scans; player and data-safety messages still show.
-      if (BO.store.get('locked') && ev && /^toast\.scan/.test(ev.key || '')) { return; }
+      if (BO.store.get('locked') && ev && /^toast\.(scan|integrity)/.test(ev.key || '')) { return; }
       BO.toast.fromMain(ev);
     });
     BO.on('app:locked', function (ev) {
       setKidMode(ev && ev.locked);
       if (ev && ev.locked) {
-        BO.router.go('kid');
+        // A movie that went on in kid mode keeps its Now playing page (kid version).
+        BO.router.go(ev.player === 'switched' && BO.views.player.active() ? 'player' : 'kid');
       } else {
+        BO.store.set('pinLost', false);
         refreshLibrary(function () {
           BO.invoke('settings:get', {}, function (r) { if (r.ok) { BO.store.set('settings', r.data); } });
           BO.invoke('scan:status', {}, function (r) { if (r.ok) { BO.store.set('scan', r.data); } });
@@ -147,6 +152,10 @@
     });
     BO.on('app:navigate', function (ev) { if (ev && ev.view && !BO.store.get('locked') && BO.views[ev.view]) { BO.router.go(ev.view, ev.params || {}); } });
     BO.on('files:dropped', addPaths);
+    BO.on('app:integrity', function () {
+      if (BO.store.get('locked')) { return; }
+      BO.invoke('settings:get', {}, function (r) { if (r.ok) { BO.store.set('settings', r.data); } });
+    });
     BO.store.subscribe('library', function (items) { updateBadge(); if (drawer) { drawer.update(BO.store.get('scan'), items); } });
     BO.store.subscribe('scan', function (s) { if (drawer) { drawer.update(s, BO.store.get('library')); } });
     BO.store.subscribe('settings', applyMotion);
@@ -164,6 +173,7 @@
       if (!r.ok) { return; }
       var st = r.data;
       BO.store.set('boot', st);
+      BO.store.set('pinLost', !!st.pinLost);
       BO.i18n.set(st.strings, st.lang);
       BO.i18n.apply(document);
       setKidMode(st.locked);

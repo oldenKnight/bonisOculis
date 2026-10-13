@@ -9,7 +9,7 @@ var path = require('path');
 
 var MAX_LINES = 5000;
 var TYPES = ['setup', 'unlock', 'pinFailed', 'cooldown', 'lock', 'pinChanged', 'pinRecovered', 'settings', 'play',
-  'playUnprotected', 'panic', 'skip', 'letPlay', 'skipAll', 'approveClean', 'markReviewed', 'import', 'remove', 'damaged'];
+  'playUnprotected', 'panic', 'skip', 'letPlay', 'skipAll', 'approveClean', 'markReviewed', 'trust', 'import', 'remove', 'damaged', 'integrity'];
 
 function createActivity(options) {
   var o = options || {};
@@ -20,8 +20,12 @@ function createActivity(options) {
   var now = o.now || function () { return new Date().toISOString(); };
   var lines = -1;
 
+  // Also ends a line torn by a crash, so the next entry starts on its own line.
   function countLines() {
-    try { return fs.readFileSync(file, 'utf8').split('\n').filter(function (l) { return l; }).length; } catch (e) { return 0; }
+    var text;
+    try { text = fs.readFileSync(file, 'utf8'); } catch (e) { return 0; }
+    if (text.length && text.charAt(text.length - 1) !== '\n') { try { fs.appendFileSync(file, '\n'); } catch (e2) { /* next write */ } }
+    return text.split('\n').filter(function (l) { return l; }).length;
   }
 
   function add(type, fields) {

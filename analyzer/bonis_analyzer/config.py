@@ -135,6 +135,7 @@ SCENE_WIDTH = 160
 SCENE_THRESHOLD = 0.3
 FRAME_BATCH = 8
 CHECKPOINT_EVERY = 30.0      # media seconds between frame-stage checkpoints
+PAUSE_RELEASE_AFTER = 20.0   # seconds of PAUSE after which the stage's model set is released (reloaded on resume)
 RESUME_PREROLL = 2.0         # decode this much before resumeAt so cuts at resumeAt are seen
 CUT_DEDUPE = 0.25
 
@@ -155,6 +156,14 @@ NSFW_BATCH = 8               # frames per classifier call (ORT batch)
 # the whole-image classifier misses (small figures, bathing scenes) but is a
 # zero-shot guess, so it is discounted. Reasoning: analyzer/TUNING.md.
 CLIP_NUDITY_WEIGHT = 0.8
+# Classifier gate (speed: the ViT costs ~245 ms per frame at 2 threads, CLIP
+# ~45 ms). CLIP runs on every sampled frame; the classifier only where the
+# CLIP nudity group reaches CLIP_GATE, or on every GATE_STRIDE-th second
+# (media second % GATE_STRIDE == 0, so a resumed scan gates the same frames)
+# so coverage never drops to zero. Ungated frames score
+# CLIP_NUDITY_WEIGHT x CLIP nudity alone. Reasoning: analyzer/TUNING.md.
+CLIP_GATE = 0.10
+GATE_STRIDE = 4
 
 CLIP_SIZE = 224
 CLIP_LOGIT_SCALE = 100.0

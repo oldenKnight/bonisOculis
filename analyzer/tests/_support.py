@@ -202,6 +202,17 @@ def video60() -> str:
                  "-c:a", "aac", "-shortest")
 
 
+def flicker90() -> str:
+    """90 s, 320x180 @ 10 fps, no audio: a checkerboard that inverts on every frame (a steady,
+    large frame-to-frame difference, like grain or fast motion) over a dark / light / dark
+    background with real cuts at 30 and 50. ffmpeg's scene score for the second frame after a
+    seek is ~0.33 here (its previous difference is zero): the phantom cut of review B5."""
+    return _clip("flk90", "flicker90.mp4", "-f", "lavfi", "-i",
+                 "nullsrc=s=320x180:r=10:d=90,format=gray,"
+                 "geq=lum='if(between(T,30,49.99),200,60)+40*mod(floor(X/32)+floor(Y/32)+N,2)'",
+                 "-c:v", "libx264", "-preset", "ultrafast", "-g", "20", "-pix_fmt", "yuv420p")
+
+
 def sine_silence30() -> str:
     """30 s: grey picture; sound = sine 0-10 s, silence 10-20 s, sine 20-30 s."""
     return _clip("ss30", "sine-silence30.mp4",

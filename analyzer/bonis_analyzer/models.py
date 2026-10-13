@@ -29,9 +29,22 @@ def models_dir(explicit: Optional[str] = None) -> str:
     return os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "models")
 
 
+def _ort() -> Any:
+    """onnxruntime, imported with telemetry off (the env switch is set by the
+    package __init__; disable_telemetry_events() covers the Windows ETW provider)."""
+    os.environ["ORT_DISABLE_TELEMETRY"] = "1"
+    import onnxruntime as ort  # noqa: PLC0415
+
+    try:
+        ort.disable_telemetry_events()
+    except Exception:  # noqa: BLE001 - absent in some builds
+        pass
+    return ort
+
+
 def choose_providers(device: str, warn: Callable[[str], None]) -> Tuple[List[str], str]:
     """Execution providers for --device, falling back to CPU with a warning."""
-    import onnxruntime as ort  # noqa: PLC0415
+    ort = _ort()
 
     avail = ort.get_available_providers()
     device = (device or "auto").lower()
@@ -59,8 +72,7 @@ def session_factory(threads: int, device: str, warn: Callable[[str], None],
     ``arena=False`` returns activation memory to the OS after every run (the
     Florence-2 vision encoder needs ~0.4 GB of scratch at 768 px; with the arena
     on it stays resident, see analyzer/BENCH.md)."""
-    import onnxruntime as ort  # noqa: PLC0415
-
+    ort = _ort()
     providers, used = choose_providers(device, warn)
     state = {"used": used}
 
@@ -170,3 +182,67 @@ def reset_registry() -> None:
         _LOADED.clear()
         _HISTORY.clear()
         _MAX["n"] = 0
+
+
+# --------------------------------------------------------------------------
+# releasable model slot (review B6: a paused scan must not keep models in RAM)
+# --------------------------------------------------------------------------
+
+
+class ModelSlot:
+    """Wraps a stage's loaded model so the pauser can drop it during a long
+    pause and load it again on resume. Attribute access is forwarded to the
+    model (stage code keeps calling ``slot.score(...)``); a released slot
+    reloads itself on first use if nobody reloaded it."""
+
+    def __init__(self, name: str, obj: Any, factory: Callable[[], Any], detail: str = "") -> None:
+        self.__dict__.update(_name=name, _obj=obj, _factory=factory, _detail=detail or type(obj).__name__,
+                             releases=0, reloads=0)
+
+    @property
+    def loaded(self) -> bool:
+        return self._obj is not None
+
+    def release(self) -> None:
+        """close + drop the model, release its registry entry, gc, trim the heap."""
+        obj = self._obj
+        if obj is None:
+            return
+        self.__dict__["_obj"] = None
+        try:
+            obj.close()
+        except Exception as e:  # noqa: BLE001 - releasing must not fail a paused scan
+            log.warning("closing %s on pause failed: %s", self._name, e)
+        del obj
+        self.__dict__["releases"] += 1
+        release(self._name)
+        log.info("pause: released model set %s", self._name)
+
+    def reload(self) -> None:
+        if self._obj is not None:
+            return
+        obj = self._factory()
+        if obj is None:
+            from .protocol import ModelMissing  # noqa: PLC0415
+
+            raise ModelMissing("the %s model could not be loaded again after the pause" % self._name)
+        self.__dict__["_obj"] = obj
+        self.__dict__["reloads"] += 1
+        register(self._name, self._detail)
+        log.info("resume: reloaded model set %s", self._name)
+
+    def close(self) -> None:
+        obj = self._obj
+        self.__dict__["_obj"] = None
+        if obj is not None:
+            obj.close()
+
+    def __getattr__(self, attr: str) -> Any:
+        if self.__dict__.get("_obj") is None:
+            self.reload()
+        return getattr(self.__dict__["_obj"], attr)
+
+    def __setattr__(self, attr: str, value: Any) -> None:
+        if self._obj is None:
+            self.reload()
+        setattr(self._obj, attr, value)

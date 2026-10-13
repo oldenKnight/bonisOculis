@@ -12,10 +12,13 @@ import sys
 import time
 import unittest
 
+import numpy as np
+
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 import _support as S  # noqa: E402
 
+from bonis_analyzer import config  # noqa: E402
 from bonis_analyzer import fingerprint as FP  # noqa: E402
 from bonis_analyzer import protocol as P  # noqa: E402
 from bonis_analyzer import skipfile as sf  # noqa: E402
@@ -111,9 +114,14 @@ class CliScanTest(unittest.TestCase):
         self.assertTrue(doc["ranges"][0]["note"].startswith("Posible desnudez"))
 
     def test_kill_mid_frames_then_resume(self) -> None:
+        # flicker90: grain-like frame differences make ffmpeg's scene detector fire right after
+        # the resume seek (review B5); the resumed result must still equal an uninterrupted run
+        video = S.flicker90()
+        args = lambda w, o: ["scan", "--input", video, "--work", w, "--out", o, "--lang", "en-US",  # noqa: E731
+                             "--scores-from", self.scores, "--threads", "2"]
         work, out = self.paths("resume")
         env = {"BONIS_TEST_FRAME_DELAY": "0.04"}
-        live = S.LiveCli(*self.scan_args(work, out), env=env)
+        live = S.LiveCli(*args(work, out), env=env)
         try:
             ok = live.wait_for(lambda: (S.read_state(work).get("stages", {}).get("frames", {}).get("resumeAt") or 0) >= 30,
                                timeout=30)
@@ -126,7 +134,7 @@ class CliScanTest(unittest.TestCase):
         self.assertEqual(st["status"], "running")
         self.assertIn(resume_at, (30.0, 60.0))
         self.assertFalse(os.path.exists(out))
-        rc, lines, _, err = S.run_cli(*self.scan_args(work, out))
+        rc, lines, _, err = S.run_cli(*args(work, out))
         self.assertEqual(rc, 0, err[-2000:])
         self.assertIn({"t": "stage", "stage": "frames", "status": "running", "resumeAt": resume_at}, lines)
         st = S.read_state(work)["stages"]["frames"]
@@ -134,11 +142,22 @@ class CliScanTest(unittest.TestCase):
         self.assertEqual(st["framesThisRun"], 90 - int(resume_at))
         # identical result to an uninterrupted scan
         work2, out2 = self.paths("noresume")
-        rc, _, _, _ = S.run_cli(*self.scan_args(work2, out2))
+        rc, _, _, _ = S.run_cli(*args(work2, out2))
         self.assertEqual(rc, 0)
         a, b = load(out), load(out2)
         self.assertEqual(a["ranges"], b["ranges"])
         self.assertEqual(a["media"]["fingerprint"], b["media"]["fingerprint"])
+        # the cut lists, explicitly: skip-file sceneCuts and the frames stage's own array
+        self.assertEqual(a["media"]["fingerprint"]["sceneCuts"], b["media"]["fingerprint"]["sceneCuts"])
+        self.assertIn(30.0, b["media"]["fingerprint"]["sceneCuts"])
+        ca = np.load(os.path.join(work, "frames.npz"))["cuts"].tolist()
+        cb = np.load(os.path.join(work2, "frames.npz"))["cuts"].tolist()
+        self.assertEqual(ca, cb)
+        self.assertEqual([c for c in ca if resume_at - config.RESUME_PREROLL <= c < resume_at],
+                         [c for c in cb if resume_at - config.RESUME_PREROLL <= c < resume_at])
+        with np.load(os.path.join(work, "frames.npz")) as za, np.load(os.path.join(work2, "frames.npz")) as zb:
+            for c in config.VISUAL_CATEGORIES:
+                self.assertTrue(np.array_equal(za[c], zb[c]), c)
 
     def test_sigterm_is_resumable_exit_4(self) -> None:
         if os.name == "nt":

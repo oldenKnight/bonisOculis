@@ -333,6 +333,15 @@ function main() {
         fs.renameSync(tmp, a.out);
       } catch (e2) { fail(5, 'internal error: cannot write output'); return; }
       try { fs.unlinkSync(stateFile); } catch (e3) { /* gone */ }
+      // Like the real analyzer (Checkpoint.cleanup_after_done): everything in the work folder
+      // except state.json, thumbs/, PAUSE and the stage .npz files is deleted after a scan, so an
+      // --out placed inside the work folder would be lost.
+      try {
+        fs.readdirSync(a.work).forEach(function (n) {
+          if (n === 'state.json' || n === 'thumbs' || n === 'PAUSE' || /\.npz$/.test(n)) { return; }
+          fs.rmSync(path.join(a.work, n), { recursive: true, force: true });
+        });
+      } catch (e4) { /* best effort */ }
       out({ t: 'done', out: a.out });
       if (a.profile) {
         var prof = {};

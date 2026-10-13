@@ -80,7 +80,13 @@ class Decoder:
         self._lock = threading.Lock()
 
     # stderr reader ---------------------------------------------------------
-    def _read_stderr(self, proc: subprocess.Popen, offset: float) -> None:
+    def _read_stderr(self, proc: subprocess.Popen, offset: float, keep_from: float = 0.0) -> None:
+        """Collect showinfo cut times. After a seek (``offset`` > 0) the scene
+        detector's first comparisons are against frames the seek produced, not
+        the film's previous frame, so it can report cuts that do not exist
+        (review B5: 58.063 s after a resume at 60 s with 2 s pre-roll). Cuts
+        before ``keep_from`` (the resume point; the checkpoint holds the real
+        ones there) and at the seek frame itself are dropped."""
         assert proc.stderr is not None
         for raw in iter(proc.stderr.readline, b""):
             line = raw.decode("utf-8", "replace")
@@ -91,8 +97,7 @@ class Decoder:
                         t = round(float(m.group(1)) + offset, 3)
                     except ValueError:
                         continue
-                    # the first frame after a seek has no predecessor: cuts there are not real
-                    if t > 0 and (offset <= 0 or t > offset + 0.05):
+                    if t > 0 and (offset <= 0 or (t > offset + 0.05 and t >= keep_from - 1e-6)):
                         with self._lock:
                             self.cuts.append(t)
                 continue
@@ -116,7 +121,8 @@ class Decoder:
         proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.DEVNULL,
                                 bufsize=0, **popen_kwargs())
         self.proc = proc
-        reader = threading.Thread(target=self._read_stderr, args=(proc, start_at), daemon=True)
+        keep_from = self.skip_before if start_at > 0 else 0.0
+        reader = threading.Thread(target=self._read_stderr, args=(proc, start_at, keep_from), daemon=True)
         reader.start()
         idx = 0
         try:

@@ -144,6 +144,12 @@
       BO.el('p', { 'class': 'bo-page__sub', text: filter === 'review' ? BO.tn('library.toReviewSub', items().length) : BO.t('library.sub', { movies: BO.tn('library.movies', all.length), protected: BO.tn('library.protected', prot) }) })
     ]));
     header.appendChild(add);
+    var integ = (BO.store.get('settings') || {}).integrity;
+    if (integ && integ.damaged && integ.damaged.length) {
+      // Board review A9: a bundled model or program does not match the hash it shipped with.
+      header.appendChild(BO.el('div', { 'class': 'bo-notice bo-notice--error bo-library__panic', data: { banner: 'integrity' } }, [BO.icon('alert'),
+        BO.el('p', null, [BO.el('strong', { text: BO.t('integrity.title') }), ' ', BO.tn('integrity.text', integ.damaged.length, { file: integ.damaged[0].file })])]));
+    }
     var hidden = all.filter(function (it) { return it.panicUnseen; });
     if (hidden.length && filter !== 'review') {
       header.appendChild(BO.el('div', { 'class': 'bo-notice bo-notice--warning bo-library__panic', data: { banner: 'panic' } }, [BO.icon('panic'),
@@ -197,6 +203,7 @@
       grid = BO.el('div', { 'class': 'bo-grid--tiles' });
       section.appendChild(BO.el('div', { 'class': 'bo-page' }, [header, grid]));
       BO.store.subscribe('library', function () { if (BO.router.current() === 'library') { render(); } });
+      BO.store.subscribe('settings', function () { if (BO.router.current() === 'library') { renderHeader(); } });
       BO.store.subscribe('scan', function (s) {
         if (BO.router.current() !== 'library') { return; }
         // Only the running card changes with progress: refresh its pill in place.
