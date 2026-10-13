@@ -127,6 +127,7 @@ function createLibrary(options) {
           items.push({
             id: fp.oshash, path: file, filename: path.basename(file), title: t.title, year: t.year,
             size: fp.size, oshash: fp.oshash, headSha256: fp.headSha256, duration: info.duration,
+            start: typeof info.start === 'number' ? info.start : 0,
             addedAt: new Date().toISOString(), status: 'notScanned', progress: 0, stage: null,
             error: null, pending: 0, enforced: 0, total: 0, resumeAt: 0, scannedAt: null
           });

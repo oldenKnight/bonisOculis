@@ -267,17 +267,35 @@ function createPlayerService(options) {
       supervisor.setPlayerOpen(true);
       var enforcedCount = BO.enforced(playDoc).length;
       send({ type: 'starting', title: item.title, enforced: enforcedCount, panicKey: s.panicKey || 'p', unprotected: unprotected });
-      player.play(item.path, playFile, { kidMode: kidMode, lang: s.lang, marksPath: marksPath, resumeAt: resumeAt }, function (err) {
+      player.play(item.path, playFile, { kidMode: kidMode, lang: s.lang, marksPath: marksPath, resumeAt: resumeAt,
+        startTime: typeof item.start === 'number' ? item.start : undefined }, function (err) {
         if (err && cur && cur.id === id && player && player.status().state === 'idle') { finishSession('error'); }
       });
       done(null, { ok: true, data: { id: id, title: item.title, enforced: enforcedCount, kidMode: kidMode } });
     }
 
-    if (player && player.status().state !== 'idle') {
-      player.stop(function () { finishSession('stopped'); launch(); });
-    } else {
-      launch();
+    // Titles added before the library stored the probed start time are probed now, so the
+    // player can map skip-file time onto mpv's clock (board finding N1). Fails soft: a probe
+    // error leaves start unknown and kid mode then refuses non-zero-origin files.
+    function ensureStart(next) {
+      if (typeof item.start === 'number') { next(); return; }
+      var probe;
+      try { probe = require('./probe.js'); } catch (e) { next(); return; }
+      probe.media(paths.ffprobe(), item.path, function (pe, info) {
+        if (!pe && info && typeof info.start === 'number') {
+          item.start = info.start;
+          try { library.update(id, { start: info.start }, true); } catch (e2) { log.warn('cannot store start', e2 && e2.code); }
+        }
+        next();
+      });
     }
+    ensureStart(function () {
+      if (player && player.status().state !== 'idle') {
+        player.stop(function () { finishSession('stopped'); launch(); });
+      } else {
+        launch();
+      }
+    });
   }
 
   // Pre-play sheet (planner decision 7): what will happen to each scene with the current settings.
