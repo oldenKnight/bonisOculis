@@ -59,6 +59,7 @@
       it.status !== 'protected' || it.panicUnseen ? { id: 'play', label: BO.t(it.status === 'protected' ? 'library.play' : 'library.menu.play'), icon: 'play', onClick: function () { play(it); } } : null,
       { id: 'review', label: BO.t('library.menu.review'), icon: 'eye', disabled: scanning, onClick: function () { BO.router.go('review', { id: it.id }); } },
       { id: 'export', label: BO.t('library.menu.export'), icon: 'tv', disabled: scanning || it.status === 'notScanned', onClick: function () { BO.router.go('export', { id: it.id }); } },
+      { id: 'handmark', label: BO.t('hand.menu'), icon: 'flag', disabled: scanning, onClick: function () { BO.handMark.start(it); } },
       { id: 'accuracy', label: BO.t('library.menu.accuracy'), icon: 'check', disabled: !(it.status === 'protected' || it.status === 'needsReview'), onClick: function () { BO.router.go('accuracy', { id: it.id }); } },
       scanning ? { id: 'stop', label: BO.t('library.menu.stopScan'), icon: 'close', onClick: function () { BO.invoke('scan:cancel', { id: it.id }, function () {}); } } :
         { id: 'rescan', label: BO.t(it.status === 'notScanned' ? 'library.menu.scan' : 'library.menu.rescan'), icon: 'rescan', onClick: function () { rescan(it); } },

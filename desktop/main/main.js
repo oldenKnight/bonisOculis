@@ -23,6 +23,7 @@ var createHelp = require('./help.js').createHelp;
 var integrityMod = require('./integrity.js');
 var createIntegrity = integrityMod.createIntegrity;
 var createAccuracy = require('./accuracy.js').createAccuracy;
+var createTruth = require('./truth.js').createTruth;
 var createActivity = require('./activity.js').createActivity;
 var createHandlers = require('./handlers.js').createHandlers;
 var ipc = require('./ipc.js');
@@ -179,11 +180,13 @@ function boot() {
     preflight: integrity ? function (cb) { integrity.verify('scan', cb); } : null
   });
   supervisor.load();
+  var truth = createTruth({ store: store, library: library, log: log.child('truth') });
   var player = createPlayerService({
     createPlayer: createPlayer, paths: paths, settings: settings, library: library, skips: skips, supervisor: supervisor,
     activity: activity, t: function (k, p) { return i18n.t(k, p); }, log: log.child('player'), emit: emit,
     blocked: function () { return bundleBlocks().play; },
-    preflight: integrity ? function (cb) { integrity.verify('play', cb); } : null
+    preflight: integrity ? function (cb) { integrity.verify('play', cb); } : null,
+    truth: truth, testHooks: !packaged && process.env.BONIS_TEST_HOOKS === '1'
   });
   player.recover();
   var thumbs = createThumbs({ paths: paths, library: library, skips: skips });
@@ -203,7 +206,7 @@ function boot() {
   var handlerCtx = {
     electron: electron, getWindow: function () { return win; }, store: store, pin: pin, settings: settings, i18n: i18n,
     library: library, skips: skips, supervisor: supervisor, player: player, thumbs: thumbs, help: help, paths: paths,
-    accuracy: accuracy, activity: activity, log: log.child('ipc'), emit: emit, versions: versions, integrity: integrity,
+    accuracy: accuracy, activity: activity, log: log.child('ipc'), emit: emit, versions: versions, integrity: integrity, truth: truth,
     // The PIN file was lost and the recovery code restored the original key: read everything again
     // with it, and start the scan queue that stayed stopped meanwhile.
     onPinRestored: function () {

@@ -38,6 +38,7 @@ function createPlayerService(options) {
   var skips = o.skips;
   var supervisor = o.supervisor;
   var activity = o.activity || { add: noop };
+  var truth = o.truth || null;
   var t = o.t || function (k) { return k; };
   var log = o.log || silentLog;
   var emit = o.emit || noop;
@@ -94,6 +95,37 @@ function createPlayerService(options) {
     return added;
   }
 
+  // A "Mark by hand" session (X13): marks and undos go to the hand-marks file, never to the
+  // title's list; a panic still goes to the list (it stays enforced, as always).
+  function mergeHandMarksFile(id, file, handled) {
+    var lines = readLines(file);
+    var seen = handled || {};
+    var final = {};
+    var order = [];
+    var panics = [];
+    lines.forEach(function (m) {
+      if (m.t === 'mark' && m.range && m.range.id) {
+        if (!final[m.range.id]) { order.push(m.range.id); }
+        final[m.range.id] = m.range;
+      } else if (m.t === 'undo' && m.id) {
+        delete final[m.id];
+      } else if (m.t === 'panic' && m.phase === 'end' && m.range && m.range.id) {
+        panics.push(m.range);
+      }
+    });
+    var added = 0;
+    order.forEach(function (rid) {
+      if (!final[rid] || seen[rid] || !library.get(id) || !truth) { return; }
+      if (truth.add(id, { id: rid, start: final[rid].start, end: final[rid].end }).ok) { added++; }
+    });
+    panics.forEach(function (r) {
+      if (seen[r.id] || !library.get(id)) { return; }
+      skips.addRange(id, { id: r.id, start: r.start, end: r.end, category: 'other', action: 'skip', source: 'panic', review: 'approved' }, 'panic');
+    });
+    try { fs.unlinkSync(file); } catch (e) { /* gone */ }
+    return added;
+  }
+
   // At app start: anything a crashed session left behind.
   function recover() {
     var d = playDir();
@@ -102,7 +134,8 @@ function createPlayerService(options) {
     var total = 0;
     names.forEach(function (n) {
       var m = /^([0-9a-f]{16})\.marks\.jsonl$/.exec(n);
-      if (m) { total += mergeMarksFile(m[1], path.join(d, n), {}); } else if (/\.play\.bonis\.json$/.test(n)) {
+      var hm = /^([0-9a-f]{16})\.handmarks\.jsonl$/.exec(n);
+      if (m) { total += mergeMarksFile(m[1], path.join(d, n), {}); } else if (hm) { total += mergeHandMarksFile(hm[1], path.join(d, n), {}); } else if (/\.play\.bonis\.json$/.test(n)) {
         try { fs.unlinkSync(path.join(d, n)); } catch (e2) { /* gone */ }
       }
     });
@@ -116,7 +149,7 @@ function createPlayerService(options) {
     cur = null;
     var resumeAt = reason === 'eof' ? 0 : s.pos;
     library.update(s.id, { resumeAt: resumeAt > 5 ? resumeAt : 0 }, true);
-    mergeMarksFile(s.id, s.marksPath, s.handled);
+    if (s.handMark) { mergeHandMarksFile(s.id, s.marksPath, s.handled); } else { mergeMarksFile(s.id, s.marksPath, s.handled); }
     try { fs.unlinkSync(s.playFile); } catch (e) { /* gone */ }
     supervisor.setPlayerOpen(false);
     emit('player:event', { type: 'ended', id: s.id, kidMode: s.kidMode, reason: reason || 'stopped' });
@@ -124,6 +157,18 @@ function createPlayerService(options) {
 
   function onMark(m) {
     if (!cur || cur.kidMode) { return; } // marks are a parent tool; never taken in kid mode
+    if (cur.handMark) {
+      if (m.t === 'mark' && m.range && truth) {
+        cur.handled[m.range.id] = true;
+        truth.add(cur.id, { id: m.range.id, start: m.range.start, end: m.range.end });
+        send({ type: 'mark', handMark: true, range: { id: m.range.id, start: m.range.start, end: m.range.end, category: 'other' } });
+      } else if (m.t === 'undo' && m.id && truth) {
+        cur.handled[m.id] = true;
+        truth.remove(cur.id, m.id);
+        send({ type: 'undo', handMark: true, rangeId: m.id });
+      }
+      return;
+    }
     if (m.t === 'mark' && m.range) {
       cur.handled[m.range.id] = true;
       skips.addRange(cur.id, { id: m.range.id, start: m.range.start, end: m.range.end, category: 'other', action: 'skip', source: 'manual', review: 'pending' }, 'added');
@@ -203,7 +248,8 @@ function createPlayerService(options) {
     var done = typeof cb === 'function' ? cb : noop;
     if (!cur || !player || cur.kidMode) { done(null, 'none'); return; }
     var item = library.get(cur.id);
-    if (!kidPlayable(item, skips.load(cur.id))) {
+    // A "Mark by hand" session skips nothing: it is never handed to a child.
+    if (cur.handMark || !kidPlayable(item, skips.load(cur.id))) {
       log.info('locked while playing a title kids cannot play; stopping');
       stop(function () { done(null, 'stopped'); });
       return;
@@ -246,7 +292,14 @@ function createPlayerService(options) {
     var doc = loaded.doc;
     if (kidMode && !kidPlayable(item, loaded)) { done(null, { ok: false, error: 'kidRefused' }); return; }
     var unprotected = false;
-    if (!kidMode && (!doc || loaded.corrupt)) {
+    // "Mark by hand" (X13): parent mode only, the whole movie with nothing skipped, so every scene
+    // can be marked. The renderer asks first; the marks go to the hand-marks file.
+    var handMark = !kidMode && !!(opts && opts.handMark);
+    if (kidMode && opts && opts.handMark) { done(null, { ok: false, error: 'kidRefused' }); return; }
+    if (handMark) {
+      unprotected = true;
+      activity.add('playUnprotected', { id: id, title: item.title, reason: 'handMark' });
+    } else if (!kidMode && (!doc || loaded.corrupt)) {
       // Planner decision 1: never start an unprotected play without an explicit answer.
       if (!(opts && opts.unprotected)) { done(null, { ok: false, error: 'needsConfirm', data: { reason: loaded.corrupt ? 'damaged' : 'notScanned' } }); return; }
       unprotected = true;
@@ -254,12 +307,12 @@ function createPlayerService(options) {
     } else {
       activity.add('play', { mode: kidMode ? 'kid' : 'parent', id: id, title: item.title });
     }
-    if (!doc) { doc = skips.blank(id); }
+    if (!doc || handMark) { doc = skips.blank(id); }
     var s = settings.get();
     var playDoc = buildPlaybackDoc(doc, enforce.settingsFor(item, s));
     var dir = playDir();
     var playFile = path.join(dir, id + '.play.bonis.json');
-    var marksPath = path.join(dir, id + '.marks.jsonl');
+    var marksPath = path.join(dir, id + (handMark ? '.handmarks.jsonl' : '.marks.jsonl'));
 
     function launch() {
       try { writeAtomic(playFile, JSON.stringify(playDoc)); } catch (e) {
@@ -276,10 +329,10 @@ function createPlayerService(options) {
       var dur = item.duration || 0;
       var resumeAt = !kidMode && item.resumeAt > 5 && (!dur || item.resumeAt < dur - 30) ? item.resumeAt : 0;
       if (kidMode && item.resumeAt > 5 && (!dur || item.resumeAt < dur - 30)) { resumeAt = item.resumeAt; }
-      cur = { id: id, kidMode: kidMode, playFile: playFile, marksPath: marksPath, pos: resumeAt, lastPosSave: Date.now(), handled: {} };
+      cur = { id: id, kidMode: kidMode, handMark: handMark, playFile: playFile, marksPath: marksPath, pos: resumeAt, lastPosSave: Date.now(), handled: {} };
       supervisor.setPlayerOpen(true);
       var enforcedCount = BO.enforced(playDoc).length;
-      send({ type: 'starting', title: item.title, enforced: enforcedCount, panicKey: s.panicKey || 'p', unprotected: unprotected });
+      send({ type: 'starting', title: item.title, enforced: enforcedCount, panicKey: s.panicKey || 'p', unprotected: unprotected, handMark: handMark });
       player.play(item.path, playFile, { kidMode: kidMode, lang: s.lang, marksPath: marksPath, resumeAt: resumeAt,
         startTime: typeof item.start === 'number' ? item.start : undefined,
         duration: item.duration }, function (err) {
@@ -351,7 +404,11 @@ function createPlayerService(options) {
 
   function status() {
     var st = player ? player.status() : { state: 'idle' };
-    return { state: cur ? st.state : 'idle', id: cur ? cur.id : null, kidMode: cur ? cur.kidMode : false, pos: cur ? cur.pos : 0 };
+    var out = { state: cur ? st.state : 'idle', id: cur ? cur.id : null, kidMode: cur ? cur.kidMode : false, handMark: cur ? !!cur.handMark : false, pos: cur ? cur.pos : 0 };
+    // Test hook (unpackaged runs with BONIS_TEST_HOOKS=1 only): mpv's IPC socket, so the e2e can
+    // press I and O in the player as a parent would.
+    if (o.testHooks && st.ipcPath) { out.ipcPath = st.ipcPath; }
+    return out;
   }
 
   return { play: play, stop: stop, status: status, recover: recover, preview: preview, enterKidMode: enterKidMode, isOpen: function () { return !!cur; } };

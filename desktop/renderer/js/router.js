@@ -28,6 +28,7 @@
       view.init(sec);
     }
     current = name;
+    document.documentElement.setAttribute('data-route', name);
     currentParams = params || {};
     BO.qsa('.bo-nav__item[data-nav]').forEach(function (n) {
       if (n.getAttribute('data-nav') === name || (name === 'library' && currentParams.filter === 'review' && n.getAttribute('data-nav') === 'review')) {

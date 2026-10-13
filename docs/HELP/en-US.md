@@ -11,6 +11,8 @@ bonis oculis checks a movie once, here on this computer, and writes down where t
 - A computer with a video chip scans and makes clean copies faster. Without one it still works, only more slowly.
 - On computers from before about 2013, the checks that listen to the dialogue are skipped; the picture and the subtitles are still checked.
 
+**Apple Silicon Mac on macOS 12 or 13.** The player that comes with bonis oculis for these Macs needs macOS 14 or later, so the Mac will not open the app until you update. Updating is free: Apple menu › **System Settings** › **General** › **Software Update**. Until then bonis oculis cannot play movies on that Mac.
+
 ## Before you install {#install}
 
 This early version of bonis oculis is not signed by Apple or Microsoft yet, so your computer asks before it opens it the first time. You do this only once. bonis oculis never connects to the internet, so it is fine if your firewall blocks it.

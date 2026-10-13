@@ -14,6 +14,17 @@
 
   function live() { return BO.qsa('.bo-toast:not(.is-leaving)', region()).length; }
 
+  // X6: while toasts show, the library and kid screens give up a band at the bottom as tall as the
+  // toast stack (CSS --bo-toast-band), so no button is ever under a toast.
+  function band() {
+    var r = region();
+    var root = document.documentElement;
+    var n = r ? BO.qsa('.bo-toast', r).length : 0;
+    if (!n) { root.removeAttribute('data-toasts'); root.style.removeProperty('--bo-toast-band'); return; }
+    root.style.setProperty('--bo-toast-band', Math.ceil(r.getBoundingClientRect().height) + 'px');
+    root.setAttribute('data-toasts', 'on');
+  }
+
   function show(opts) {
     if (live() >= MAX) { waiting.push(opts); return null; }
     var o = opts || {};
@@ -32,6 +43,7 @@
       setTimeout(function () {
         if (node.parentNode) { node.parentNode.removeChild(node); }
         if (waiting.length && live() < MAX) { show(waiting.shift()); }
+        band();
       }, 220);
     }
 
@@ -59,6 +71,7 @@
     node.addEventListener('focusin', function () { hovering = true; });
     node.addEventListener('focusout', function () { hovering = false; });
     region().appendChild(node);
+    band();
     arm();
     return { dismiss: dismiss, el: node };
   }
@@ -83,7 +96,7 @@
   }
 
   // Removes every toast at once (lock: a parent's messages never reach the kids' screen; X5).
-  function clearAll() { var r = region(); waiting.length = 0; if (r) { BO.clear(r); } }
+  function clearAll() { var r = region(); waiting.length = 0; if (r) { BO.clear(r); } band(); }
 
   // Round 3, N-R4: a language change re-renders the toasts made from keys and closes the others,
   // so two languages never share the screen.

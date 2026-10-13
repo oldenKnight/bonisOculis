@@ -356,3 +356,7 @@ ol.bo-help__list { list-style: decimal; }
 .bo-export__card > .bo-body-2 { grid-column: 1 / -1; grid-row: 3; }
 .bo-export__waiting { display: flex; align-items: center; gap: var(--bo-space-2); padding-block: var(--bo-space-2); }
 .bo-export__waiting p { margin: 0; flex: 1; }
+/* Board X6 (round 4): a reserved band under the library and kid screens while toasts show. The
+   scroll area ends above the toast stack, so a toast never covers a Play or Review button. */
+html[data-toasts="on"][data-route="library"] .bo-main { margin-bottom: calc(var(--bo-drawer-h) + var(--bo-gutter) + var(--bo-toast-band, 0px)); padding-bottom: var(--bo-space-2); }
+html[data-toasts="on"][data-route="kid"] .bo-kid { height: auto; max-height: calc(100% - var(--bo-drawer-h) - var(--bo-gutter) - var(--bo-toast-band, 0px)); }

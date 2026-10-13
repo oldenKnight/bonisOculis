@@ -229,6 +229,48 @@ function namesWhole(label) {
 
 function activeAct() { return page.evaluate(function () { return document.activeElement ? document.activeElement.getAttribute('data-act') : null; }); }
 
+// Presses keys in the running mpv over its own IPC socket, as a parent at the keyboard would.
+function mpvKeys(list, gapMs) {
+  return function () {
+    return page.evaluate(function () { return new Promise(function (res) { window.bo.invoke('player:status', {}, res); }); }).then(function (r) {
+      assert.ok(r.data && r.data.ipcPath, 'test hook: mpv IPC socket');
+      return new Promise(function (resolve, reject) {
+        var sock = require('net').connect(r.data.ipcPath);
+        var i = 0;
+        sock.on('error', reject);
+        sock.on('connect', function next() {
+          if (i >= list.length) { sock.end(); setTimeout(resolve, 300); return; }
+          sock.write(JSON.stringify({ command: ['keypress', list[i++]] }) + '\n');
+          setTimeout(next, gapMs || 1200);
+        });
+      });
+    });
+  };
+}
+
+// X6: no visible library button sits under a toast.
+function buttonsClearOfToasts(label) {
+  return function () {
+    return page.evaluate(function () {
+      var toasts = Array.prototype.map.call(document.querySelectorAll('#toasts .bo-toast'), function (n) { return n.getBoundingClientRect(); });
+      var main = document.getElementById('main').getBoundingClientRect();
+      var hits = [];
+      Array.prototype.forEach.call(document.querySelectorAll('.bo-title-card button'), function (b) {
+        var r = b.getBoundingClientRect();
+        var top = Math.max(r.top, main.top), bottom = Math.min(r.bottom, main.bottom);
+        if (bottom <= top || !r.width) { return; } // scrolled out of the visible area
+        toasts.forEach(function (t) {
+          if (r.left < t.right && t.left < r.right && top < t.bottom && t.top < bottom) { hits.push((b.getAttribute('data-act') || b.textContent).slice(0, 30)); }
+        });
+      });
+      return { toasts: toasts.length, hits: hits };
+    }).then(function (r) {
+      assert.strictEqual(r.toasts, 2, label + ': two toasts showing');
+      assert.deepStrictEqual(r.hits, [], label + ': buttons under a toast');
+    });
+  };
+}
+
 function rangeSel(i) { return '.bo-range-list li:nth-child(' + (i + 1) + ') .bo-range-row'; }
 
 function main() {
@@ -268,6 +310,7 @@ function main() {
   env.BONIS_ANALYZER = JSON.stringify({ cmd: process.execPath, args: [path.join(ROOT, 'tools', 'fake-analyzer.js')] });
   env.LANG = 'en_US.UTF-8';
   env.BONIS_VERIFY_RESOURCES = RES;
+  env.BONIS_TEST_HOOKS = '1'; // player:status reports mpv's IPC socket, so keys can be pressed in the player
   var args = [ROOT];
   if (process.getuid && process.getuid() === 0) { args.unshift('--no-sandbox'); }
   var recovery = null;
@@ -533,6 +576,43 @@ function main() {
     waitText('Caught'),
     shot('en-light-accuracy'),
     setTheme('dark'), shot('en-dark-accuracy'), setLang('es-MX'), shot('es-dark-accuracy'), setTheme('light'),
+    // ---- X13: "Mark by hand": nothing skipped, marks kept apart, then Check accuracy uses them
+    click('[data-nav="library"]'),
+    function () { return page.click('.bo-title-card[data-id="' + ids['Family Picnic'] + '"] [data-act="more"]'); },
+    click('[data-menu="handmark"]'),
+    waitSel('.bo-modal [data-action="ok"]'),
+    click('.bo-modal [data-action="ok"]'),
+    waitSel('.bo-nowplaying [data-handmark]'),
+    waitText('Marcando a mano: tus marcas no cambian lo que ven los niños.'),
+    waitSel('.bo-nowplaying__state[data-state="playing"]', { timeout: 30000 }),
+    invoke('player:status', {}, function (r) { assert.strictEqual(r.data.handMark, true); }),
+    mpvKeys(['i', 'o'], 1500),
+    waitSel('[data-mark-category]', { timeout: 15000 }),
+    function () { return page.selectOption('[data-mark-category]', 'nudity'); },
+    sleep(300),
+    shot('es-light-handmark'),
+    click('[data-act="stop"]'),
+    waitSel('[data-view="library"]:not([hidden])', { timeout: 20000 }),
+    invoke('skip:get', function () { return { id: ids['Family Picnic'] }; }, function (r) { assert.strictEqual(r.data.doc.ranges.length, 3, 'hand marks never enter the title\'s list'); }),
+    invoke('truth:get', function () { return { id: ids['Family Picnic'] }; }, function (r) {
+      assert.strictEqual(r.data.ranges.length, 1);
+      assert.strictEqual(r.data.ranges[0].category, 'nudity');
+      assert.strictEqual(r.data.ranges[0].source, 'manual');
+    }),
+    go('accuracy', function () { return { id: ids['Family Picnic'] }; }),
+    waitFor(function () { var b = document.querySelector('[data-act="use-hand"]'); return b && !b.disabled; }),
+    waitText('Marcaste 1 escena a mano en esta película.'),
+    click('[data-act="use-hand"]'),
+    waitSel('.bo-acc__table'),
+    function () { return page.textContent('[data-compared]').then(function (t) { assert.ok(t.indexOf('tus marcas a mano') >= 0, t); }); },
+    sleep(200), shot('es-light-accuracy-hand'),
+    // ---- X6: two error toasts on the library never cover a button
+    go('library'), sleep(400),
+    evaluate(function () { window.BO.toast.error('notFound'); window.BO.toast.error('fileMissing'); }),
+    sleep(400),
+    buttonsClearOfToasts('library with two toasts'),
+    shot('es-light-library-two-toasts', true),
+    evaluate(function () { window.BO.toast.clearAll(); }),
     // ---- play in parent mode: mpv starts, the now-playing panel reaches "ready"
     click('[data-nav="library"]'),
     function () { return page.click('.bo-title-card[data-id="' + ids['Family Picnic'] + '"] [data-act="play"]'); },

@@ -34,6 +34,23 @@
     return BO.t('player.panicSaved');
   }
 
+  function categoryPicker(m) {
+    var sel = BO.el('select', { 'class': 'bo-input bo-select bo-select--sm', data: { markCategory: m.range.id }, attrs: { 'aria-label': BO.t('hand.kind') } });
+    BO.CATEGORIES.forEach(function (c) {
+      var o = BO.el('option', { text: BO.t('cat.' + c), attrs: { value: c } });
+      if ((m.range.category || 'other') === c) { o.selected = true; }
+      sel.appendChild(o);
+    });
+    sel.addEventListener('change', function () {
+      var v = sel.value;
+      BO.invoke('truth:setCategory', { id: session.id, rangeId: m.range.id, category: v }, function (r) {
+        if (!r.ok) { BO.toast.error(r.error); return; }
+        m.range.category = v;
+      });
+    });
+    return sel;
+  }
+
   function render() {
     if (!root) { return; }
     BO.clear(root);
@@ -43,7 +60,10 @@
     stopBtn.addEventListener('click', stop);
     var marks = BO.el('ul', { 'class': 'bo-marks', attrs: { 'aria-live': 'polite' } });
     session.marks.forEach(function (m) {
-      marks.appendChild(BO.el('li', { 'class': 'bo-marks__item' }, [BO.icon(m.type === 'panic' ? 'panic' : (m.type === 'undo' ? 'undo' : 'flag')), BO.el('span', { text: markText(m) })]));
+      var li = BO.el('li', { 'class': 'bo-marks__item' }, [BO.icon(m.type === 'panic' ? 'panic' : (m.type === 'undo' ? 'undo' : 'flag')), BO.el('span', { text: markText(m) })]);
+      // Hand-marking (X13): say what kind of scene it was, right after the I / O pair.
+      if (m.handMark && m.type === 'mark') { li.appendChild(categoryPicker(m)); }
+      marks.appendChild(li);
     });
     root.appendChild(BO.el('div', { 'class': 'bo-nowplaying' }, [
       BO.el('div', { 'class': 'bo-nowplaying__top' }, [BO.logo(true)]),
@@ -57,7 +77,8 @@
           BO.el('span', { 'class': 'bo-nowplaying__state', attrs: { role: 'status' }, data: { state: session.state } }, [BO.icon(session.state === 'starting' ? 'clock' : 'play'), stateLine()])
         ]),
         BO.el('p', { 'class': 'bo-nowplaying__panic' }, [BO.el('kbd', { 'class': 'bo-kbd', text: String(session.panicKey || 'p').toUpperCase() }), BO.t('nowPlaying.panicHint')]),
-        BO.el('p', { 'class': 'bo-body-2', text: BO.t(kid ? 'nowPlaying.kidText' : 'nowPlaying.text') }),
+        session.handMark ? BO.el('div', { 'class': 'bo-notice bo-notice--warning', data: { handmark: '' } }, [BO.icon('flag'), BO.el('p', { text: BO.t('hand.banner') })]) : null,
+        BO.el('p', { 'class': 'bo-body-2', text: BO.t(kid ? 'nowPlaying.kidText' : (session.handMark ? 'hand.text' : 'nowPlaying.text')) }),
         BO.el('div', { 'class': 'bo-nowplaying__actions' }, stopBtn)
       ]),
       kid ? null : BO.el('section', { 'class': 'bo-card bo-nowplaying__marks', attrs: { 'aria-labelledby': 'np-marks' } }, [
@@ -78,7 +99,7 @@
         from = BO.router.current() || 'library';
         fromParams = BO.router.params() || {};
       }
-      session = { id: ev.id, title: ev.title, enforced: ev.enforced, kidMode: ev.kidMode, panicKey: ev.panicKey, unprotected: !!ev.unprotected, state: 'starting', marks: [] };
+      session = { id: ev.id, title: ev.title, enforced: ev.enforced, kidMode: ev.kidMode, panicKey: ev.panicKey, unprotected: !!ev.unprotected, handMark: !!ev.handMark, state: 'starting', marks: [] };
       BO.router.go('player');
       return;
     }
@@ -96,6 +117,9 @@
       render();
     } else if (ev.type === 'eof') {
       session.state = 'eof';
+      render();
+    } else if (ev.handMark && ev.type === 'undo') {
+      session.marks = session.marks.filter(function (m) { return !(m.range && m.range.id === ev.rangeId); });
       render();
     } else if (ev.type === 'mark' || ev.type === 'undo' || (ev.type === 'panic' && ev.phase === 'end')) {
       session.marks.unshift(ev);

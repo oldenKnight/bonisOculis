@@ -11,6 +11,8 @@ bonis oculis analiza una película una vez, aquí en esta computadora, y anota d
 - Una computadora con chip de video analiza y hace copias limpias más rápido. Sin él también funciona, solo más despacio.
 - En computadoras de antes de 2013, más o menos, se omiten las comprobaciones que escuchan el diálogo; la imagen y los subtítulos sí se analizan.
 
+**Mac con Apple Silicon y macOS 12 o 13.** El reproductor que trae bonis oculis para estas Mac necesita macOS 14 o posterior, así que la Mac no abrirá la app hasta que la actualices. Actualizar es gratis: menú Apple › **Configuración del Sistema** › **General** › **Actualización de software**. Mientras tanto, bonis oculis no puede reproducir películas en esa Mac.
+
 ## Antes de instalar {#install}
 
 Esta primera versión de bonis oculis todavía no está firmada por Apple ni por Microsoft, así que tu computadora pregunta antes de abrirla la primera vez. Solo lo haces una vez. bonis oculis nunca se conecta a internet, así que no pasa nada si tu firewall la bloquea.

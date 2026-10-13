@@ -628,3 +628,50 @@ test('before each play mpv and bonis.lua are hashed again; a mismatch refuses to
     });
   });
 });
+
+/* ------------------------------------------------------------------ X13: hand-marking */
+
+test('"Mark by hand": nothing is skipped, marks go to a separate file, never into the title\'s list, and Check accuracy can use them', function (t, done) {
+  var s = setup('brd-hand', doc([{ start: 10, end: 20, review: 'approved' }]));
+  var truth = require('../main/truth.js').createTruth({ store: s.store, library: s.library });
+  var log = [];
+  var events = [];
+  var svc = createPlayerService({ createPlayer: fakePlayer(log), paths: s.paths, settings: s.settings, library: s.library, skips: s.skips, truth: truth,
+    supervisor: { setPlayerOpen: function () {} }, emit: function (n, p) { events.push({ name: n, payload: p }); } });
+  svc.play(ITEM.id, { kidMode: true, handMark: true }, function (e0, r0) {
+    assert.strictEqual(r0.error, 'kidRefused', 'never in kid mode');
+    svc.play(ITEM.id, { handMark: true }, function (e, r) {
+      assert.ok(r.ok);
+      var playDoc = JSON.parse(fs.readFileSync(path.join(s.paths.playDir(), ITEM.id + '.play.bonis.json'), 'utf8'));
+      assert.strictEqual(BO.enforced(playDoc).length, 0, 'the whole movie plays');
+      assert.ok(events.some(function (ev) { return ev.payload && ev.payload.type === 'starting' && ev.payload.handMark === true; }));
+      assert.ok(/\.handmarks\.jsonl$/.test(log[0].opts.marksPath), 'its own marks file');
+      log.player.emit('mark', { t: 'mark', range: { id: 'rhandmk01', start: 30, end: 35 } });
+      log.player.emit('mark', { t: 'mark', range: { id: 'rhandmk02', start: 50, end: 52 } });
+      log.player.emit('mark', { t: 'undo', id: 'rhandmk02' });
+      assert.strictEqual(s.skips.load(ITEM.id).doc.ranges.length, 1, 'the title\'s list is untouched');
+      assert.ok(truth.setCategory(ITEM.id, 'rhandmk01', 'nudity').ok);
+      // a line mpv wrote that the app did not see as an event is replayed into the hand marks too
+      fs.appendFileSync(log[0].opts.marksPath, JSON.stringify({ t: 'mark', range: { id: 'rhandmk03', start: 70, end: 74 } }) + '\n');
+      svc.enterKidMode(function (e2, how) {
+        assert.strictEqual(how, 'stopped', 'a hand-marking session is never handed to a child');
+        var hm = truth.load(ITEM.id);
+        assert.deepStrictEqual(hm.ranges.map(function (x) { return [x.id, x.category, x.source, x.review]; }),
+          [['rhandmk01', 'nudity', 'manual', 'approved'], ['rhandmk03', 'other', 'manual', 'approved']]);
+        assert.ok(BO.validate(hm).ok, 'a valid skip file');
+        assert.strictEqual(s.skips.load(ITEM.id).doc.ranges.length, 1, 'still untouched after the session');
+        // Check accuracy with the hand marks against the automatic scan
+        var auto = doc([{ start: 29, end: 36, category: 'nudity' }]);
+        fs.mkdirSync(path.dirname(s.paths.autoScan(ITEM.id)), { recursive: true });
+        fs.writeFileSync(s.paths.autoScan(ITEM.id), JSON.stringify(auto));
+        var acc = require('../main/accuracy.js').createAccuracy({ paths: s.paths, settings: s.settings.set({ analyzerCommand: h.fakeAnalyzer() }, false) && s.settings, library: s.library, skips: s.skips });
+        acc.run(ITEM.id, truth.file(ITEM.id), function (err, res) {
+          assert.ifError(err);
+          assert.strictEqual(res.handMarks, true);
+          assert.ok(res.report.categories.nudity.recall > 0.9, 'the automatic scan caught the hand-marked scene');
+          done();
+        }, { handMarks: true });
+      });
+    });
+  });
+});

@@ -198,6 +198,7 @@ function createHandlers(c) {
     c.skips.remove(p.id);
     try { fs.rmSync(c.paths.workDir(p.id), { recursive: true, force: true }); } catch (e) { c.log.warn('work dir not removed'); }
     [c.paths.scanOut(p.id), c.paths.autoScan(p.id)].forEach(function (f) { try { fs.unlinkSync(f); } catch (e3) { /* none */ } });
+    if (c.truth) { c.truth.clear(p.id); }
     act('remove', { id: p.id, title: titleOf(p.id) });
     c.library.remove(p.id);
     cb(null, true);
@@ -299,7 +300,7 @@ function createHandlers(c) {
 
   h['player:play'] = function (p, ctx, cb) {
     var kid = c.pin.isLocked() ? true : !!p.kidMode;
-    c.player.play(p.id, { kidMode: kid, unprotected: !kid && p.unprotected === true }, function (e, r) { if (r.ok) { cb(null, r.data); } else { cb(r.error, r.data); } });
+    c.player.play(p.id, { kidMode: kid, unprotected: !kid && p.unprotected === true, handMark: !kid && p.handMark === true }, function (e, r) { if (r.ok) { cb(null, r.data); } else { cb(r.error, r.data); } });
   };
   h['player:preview'] = function (p, ctx, cb) { var r = c.player.preview(p.id); if (r.ok) { cb(null, r.data); } else { cb(r.error); } };
   h['player:stop'] = function (p, ctx, cb) { c.player.stop(function () { cb(null, true); }); };
@@ -492,6 +493,13 @@ function createHandlers(c) {
   h['accuracy:run'] = function (p, ctx, cb) {
     if (!c.library.get(p.id)) { cb('notFound'); return; }
     if (!c.skips.load(p.id).doc) { cb('noSkip'); return; }
+    // "Use my hand marks for this movie" (X13): the file a "Mark by hand" session wrote.
+    if (p.hand) {
+      var hm = c.truth && c.truth.load(p.id);
+      if (!hm || !hm.ranges.length) { cb('noHandMarks'); return; }
+      c.accuracy.run(p.id, c.truth.file(p.id), function (err, res) { if (err) { cb(err); } else { cb(null, res); } }, { handMarks: true });
+      return;
+    }
     openDialog({
       title: t('dialog.pickTruth'), properties: ['openFile'],
       filters: [{ name: t('dialog.skipFiles'), extensions: ['json'] }]
@@ -499,6 +507,33 @@ function createHandlers(c) {
       if (r.canceled || !r.filePaths.length) { cb(null, { canceled: true }); return; }
       c.accuracy.run(p.id, r.filePaths[0], function (err, res) { if (err) { cb(err); } else { cb(null, res); } });
     }, function () { cb('dialogFailed'); });
+  };
+
+  // Hand marks of a title (X13): read, set a mark's kind, save a copy as .bonis.json.
+  h['truth:get'] = function (p, ctx, cb) {
+    if (!c.library.get(p.id)) { cb('notFound'); return; }
+    cb(null, c.truth ? c.truth.load(p.id) : null);
+  };
+  h['truth:setCategory'] = function (p, ctx, cb) {
+    if (!c.truth) { cb('notFound'); return; }
+    var r = c.truth.setCategory(p.id, p.rangeId, p.category);
+    if (!r.ok) { cb(r.error); return; }
+    cb(null, r.doc);
+  };
+  h['truth:export'] = function (p, ctx, cb) {
+    var it = c.library.get(p.id);
+    var doc = it && c.truth ? c.truth.load(p.id) : null;
+    if (!doc || !doc.ranges.length) { cb('noHandMarks'); return; }
+    c.dialogsOpen = (c.dialogsOpen || 0) + 1;
+    var w = win();
+    var o2 = { title: t('hand.exportTitle'), defaultPath: (it.title || 'movie').replace(/[\\/:*?"<>|]/g, '') + ' (' + t('hand.fileSuffix') + ').bonis.json', filters: [{ name: t('dialog.skipFiles'), extensions: ['json'] }] };
+    (w ? c.electron.dialog.showSaveDialog(w, o2) : c.electron.dialog.showSaveDialog(o2)).then(function (r) {
+      c.dialogsOpen -= 1;
+      if (r.canceled || !r.filePath) { cb(null, { canceled: true }); return; }
+      var copy = JSON.parse(JSON.stringify(doc));
+      BO.addHistory(copy, 'exported', null, 'hand marks');
+      fs.writeFile(r.filePath, JSON.stringify(copy, null, 2) + '\n', function (err) { if (err) { cb('writeFailed'); return; } cb(null, { path: rememberExport(r.filePath) }); });
+    }, function () { c.dialogsOpen -= 1; cb('dialogFailed'); });
   };
 
   h['activity:list'] = function (p, ctx, cb) { cb(null, c.activity ? c.activity.list(500) : []); };

@@ -41,8 +41,8 @@ function createAccuracy(opts) {
   var o = opts || {};
   var log = o.log || { info: noop, warn: noop, error: noop };
 
-  // truthPath: an already chosen file. cb(err, result)
-  function run(id, truthPath, cb) {
+  // truthPath: an already chosen file, or the title's own hand marks (more.handMarks). cb(err, result)
+  function run(id, truthPath, cb, more) {
     var done = typeof cb === 'function' ? cb : noop;
     var item = o.library.get(id);
     if (!item) { done('notFound'); return; }
@@ -115,7 +115,7 @@ function createAccuracy(opts) {
       if (!rep) { finish('evalFailed'); return; }
       var md = stdout.split('\n').filter(function (l) { return /^\|/.test(l) || /resolution/.test(l); }).join('\n');
       var result = {
-        at: new Date().toISOString(), truthName: path.basename(truthPath).slice(0, 200), sameCopy: sameCopy,
+        at: new Date().toISOString(), truthName: path.basename(truthPath).slice(0, 200), handMarks: !!(more && more.handMarks), sameCopy: sameCopy,
         autoAt: (pred.scan && pred.scan.finishedAt) || pred.modified || null, compared: 'auto',
         report: rep, markdown: md.slice(0, 20000)
       };

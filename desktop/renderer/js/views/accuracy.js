@@ -83,7 +83,7 @@
     var autoAt = res.autoAt ? new Date(res.autoAt) : null;
     return BO.el('section', { 'class': 'bo-card bo-acc__result', attrs: { 'aria-labelledby': 'acc-result-h' } }, [
       BO.el('h2', { 'class': 'bo-acc__h', id: 'acc-result-h', text: BO.t('acc.resultTitle') }),
-      BO.el('p', { 'class': 'bo-body-2 bo-acc__compared', data: { compared: '' }, text: BO.t('acc.compared', { file: res.truthName, date: autoAt && !isNaN(autoAt.getTime()) ? dateText(autoAt) : '?' }) }),
+      BO.el('p', { 'class': 'bo-body-2 bo-acc__compared', data: { compared: '' }, text: BO.t('acc.compared', { file: res.handMarks ? BO.t('acc.yourHandMarks') : res.truthName, date: autoAt && !isNaN(autoAt.getTime()) ? dateText(autoAt) : '?' }) }),
       BO.el('p', { 'class': 'bo-lead bo-acc__summary', text: summary(res.report) }),
       res.sameCopy ? null : BO.el('div', { 'class': 'bo-notice bo-notice--warning' }, [BO.icon('alert'), BO.el('p', { text: BO.t('acc.otherCopy') })]),
       table(res.report),
@@ -95,11 +95,12 @@
     ]);
   }
 
-  function run() {
+  // hand: compare with the title's own hand marks (X13) instead of a chosen file.
+  function run(hand) {
     if (busy || !selectedId) { return; }
     busy = true;
     render();
-    BO.invoke('accuracy:run', { id: selectedId }, function (r) {
+    BO.invoke('accuracy:run', hand === true ? { id: selectedId, hand: true } : { id: selectedId }, function (r) {
       busy = false;
       if (!r.ok) { render(); BO.toast.error(r.error); return; }
       if (r.data && r.data.canceled) { render(); return; }
@@ -138,11 +139,31 @@
     sel.addEventListener('change', function () { selectedId = sel.value; render(); BO.focus(BO.qs('select', page)); });
     var pick = BO.el('button', { 'class': 'bo-button bo-button--primary', type: 'button', disabled: busy, data: { act: 'pick-truth' } },
       [BO.icon(busy ? 'clock' : 'upload'), BO.t(busy ? 'acc.running' : 'acc.pick')]);
-    pick.addEventListener('click', run);
+    pick.className = 'bo-button bo-button--secondary';
+    pick.addEventListener('click', function () { run(false); });
+    // X13: the marks of a "Mark by hand" session for this movie, when there are any.
+    var useHand = BO.el('button', { 'class': 'bo-button bo-button--primary', type: 'button', disabled: true, data: { act: 'use-hand' } }, [BO.icon('flag'), BO.t('acc.useHand')]);
+    useHand.addEventListener('click', function () { run(true); });
+    var saveHand = BO.el('button', { 'class': 'bo-button bo-button--ghost', type: 'button', disabled: true, data: { act: 'export-hand' } }, [BO.icon('download'), BO.t('acc.saveHand')]);
+    saveHand.addEventListener('click', function () {
+      BO.invoke('truth:export', { id: selectedId }, function (r) {
+        if (!r.ok) { BO.toast.error(r.error); return; }
+        if (r.data && r.data.path) { BO.toast.show({ kind: 'success', title: BO.t('acc.handSaved'), text: r.data.path }); }
+      });
+    });
+    var handNote = BO.el('p', { 'class': 'bo-caption', data: { handCount: '' }, text: BO.t('acc.handNone') });
+    var markBtn = BO.el('button', { 'class': 'bo-button bo-button--ghost', type: 'button', data: { act: 'start-hand' } }, [BO.icon('play'), BO.t('hand.start')]);
+    markBtn.addEventListener('click', function () { BO.handMark.start(BO.store.item(selectedId)); });
+    BO.invoke('truth:get', { id: selectedId }, function (r) {
+      var n = r.ok && r.data && r.data.ranges ? r.data.ranges.length : 0;
+      if (!busy) { useHand.disabled = !n; saveHand.disabled = !n; }
+      handNote.textContent = n ? BO.tn('acc.handCount', n) : BO.t('acc.handNone');
+    });
     page.appendChild(BO.el('div', { 'class': 'bo-card bo-acc__setup' }, [
       BO.el('div', { 'class': 'bo-field bo-acc__movie' }, [BO.el('label', { 'class': 'bo-field__label', attrs: { 'for': sel.id }, text: BO.t('export.movie') }), sel]),
       BO.el('p', { 'class': 'bo-body-2', text: BO.t('acc.how') }),
-      BO.el('div', { 'class': 'bo-toolbar' }, [pick])
+      BO.el('div', { 'class': 'bo-toolbar' }, [useHand, pick, saveHand, markBtn]),
+      handNote
     ]));
     page.appendChild(result(BO.store.item(selectedId) || {}));
   }
