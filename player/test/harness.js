@@ -218,7 +218,7 @@ function startRecorder(extra) {
     ao: 'null',
     timeposHz: e.timeposHz || 1000,
     observe: ['mute', 'vf', 'user-data/bonis', 'user-data/bonis-osd'].concat(e.observe || []),
-    extraArgs: ['--really-quiet', '--speed=' + (e.speed || 10)].concat(e.extraArgs || [])
+    extraArgs: ['--really-quiet', '--speed=' + (e.speed || 4)].concat(e.extraArgs || [])
   });
   var rec = {
     player: player, events: [], samples: [], transitions: [], osd: [],

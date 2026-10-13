@@ -1,5 +1,5 @@
 'use strict';
-// desktop/main/player-controller.js against real mpv (--vo=null --ao=null --speed=10), plus the
+// desktop/main/player-controller.js against real mpv (--vo=null --ao=null --speed=4), plus the
 // argument builder and desktop/main/log.js rotation. Synthetic media from player/test/harness.js.
 
 var test = require('node:test');

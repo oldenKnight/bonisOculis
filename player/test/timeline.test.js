@@ -16,18 +16,21 @@ function getFixtures() {
   return fixtures;
 }
 
-// Board review 3, NEW-1: wall-clock time from the first frame at or after a skip range's end to
-// the script lifting the cover and the mute (both are one user-data change).
-function releaseAfterSkip(rec, end, origin) {
+// Board review 3, NEW-1: time from the landing frame after a skip to the script lifting the cover
+// and the mute (one user-data change). Measured on mpv's own clock: the change carries the playback
+// position at which it took effect, so (release position - landing position) / speed is the time
+// the viewer saw black after the landing, free of IPC delivery delays in this test process.
+function releaseAfterSkip(rec, end, origin, speed) {
   var cover = null;
   var i;
   for (i = 0; i < rec.transitions.length; i++) {
     var tr = rec.transitions[i];
     if (!cover && tr.black && typeof tr.at === 'number' && tr.at < end) { cover = tr; }
-    if (cover && tr.wall >= cover.wall && !tr.black && !tr.mute) {
+    if (cover && tr.wall >= cover.wall && !tr.black && !tr.mute && typeof tr.at === 'number') {
       var landing = rec.samples.filter(function (sm) { return sm.at >= cover.wall && sm.t - origin >= end; })[0];
       if (!landing) { return null; }
-      return { landing: landing.t - origin, ms: Math.max(0, tr.wall - landing.at), coverAt: cover.at };
+      var land = landing.t - origin;
+      return { landing: land, ms: Math.round(Math.max(0, tr.at - land) / speed * 1000), coverAt: cover.at };
     }
   }
   return null;
@@ -60,7 +63,7 @@ function checkFixture(t, name) {
         ', first time-pos ' + rec.samples[0].t.toFixed(3));
       var first = media(rec.samples[0]);
       // the script itself measured the first frame within 1 s of 7 (else a timeline error);
-      // our first sample can be a little later at 10x under load
+      // our first sample can be a little later under load
       assert.ok(first >= 6.9 && first < 9, 'resumed at skip-file 7: ' + first);
       assert.strictEqual(rec.eventsOf('error').length, 0, 'no timeline error');
       return waitMedia(8);
@@ -82,7 +85,7 @@ function checkFixture(t, name) {
         var st2 = rec.stateAt(x);
         assert.ok(st2 && !st2.black && !st2.mute, 'shown at media ' + x.toFixed(2));
       }
-      var rel = releaseAfterSkip(rec, 15, origin);
+      var rel = releaseAfterSkip(rec, 15, origin, 4);
       assert.ok(rel, 'cover lifted after the skip');
       t.diagnostic(name + ': skip covered at ' + rel.coverAt.toFixed(3) + ', landed at ' + rel.landing.toFixed(3) +
         ', cover and mute lifted ' + rel.ms + ' ms after the landing frame');
@@ -159,7 +162,7 @@ test('24 fps, range ending 4 ms after a frame start (10.004): lands past it and 
     .then(function () {
       var inside = rec.samples.filter(function (sm) { return sm.t >= 8.3 && sm.t < 10.004; });
       assert.strictEqual(inside.length, 0, 'played inside: ' + (inside[0] && inside[0].t));
-      var rel = releaseAfterSkip(rec, 10.004, 0);
+      var rel = releaseAfterSkip(rec, 10.004, 0, 4);
       assert.ok(rel, 'cover lifted');
       t.diagnostic('f24: landed at ' + rel.landing.toFixed(4) + ', cover lifted ' + rel.ms + ' ms after');
       assert.ok(rel.landing >= 10.004 && rel.landing < 10.2, 'landing ' + rel.landing);

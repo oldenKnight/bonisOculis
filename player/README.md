@@ -199,7 +199,7 @@ Exit code `3` means "refused in kid mode"; the controller does not relaunch on i
 ## Tests
 
 `npm run test:player` runs `player/test/*.test.js` against real mpv and ffmpeg with
-`--vo=null --ao=null --no-config --speed=10` and a generated 60 s colour-bar video in
+`--vo=null --ao=null --no-config --speed=4` and a generated 60 s colour-bar video in
 `$BONIS_TEST_DIR` (default `<tmpdir>/bonis-oculis-test`). `BONIS_MPV` / `BONIS_FFMPEG` override the
 binaries (default `/usr/bin/mpv`, `/usr/bin/ffmpeg`); without them the tests are skipped.
 `overlay-x11.test.js` additionally runs mpv in a real X11 window under `xvfb-run -a` (`--vo=x11`,

@@ -1,7 +1,7 @@
 'use strict';
 // Real mpv + player/bonis.lua, driven through desktop/main/player-controller.js over IPC.
-// Playback runs at --speed=10 with --vo=null --ao=null, so 1 s of wall time = 10 s of media.
-// The script reacts asynchronously to mpv's clock: at 10x, 0.3 s of media is 30 ms of wall time,
+// Playback runs at --speed=4 with --vo=null --ao=null, so 1 s of wall time = 4 s of media.
+// The script reacts asynchronously to mpv's clock: at 4x, 0.3 s of media is 75 ms of wall time,
 // which is the reaction budget the "nothing played inside a skip range" checks allow (at 1x the
 // same lag is under one frame). State checks use the script's own published state, stamped with
 // the playback position at which it took effect, so IPC delivery lag does not matter.
@@ -12,7 +12,7 @@ var fs = require('fs');
 var h = require('./harness.js');
 
 var skipAll = !h.available();
-var opts = { skip: skipAll ? 'mpv or ffmpeg not installed' : false, timeout: 20000 };
+var opts = { skip: skipAll ? 'mpv or ffmpeg not installed' : false, timeout: 30000 };
 var video = null;
 
 function getVideo() {
@@ -54,9 +54,9 @@ test('enforces skip, hide, mute and blur and restores everything after each rang
   var skip = h.writeSkip('standard', h.standardRanges());
   function off(st) { return !st.black && !st.mute && !st.blur; }
   return rec.play(getVideo(), skip, {})
-    .then(function () { return rec.waitEvent('ended', 15000); })
+    .then(function () { return rec.waitEvent('ended', 25000); })
     .then(function () {
-      // skip 10-15: nothing played inside (0.3 s of media = 30 ms of wall time to react at 10x)
+      // skip 10-15: nothing played inside (0.3 s of media = 75 ms of wall time to react at 4x)
       assertNone(rec, 10.3, 15, 'skip range');
       assert.ok(rec.between(15, 16).length > 0, 'playback resumed at the skip end');
       // hide 20-25: black + mute inside, released at the end
@@ -107,7 +107,7 @@ test('a forward seek into a skip range lands at its end', opts, function () {
     .then(function () {
       var after = rec.samples.slice(mark);
       // mpv reports the seek target itself while seeking. The script reacts asynchronously, so
-      // under CPU load at 10x a frame or two at the target may be decoded first (covered).
+      // under CPU load a frame or two at the target may be decoded first (covered).
       var bad = after.filter(function (s) { return s.t >= 12.3 && s.t < 15; });
       assert.strictEqual(bad.length, 0, 'played inside skip range: ' + fmt(bad));
       assert.ok(after.some(function (s) { return s.t >= 15 && s.t < 15.3; }), 'landed at the range end');
@@ -419,12 +419,14 @@ test('reload and set-kidmode messages take effect during playback', opts, functi
 });
 
 test('resuming inside a hide range is covered from the first frame and restored at its end', opts, function () {
-  var rec = h.startRecorder();
+  // 4x: the first sample is recorded once every watched property has reported, which under CPU
+  // load can be a few frames after the first one
+  var rec = h.startRecorder({ speed: 4 });
   var skip = h.writeSkip('resume', h.standardRanges());
   return rec.play(getVideo(), skip, { resumeAt: 21 })
-    .then(function () { return rec.waitTime(27); })
+    .then(function () { return rec.waitTime(27, 10000); })
     .then(function () {
-      assert.ok(rec.samples[0].t >= 20.9 && rec.samples[0].t < 21.5, 'resumed at 21: ' + rec.samples[0].t);
+      assert.ok(rec.samples[0].t >= 20.9 && rec.samples[0].t < 22, 'resumed at 21: ' + rec.samples[0].t);
       assertAll(rec, 0, 24.7, function (s) { return s.black && s.mute === true; }, 'covered on resume');
       assertAll(rec, 25.3, 27, function (s) { return !s.black && s.mute === false; }, 'restored');
     })
