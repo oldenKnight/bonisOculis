@@ -83,6 +83,17 @@ D25 Board round 1 (both halves FAILED; reviews in docs/reviews/). Fixes in fligh
     vs revisar; auto-relock; accuracy compared against the automatic scan; Fire TV help rewritten;
     INSTALL docs ship next to the installer; peek described honestly; child panic stays enforced
     and is flagged for the parent (not changed to pending).
+D26 Board round 2/3 outcomes (2026-10-13): security auditor PASS with conditions; product
+    lead, commission and parent PASS with conditions (round 3); video engineer FAIL on N1
+    (timeline origin: analyzer and clean copy subtract ffprobe start_time, mpv time-pos does not
+    for MP4 edit lists / negative MKV starts). Fixes in flight: player origin shift + fail-closed
+    on unknown origin, probe duration = end − start, integrity gate on scans, relock after Stop,
+    damaged list status at load, compact review at 1024x640, intensity filter, "accepted
+    automatic list" state, extension nonce.
+D27 Accepted limitations (documented in Help, brief 3.7/6.5): the PIN and signing key live in
+    the user's own profile; a person who can delete or edit files there (same OS user) can reset
+    the PIN, the cooldown, or re-sign a list. The OS keychain would not change this for a shared
+    account. Separate OS accounts for children are the real boundary; Help says so.
 D24 (reserved for the clean-copy agent's decision line)
 D22 NudeNet dropped (2026-10-12): the 3.4.2 sdist ships the AGPL-3.0 licence text while its
     metadata says MIT; too ambiguous to ship. Replaced by AdamCodd/vit-base-nsfw-detector
