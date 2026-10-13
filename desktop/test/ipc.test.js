@@ -99,3 +99,21 @@ test('the window is created with the hardened webPreferences and the page carrie
   assert.ok(!/\sstyle="/.test(html), 'no inline style attributes');
   assert.ok(!/https?:\/\//.test(html.replace(/xmlns="http:\/\/www\.w3\.org\/2000\/svg"/g, '')), 'no remote URLs');
 });
+
+test('file paths cross the bridge only where a parent chose them; scenes and thumbnails go by id', function () {
+  // Board security round 2, A10: every channel checked. Paths are allowed only for adding movies
+  // (from the file dialog or a drop), revealing a file the app itself exported, and exporting into a
+  // folder picked in the dialog (refused otherwise, see board-fixes.test.js).
+  var allowed = { 'library:add': ['paths'], 'app:reveal': ['path'], 'export:json': ['dir'], 'export:edl': ['dir'], 'export:clean': ['dir'] };
+  Object.keys(ipc.CHANNELS).forEach(function (ch) {
+    var shape = ipc.CHANNELS[ch].shape;
+    Object.keys(shape).forEach(function (k) {
+      var t = String(shape[k]).replace(/\?$/, '');
+      var pathy = /path|dir|file/i.test(k) || t === 'paths';
+      if (pathy) { assert.ok(allowed[ch] && allowed[ch].indexOf(k) >= 0, ch + '.' + k + ' carries a path'); }
+    });
+    if (/^skip:|^library:poster$|^player:/.test(ch)) {
+      Object.keys(shape).forEach(function (k) { assert.ok(['id', 'rangeId', 'rangeIds', 'patch', 'doc', 'start', 'end', 'category', 'n', 'kidMode', 'unprotected', 'mode', 'action', 'note'].indexOf(k) >= 0 || /Ids?$/.test(k), ch + '.' + k); });
+    }
+  });
+});

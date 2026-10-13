@@ -52,5 +52,28 @@
     return BO.el('div', { 'class': 'bo-hotkeys' }, groups);
   }
 
-  BO.hotkeys = { create: create };
+  // Round 3, N3: the keys of the review screen, for the "?" sheet.
+  function review() {
+    return BO.el('div', { 'class': 'bo-hotkeys' }, [group('keys.review', [
+      row([['S']], BO.t('review.key.skip')),
+      row([['L']], BO.t('review.key.letPlay')),
+      row([['N'], ['P']], BO.t('keys.nextPrev')),
+      row([[BO.icon('chevron-left')], [BO.icon('chevron-right')]], BO.t('keys.edge')),
+      row([[BO.t('keys.shift'), BO.icon('chevron-right')]], BO.t('keys.edgeBig')),
+      row([[BO.t('keys.home')], [BO.t('keys.end')]], BO.t('keys.cut')),
+      row([['?']], BO.t('keys.sheet'))
+    ])]);
+  }
+
+  // The "?" sheet: the review keys (when asked from the review) and the player's keys.
+  function openSheet(withReview) {
+    var s = BO.store.get('settings') || {};
+    BO.modal.open({
+      title: BO.t('keys.sheetTitle'), icon: 'keyboard', wide: true, variant: 'keys',
+      body: [withReview ? review() : null, create({ panicKey: s.panicKey })],
+      actions: [{ label: BO.t('common.close'), kind: 'primary', id: 'close' }]
+    });
+  }
+
+  BO.hotkeys = { create: create, review: review, openSheet: openSheet };
 }(window));

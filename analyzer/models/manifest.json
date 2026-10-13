@@ -4,7 +4,7 @@
   "shippedBytes": 1093771855,
   "shippedMiB": 1043.1,
   "notes": [
-    "Every file is verified by sha256 and size after download (tools/fetch-models.js) and in the built app before release (tools/verify-bundle.js). There is no runtime check at first app run.",
+    "Every file is verified by sha256 and size after download (tools/fetch-models.js) and in the built app before release (tools/verify-bundle.js). The app checks them again in the background at the first start of each version (and on demand in Settings › About; desktop/main/integrity.js); a mismatch stops scans until the app is reinstalled.",
     "No file is fetched at runtime by the app; models ship inside the installer.",
     "Sizes below are the exact bytes of the downloaded files."
   ],

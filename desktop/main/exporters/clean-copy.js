@@ -1,4 +1,10 @@
 'use strict';
+// Timeline convention (same as probe.js):
+//   skip-file time = media time - probed format.start_time
+// mpv time-pos may include start_time (MP4/MOV, MKV with a negative start); the player
+// compensates, the skip file and this exporter never do. The file's length on that timeline is
+// probe.span() (Matroska reports its end timestamp as format.duration).
+//
 // Clean copy for USB / TV (LEDGER D6, replaced by D24): a new file with the protected scenes cut
 // out, made by an EXACT re-encode in one ffmpeg pass. Stream copy was dropped because a copied
 // GOP keeps frames of a cut scene and the parts drift out of sync (board review B2, B3, B4).
@@ -259,13 +265,13 @@ function rate(s) {
 // cb(err, info) info: {duration, start, video: {...} | null, audio: [...], subtitles: n}
 function probeSource(ffprobe, input, cb) {
   return probe.run(ffprobe, ['-v', 'error', '-show_entries',
-    'format=start_time,duration:stream=index,codec_type,codec_name,pix_fmt,color_transfer,width,height,avg_frame_rate,r_frame_rate,channels,time_base' +
+    probe.SPAN_ENTRIES + ',index,codec_type,codec_name,pix_fmt,color_transfer,width,height,avg_frame_rate,r_frame_rate,channels,time_base' +
     ':stream_tags=language,title:stream_disposition=attached_pic', '-of', 'json', input], function (e, code, out) {
     if (e || code !== 0) { cb(e || new Error('ffprobe exit ' + code)); return; }
     var j;
     try { j = JSON.parse(out); } catch (e2) { cb(new Error('ffprobe output')); return; }
-    var fmt = (j && j.format) || {};
-    var info = { duration: parseFloat(fmt.duration) || 0, start: parseFloat(fmt.start_time) || 0, video: null, audio: [], subtitles: 0 };
+    var sp = probe.span(j);
+    var info = { duration: sp.duration, start: sp.start, video: null, audio: [], subtitles: 0 };
     ((j && j.streams) || []).forEach(function (s) {
       var tags = s.tags || {};
       if (s.codec_type === 'video' && !info.video && !(s.disposition && s.disposition.attached_pic)) {

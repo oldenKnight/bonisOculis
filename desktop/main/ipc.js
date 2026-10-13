@@ -15,6 +15,7 @@ var CHANNELS = {
   'app:state': { kid: true, shape: {} },
   'app:version': { kid: true, shape: {} },
   'app:reveal': { shape: { path: 'string' } },
+  'app:checkFiles': { shape: {} },
   'library:list': { kid: true, shape: {} },
   'library:add': { shape: { paths: 'paths' } },
   'library:pick': { shape: {} },
@@ -34,7 +35,7 @@ var CHANNELS = {
   'skip:add': { shape: { id: 'id', start: 'number', end: 'number', category: 'string?' } },
   'skip:delete': { shape: { id: 'id', rangeId: 'rangeId' } },
   'skip:undo': { shape: { id: 'id' } },
-  'skip:markReviewed': { shape: { id: 'id' } },
+  'skip:markReviewed': { shape: { id: 'id', mode: 'reviewMode?' } },
   'skip:approveClean': { shape: { id: 'id' } },
   'skip:trust': { shape: { id: 'id' } },
   'skip:seen': { shape: { id: 'id', rangeId: 'rangeId' } },
@@ -62,6 +63,7 @@ var CHANNELS = {
   'import:json': { shape: { token: 'token?', targetId: 'id?' } },
   'help:open': { shape: { doc: ['help', 'licenses'] } },
   'accuracy:run': { shape: { id: 'id' } },
+  'app:saveCode': { shape: { code: 'recoveryCode' } },
   'app:copyText': { shape: { text: 'string' } },
   'activity:list': { shape: {} }
 };
@@ -78,6 +80,8 @@ function checkType(type, v) {
     case 'string': return typeof v === 'string' && v.length > 0 && v.length <= 32768;
     case 'number': return typeof v === 'number' && isFinite(v);
     case 'lockReason': return v === 'manual' || v === 'idle';
+    case 'reviewMode': return v === 'looked' || v === 'trusted';
+    case 'recoveryCode': return typeof v === 'string' && /^[0-9A-Z]{4}-[0-9A-Z]{4}-[0-9A-Z]{4}$/.test(v);
     case 'count': return typeof v === 'number' && Math.floor(v) === v && v >= 1 && v <= 200;
     case 'boolean': return typeof v === 'boolean';
     case 'object': return isPlainObject(v);

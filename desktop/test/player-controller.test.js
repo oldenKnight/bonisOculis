@@ -49,8 +49,10 @@ test('buildArgs follows PLAN 2.2 and only asks for copy-back decoding with blur 
   ['--input-default-bindings=no', '--input-conf=/x/input.conf', '--no-input-terminal', '--osc=no',
     '--load-scripts=no', '--load-osd-console=no', '--load-stats-overlay=no', '--load-auto-profiles=no',
     '--ytdl=no', '--screenshot-directory=' + path.join('/x/input.conf', 'no-screenshots'),
-    '--keep-open=yes', '--force-window=yes', '--osd-level=1', '--no-config', '--save-position-on-quit',
-    '--title=bonis oculis', '--vo=null', '--ao=null', '--start=12.500'].forEach(function (flag) {
+    '--watch-later-dir=' + path.join('/x/input.conf', 'no-watch-later'),
+    '--write-filename-in-watch-later-config=no', '--no-save-position-on-quit', '--no-resume-playback',
+    '--keep-open=yes', '--force-window=yes', '--osd-level=1', '--no-config',
+    '--title=bonis oculis', '--vo=null', '--ao=null', '--script-opts-append=bonis-resume=12.500'].forEach(function (flag) {
     assert.ok(a.indexOf(flag) >= 0, flag);
   });
   assert.deepStrictEqual(a.slice(-2), ['--', '/movies/-odd, name.mkv']);
@@ -58,7 +60,11 @@ test('buildArgs follows PLAN 2.2 and only asks for copy-back decoding with blur 
   assert.ok(args(rejectedBlur).indexOf('--hwdec=auto-safe') >= 0);
   assert.ok(args('').indexOf('--hwdec=auto-safe') >= 0);
   assert.ok(args(plain, { lang: 'en' }).indexOf('--script-opts-append=bonis-kidmode=0') >= 0);
-  assert.ok(args(plain).join(' ').indexOf('--start') < 0, 'no --start without resume');
+  assert.ok(args(plain).join(' ').indexOf('bonis-resume') < 0, 'no resume unless asked');
+  assert.ok(a.join(' ').indexOf('--start') < 0, 'mpv --start is never used (it is on mpv\'s clock)');
+  assert.ok(a.join(' ').indexOf('bonis-start=') < 0, 'no start time unless the probe gave one');
+  assert.ok(args(plain, { startTime: 601.378 }).indexOf('--script-opts-append=bonis-start=601.378000') >= 0);
+  assert.ok(a.indexOf('--save-position-on-quit') < 0, 'never saves a resume file');
 });
 
 test('play reports ready and throttled timepos; stop quits mpv gracefully', opts, function () {

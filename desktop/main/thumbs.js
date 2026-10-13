@@ -77,12 +77,17 @@ function createThumbs(options) {
     next();
   }
 
-  function posterTime(item) { return Math.min(300, Math.max(1, (item.duration || 10) * 0.1)); }
+  // The poster frame is taken inside the first minute (board security round 2, A10).
+  var CLEAR_WINDOW = 60;
+  function posterTime(item) { return Math.min(CLEAR_WINDOW - POSTER_MARGIN - 1, Math.max(1, (item.duration || 10) * 0.1)); }
 
+  // A sharp poster is written only when the scan found nothing at all in the first 60 s (and the
+  // title is Protected); a scene anywhere in that minute keeps the blurred poster.
   function frameIsClean(doc, t) {
     if (!doc || !doc.ranges) { return false; }
     var off = (doc.media && doc.media.offset) || 0;
-    return !doc.ranges.some(function (r) { return r.start + off - POSTER_MARGIN < t && r.end + off + POSTER_MARGIN > t; });
+    if (t > CLEAR_WINDOW) { return false; }
+    return !doc.ranges.some(function (r) { return r.start + off - POSTER_MARGIN < CLEAR_WINDOW; });
   }
 
   // cb(null, {kind: 'locked'|'blurred'|'cleared', src})

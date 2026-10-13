@@ -18,7 +18,9 @@ var STOP_KILL_MS = 2000;
 var CRASH_WINDOW_MS = 60000;
 var KID_REFUSED_EXIT = 3;
 var EVENTS = ['ready', 'mark', 'panic', 'skipped', 'timepos', 'ended', 'crashed', 'error', 'property'];
-var BASE_PROPS = ['time-pos', 'pause', 'path', 'eof-reached'];
+// user-data/bonis-origin: mpv time-pos minus skip-file time, published by bonis.lua when the file
+// opens (see the timeline notes there). Positions this module reports are on the skip-file timeline.
+var BASE_PROPS = ['user-data/bonis-origin', 'time-pos', 'pause', 'path', 'eof-reached'];
 
 var launchCounter = 0;
 
@@ -78,8 +80,13 @@ function buildArgs(opts, req, ipcPath, resumeAt) {
     '--load-stats-overlay=no',
     '--load-auto-profiles=no',
     '--ytdl=no',
-    // A directory under a regular file can never be created: the screenshot command always fails.
+    // A directory under a regular file can never be created: the screenshot command always fails,
+    // and no resume (watch-later) state is ever written or read. The app resumes by itself.
     '--screenshot-directory=' + path.join(inputConf, 'no-screenshots'),
+    '--watch-later-dir=' + path.join(inputConf, 'no-watch-later'),
+    '--write-filename-in-watch-later-config=no',
+    '--no-save-position-on-quit',
+    '--no-resume-playback',
     '--script=' + opts.scriptPath,
     '--script-opts-append=bonis-skipfile=' + (req.skipfile || ''),
     '--script-opts-append=bonis-marks=' + req.marksPath,
@@ -92,13 +99,14 @@ function buildArgs(opts, req, ipcPath, resumeAt) {
     '--no-config',
     '--title=bonis oculis'
   ];
-  if (opts.savePosition !== false) {
-    args.push('--save-position-on-quit');
-    if (opts.watchLaterDir) { args.push('--watch-later-dir=' + opts.watchLaterDir); }
-  }
   if (opts.vo) { args.push('--vo=' + opts.vo); }
   if (opts.ao) { args.push('--ao=' + opts.ao); }
-  if (resumeAt && resumeAt > 0) { args.push('--start=' + resumeAt.toFixed(3)); }
+  // Probed format.start_time of the media (skip-file time 0); bonis.lua maps it onto mpv's clock.
+  if (typeof o.startTime === 'number' && isFinite(o.startTime)) {
+    args.push('--script-opts-append=bonis-start=' + o.startTime.toFixed(6));
+  }
+  // Resume on the skip-file timeline; bonis.lua converts it (mpv's --start uses mpv's clock).
+  if (resumeAt && resumeAt > 0) { args.push('--script-opts-append=bonis-resume=' + resumeAt.toFixed(3)); }
   if (opts.extraArgs && opts.extraArgs.length) { args = args.concat(opts.extraArgs); }
   args.push('--');
   args.push(req.media);
@@ -206,14 +214,16 @@ function createPlayer(options) {
     }
     if (m.event === 'property-change') {
       if (launch !== cur) { return; }
-      if (m.name === 'time-pos' && typeof m.data === 'number') {
-        lastPos = m.data;
+      if (m.name === 'user-data/bonis-origin' && typeof m.data === 'number') {
+        launch.origin = m.data;
+      } else if (m.name === 'time-pos' && typeof m.data === 'number') {
+        lastPos = m.data - launch.origin;
         launch.played = true;
         if (phase === 'starting') { phase = 'playing'; }
         var now = Date.now();
         if (now - launch.lastTimeposEmit >= timeposInterval) {
           launch.lastTimeposEmit = now;
-          emit('timepos', m.data);
+          emit('timepos', lastPos);
         }
       } else if (m.name === 'pause') {
         paused = !!m.data;
@@ -357,7 +367,7 @@ function createPlayer(options) {
     var endpoint = ipcEndpointFor(n);
     var launch = {
       n: n, ipcPath: endpoint.path, ipcDir: endpoint.dir, proc: null, sock: null, pending: {}, reqId: 0,
-      readySeq: null, played: false, exited: false, stopping: false, lastTimeposEmit: 0
+      readySeq: null, origin: 0, played: false, exited: false, stopping: false, lastTimeposEmit: 0
     };
     var args = buildArgs(opts, req, launch.ipcPath, resumeAt);
     var called = false;

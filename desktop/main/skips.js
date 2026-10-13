@@ -228,10 +228,12 @@ function createSkips(options) {
     BO.addHistory(doc, 'edited', null, detail, { now: now() });
   }
 
-  function markReviewed(id) {
+  // mode (round 3, P2): 'looked' = the parent looked at every scene; 'trusted' = the parent
+  // accepted the automatic list without looking at each scene. The parents card says which.
+  function markReviewed(id, mode) {
     return mutate(id, function (doc) {
-      completeByParent(doc, libMod.MARKED_REVIEWED);
-      library.update(id, { wholeApproved: true }, true);
+      completeByParent(doc, libMod.MARKED_REVIEWED + (mode === 'trusted' ? ' (automatic list accepted)' : ''));
+      library.update(id, { wholeApproved: true, reviewMode: mode === 'trusted' ? 'trusted' : 'looked' }, true);
       return null;
     });
   }
@@ -242,7 +244,7 @@ function createSkips(options) {
       if (!doc.scan || doc.scan.status !== 'complete') { return 'notScanned'; }
       if (doc.ranges.some(function (r) { return r.review === 'pending'; })) { return 'pendingScenes'; }
       BO.addHistory(doc, 'approved', null, libMod.CLEAN_APPROVAL, { now: now() });
-      library.update(id, { wholeApproved: true }, true);
+      library.update(id, { wholeApproved: true, reviewMode: 'looked' }, true);
       return null;
     });
   }
@@ -255,7 +257,7 @@ function createSkips(options) {
     if (!cur.doc) { return { ok: false, error: cur.corrupt ? 'skipCorrupt' : 'noSkip' }; }
     return mutate(id, function (doc) {
       completeByParent(doc, libMod.TRUSTED);
-      library.update(id, { outside: null, wholeApproved: true }, true);
+      library.update(id, { outside: null, wholeApproved: true, reviewMode: 'trusted' }, true);
       return null;
     });
   }

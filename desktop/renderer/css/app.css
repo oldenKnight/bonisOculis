@@ -318,3 +318,41 @@ ol.bo-help__list { list-style: decimal; }
 .bo-range-row__panic.is-unseen { color: var(--bo-status-attention-fg); font-weight: var(--bo-fw-semibold); }
 /* Round 1 N2.1 (still open in round 2): the wizard's Continue stays on screen at 1024x640. */
 .bo-setup__footer { position: sticky; bottom: 0; z-index: 2; background: var(--bo-bg); padding-block: var(--bo-space-3); margin-top: var(--bo-space-2); box-shadow: 0 -0.75rem 0.75rem -0.75rem rgba(0, 0, 0, 0.12); }
+
+/* Round 3, N2.6: at 1024x640 the review shows at least three scene rows. The header is one line of
+   title + one row of small buttons, the legend is one line of small chips, the thumbnail strip is
+   40 px, and the list takes all the height that is left. */
+.bo-review__main { gap: var(--bo-space-2); grid-template-rows: auto auto auto minmax(8rem, 1fr); }
+.bo-review__bar { column-gap: var(--bo-space-3); row-gap: var(--bo-space-2); }
+.bo-review__bar .bo-toolbar { flex-wrap: nowrap; gap: var(--bo-space-2); }
+.bo-review__title { font-size: var(--bo-fs-xl); min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1 1 8rem; }
+.bo-review__own[aria-pressed="true"] { background: var(--bo-primary-soft); border-color: var(--bo-primary); color: var(--bo-primary-ink); }
+.bo-review .bo-timeline { gap: var(--bo-space-1); }
+.bo-review .bo-timeline__scroll { padding-block: 0 0.25rem; }
+.bo-review .bo-timeline__ruler { height: 1.25rem; }
+.bo-review .bo-timeline__track { height: 2.5rem; }
+.bo-review .bo-timeline__strip { height: 40px; margin-top: var(--bo-space-1); }
+.bo-review .bo-legend { flex-wrap: nowrap; overflow: hidden; gap: var(--bo-space-1); }
+.bo-review .bo-legend__item { gap: 0.25rem; padding: 0.0625rem 0.375rem; border: 1px solid var(--bo-border); border-radius: 999px; font-size: var(--bo-fs-xs); white-space: nowrap; }
+.bo-review .bo-legend__item .bo-swatch { width: 0.875rem; height: 0.625rem; }
+.bo-review .bo-legend__item .bo-icon { display: none; }
+@media (max-height: 800px) {
+  .bo-review { padding-block: var(--bo-space-3); }
+  .bo-review__summary .bo-chip { display: none; } /* the counts are on the parents card */
+  .bo-review .bo-range-row { padding-block: var(--bo-space-2); }
+  .bo-review .bo-range-row__icon { width: 2rem; height: 2rem; }
+}
+.bo-filter { display: inline-flex; margin-inline-start: auto; border: 1px solid var(--bo-border-strong); border-radius: 999px; overflow: hidden; }
+.bo-filter__opt { padding: 0.25rem 0.625rem; font-size: var(--bo-fs-xs); font-weight: var(--bo-fw-semibold); color: var(--bo-text-2); background: var(--bo-surface); border: 0; cursor: pointer; white-space: nowrap; }
+.bo-filter__opt + .bo-filter__opt { border-inline-start: 1px solid var(--bo-border); }
+.bo-filter__opt[aria-pressed="true"] { background: var(--bo-primary-soft); color: var(--bo-primary-ink); }
+.bo-filter__opt:focus-visible { outline: 2px solid var(--bo-primary); outline-offset: -2px; }
+/* Round 3, N-R6 / N2.7: Send to TV fits 1024x640 in Spanish: icon and title on one line, the
+   buttons right under them, the explanation last; the "waiting for review" note is one line. */
+.bo-export__card { grid-template-columns: 2.25rem minmax(0, 1fr); grid-template-rows: none; column-gap: var(--bo-space-3); row-gap: var(--bo-space-2); align-content: start; }
+.bo-export__icon { width: 2.25rem; height: 2.25rem; grid-column: 1; grid-row: 1; }
+.bo-export__title { grid-column: 2; grid-row: 1; align-self: center; font-size: var(--bo-fs-lg); }
+.bo-export__card > .bo-export__actions, .bo-export__card > .bo-export__dynamic { grid-column: 1 / -1; grid-row: 2; align-content: start; }
+.bo-export__card > .bo-body-2 { grid-column: 1 / -1; grid-row: 3; }
+.bo-export__waiting { display: flex; align-items: center; gap: var(--bo-space-2); padding-block: var(--bo-space-2); }
+.bo-export__waiting p { margin: 0; flex: 1; }

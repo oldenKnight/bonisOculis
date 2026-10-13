@@ -10,7 +10,9 @@
 // timeline, every tone change of every track is within 40 ms of where it belongs (including the
 // junction at each cut), durations match, subtitles are dropped.
 // Sources: (a) H.264 MKV, B-frames (-bf 3 -g 48), AAC mono + AC3 5.1 + SRT; (b) open-GOP HEVC MKV
-// (when libx265 exists); (c) MPEG-TS starting at 1.4 s; (d) MP4 with a 2 s GOP.
+// (when libx265 exists); (c) MPEG-TS starting at 1.4 s; (d) MP4 with a 2 s GOP; (e) MKV and
+// (f) MP4 starting at 601.4 s (TS remuxed with -copyts). (a) also covers MKV with a -0.021 s start.
+// Times in the cut lists are skip-file times: media time - probed format.start_time.
 
 var test = require('node:test');
 var assert = require('node:assert');
@@ -69,10 +71,18 @@ function makeSource(dir, kind, seconds) {
     file = path.join(dir, 'movie hevc.mkv');
     ff(['-filter_complex', v + ';' + a1, '-map', '[v]', '-map', '[a1]', '-c:v', 'libx265', '-preset', 'ultrafast',
       '-x265-params', 'open-gop=1:keyint=48:min-keyint=48:bframes=4:scenecut=0:log-level=error', '-pix_fmt', 'yuv420p', '-c:a', 'aac', file]);
-  } else if (kind === 'ts') {
-    file = path.join(dir, 'movie ts.ts');
+  } else if (kind === 'ts' || kind === 'mkv601' || kind === 'mp4601') {
+    // A broadcast-style recording; the 601.4 s ones are remuxed with -copyts, as a TS -> MKV/MP4
+    // remux keeps the original timestamps.
+    var ts = path.join(dir, kind === 'ts' ? 'movie ts.ts' : 'rec601.ts');
     ff(['-filter_complex', v + ';' + a1, '-map', '[v]', '-map', '[a1]', '-c:v', 'libx264', '-preset', 'veryfast', '-bf', '2', '-g', '48', '-pix_fmt', 'yuv420p',
-      '-c:a', 'aac', '-muxdelay', '0', '-muxpreload', '0', '-output_ts_offset', '1.4', '-f', 'mpegts', file]);
+      '-c:a', 'aac', '-muxdelay', '0', '-muxpreload', '0', '-output_ts_offset', kind === 'ts' ? '1.4' : '601.4', '-f', 'mpegts', ts]);
+    file = ts;
+    if (kind !== 'ts') {
+      file = path.join(dir, kind === 'mkv601' ? 'movie 601.mkv' : 'movie 601.mp4');
+      ff(['-copyts', '-i', ts, '-map', '0', '-c', 'copy', file]);
+      fs.unlinkSync(ts);
+    }
   } else {
     file = path.join(dir, 'movie mp4.mp4');
     ff(['-filter_complex', v + ';' + a1, '-map', '[v]', '-map', '[a1]', '-c:v', 'libx264', '-preset', 'veryfast', '-g', '48', '-keyint_min', '48', '-sc_threshold', '0',
@@ -380,6 +390,23 @@ test('(d) MP4 with a 2 s GOP, cut to the end', opts, function (t, done) {
     res.path = copy;
     check(t, '(d) mp4 gop 2s', src, cuts, res);
     done();
+  });
+});
+
+// Board review 2, N2: Matroska reports its END timestamp as format.duration, so an MKV starting at
+// 601.4 s used to fail the duration check (and the library showed 11 minutes for 60 s).
+[['(e) MKV starting at 601.4 s', 'mkv601'], ['(f) MP4 starting at 601.4 s', 'mp4601']].forEach(function (c) {
+  test(c[0], opts, function (t, done) {
+    var dir = h.tmpDir('clean-' + c[1]);
+    var src = makeSource(dir, c[1], 30);
+    var j = probeJson(['-show_entries', 'format=start_time', src]);
+    assert.ok(Math.abs(parseFloat(j.format.start_time) - 601.4) < 0.1, 'fixture starts at ' + j.format.start_time);
+    var cuts = [[0, 1.3], [9.0, 10.0], [20.5, 23.0]];
+    run(src, cuts, null, function (res) {
+      assert.ok(Math.abs(res.kept - (30 - 1.3 - 1.0 - 2.5)) < 0.15, 'kept ' + res.kept);
+      check(t, c[0].slice(0, 3) + ' start ' + parseFloat(j.format.start_time).toFixed(3), src, cuts, res);
+      done();
+    });
   });
 });
 

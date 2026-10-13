@@ -44,6 +44,54 @@ function ensureVideo() {
 var created = [];
 
 // Every per-test file is named <base>-<pid>-<n>*; all of them are removed when the process exits.
+var FFPROBE = process.env.BONIS_FFPROBE || path.join(path.dirname(FFMPEG), 'ffprobe');
+
+function ffmpeg(args) {
+  childProcess.execFileSync(FFMPEG, ['-hide_banner', '-loglevel', 'error', '-y'].concat(args), { stdio: 'ignore' });
+}
+
+// ffprobe's format.start_time: skip-file time 0 (desktop/main/probe.js convention).
+function probeStart(file) {
+  var out = childProcess.execFileSync(FFPROBE, ['-v', 'error', '-show_entries', 'format=start_time',
+    '-of', 'csv=p=0', file], { encoding: 'utf8' });
+  var v = parseFloat(out);
+  return isFinite(v) ? v : 0;
+}
+
+// Same colour bars on four timelines (board review 2, N1):
+//   mp4-601: MP4 remuxed with -copyts from a TS starting at 601.4 s (edit list; mpv keeps 601.x)
+//   mkv-neg: MKV with B-frames + AAC priming, start -0.021 s
+//   ts-1.4:  MPEG-TS starting at 1.4 s (mpv rebases it)
+//   mp4-0:   the plain MP4, start 0 (control)
+function ensureTimelineFixtures() {
+  var base = ensureVideo();
+  function make(name, build) {
+    var p = path.join(SCRATCH, 'timeline-' + name);
+    if (!fs.existsSync(p)) {
+      var tmp = path.join(SCRATCH, 'tmp-' + process.pid + '-' + name);
+      build(tmp);
+      fs.renameSync(tmp, p);
+    }
+    return { name: name, file: p, start: probeStart(p) };
+  }
+  return [
+    make('mp4-601.mp4', function (out) {
+      var ts = out + '.ts';
+      ffmpeg(['-i', base, '-c', 'copy', '-muxdelay', '0', '-muxpreload', '0', '-output_ts_offset', '601.4', '-f', 'mpegts', ts]);
+      ffmpeg(['-copyts', '-i', ts, '-c', 'copy', '-f', 'mp4', out]);
+      fs.unlinkSync(ts);
+    }),
+    make('mkv-neg.mkv', function (out) {
+      ffmpeg(['-f', 'lavfi', '-i', 'testsrc2=size=320x180:rate=25', '-f', 'lavfi', '-i', 'sine=frequency=440:sample_rate=48000',
+        '-t', '60', '-c:v', 'libx264', '-preset', 'ultrafast', '-bf', '2', '-g', '25', '-c:a', 'aac', '-shortest', '-f', 'matroska', out]);
+    }),
+    make('ts-1.4.ts', function (out) {
+      ffmpeg(['-i', base, '-c', 'copy', '-muxdelay', '0', '-muxpreload', '0', '-output_ts_offset', '1.4', '-f', 'mpegts', out]);
+    }),
+    { name: 'mp4-0', file: base, start: probeStart(base) }
+  ];
+}
+
 function uniqueName(base) {
   counter += 1;
   var p = path.join(SCRATCH, base + '-' + process.pid + '-' + counter);
@@ -126,7 +174,6 @@ function startRecorder(extra) {
     mpvPath: MPV,
     vo: 'null',
     ao: 'null',
-    savePosition: false,
     timeposHz: e.timeposHz || 1000,
     observe: ['mute', 'vf', 'user-data/bonis', 'user-data/bonis-osd'].concat(e.observe || []),
     extraArgs: ['--really-quiet', '--speed=' + (e.speed || 10)].concat(e.extraArgs || [])
@@ -252,6 +299,8 @@ module.exports = {
   SCRATCH: SCRATCH,
   available: available,
   ensureVideo: ensureVideo,
+  ensureTimelineFixtures: ensureTimelineFixtures,
+  probeStart: probeStart,
   uniqueName: uniqueName,
   range: range,
   skipDoc: skipDoc,

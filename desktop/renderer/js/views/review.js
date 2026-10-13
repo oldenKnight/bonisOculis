@@ -72,7 +72,12 @@
 
   function eff(r) { return BO.effective.of(r, settings()); }
 
-  function belowText(r) { return BO.t('review.below', { category: BO.t('cat.' + r.category) }); }
+  // Round 3, N-R5: a level that is Off is not a threshold; say "off" instead of "below".
+  function belowText(r) {
+    var st = settings();
+    if ((st.levels || {})[r.category] === 'off') { return BO.t(st.perMovie ? 'review.offMovie' : 'review.off', { category: BO.t('cat.' + r.category) }); }
+    return BO.t('review.below', { category: BO.t('cat.' + r.category) });
+  }
 
   /* --------------------------------------------------------------- saving */
 
@@ -378,13 +383,21 @@
     var back = BO.el('button', { 'class': 'bo-button bo-button--ghost', type: 'button', data: { act: 'back' } }, [BO.icon('chevron-left'), BO.t('review.back')]);
     back.addEventListener('click', function () { BO.router.go('library'); });
     var complete = !!(doc.scan && doc.scan.status === 'complete');
-    var mark = BO.el('button', { 'class': 'bo-button bo-button--secondary', type: 'button', disabled: complete && !n, data: { act: 'mark-reviewed' } }, [BO.icon('shield-check'), BO.t('review.markReviewed')]);
+    var mark = BO.el('button', { 'class': 'bo-button bo-button--secondary bo-button--sm', type: 'button', disabled: complete && !n, data: { act: 'mark-reviewed' } }, [BO.icon('shield-check'), BO.t('review.markReviewed')]);
+    // Round 3, P2: say how the movie was checked; the parents card repeats it honestly.
     mark.addEventListener('click', function () {
-      BO.modal.confirm({ title: BO.t('review.markReviewed.title'), body: BO.t('review.markReviewed.text'), okLabel: BO.t('review.markReviewed.ok'), okIcon: 'shield-check', icon: 'shield-check' }, function (yes) {
-        if (yes) { mutate('skip:markReviewed', {}, { after: function () { selected = null; } }); }
+      function done(mode) { return function (close) { close(); mutate('skip:markReviewed', { mode: mode }, { after: function () { selected = null; } }); }; }
+      BO.modal.open({
+        title: BO.t('review.markReviewed.title'), icon: 'shield-check',
+        body: [BO.el('p', { text: BO.t('review.markReviewed.text') })],
+        actions: [
+          { label: BO.t('common.cancel'), kind: 'secondary', id: 'cancel' },
+          { label: BO.t('review.markReviewed.trusted'), kind: 'secondary', id: 'trusted', icon: 'check', onClick: done('trusted') },
+          { label: BO.t('review.markReviewed.looked'), kind: 'primary', id: 'looked', icon: 'eye', onClick: done('looked') }
+        ]
       });
     });
-    var all = BO.el('button', { 'class': 'bo-button bo-button--primary', type: 'button', disabled: !n, data: { act: 'approve-all' } }, [BO.icon('check'), n ? BO.tn('review.approveAll', n) : BO.t('review.approveAllNone')]);
+    var all = BO.el('button', { 'class': 'bo-button bo-button--primary bo-button--sm', type: 'button', disabled: !n, data: { act: 'approve-all' } }, [BO.icon('check'), n ? BO.tn('review.approveAll', n) : BO.t('review.approveAllNone')]);
     all.addEventListener('click', function () {
       BO.modal.confirm({ title: BO.tn('review.approveAll.title', n), body: BO.t('review.approveAll.text'), okLabel: BO.tn('review.approveAll', n), okIcon: 'check' }, function (yes) {
         if (yes) { mutate('skip:approve', { rangeIds: 'all' }); }
@@ -392,8 +405,10 @@
     });
     bar.appendChild(back);
     bar.appendChild(BO.el('h1', { 'class': 'bo-review__title', text: item.title, attrs: { tabindex: '-1', 'data-view-heading': '' } }));
-    var own = BO.el('button', { 'class': 'bo-button bo-button--ghost', type: 'button', data: { act: 'movie-levels' }, attrs: { 'aria-pressed': item.levels ? 'true' : 'false' } },
-      [BO.icon('settings'), BO.t(item.levels ? 'movieLevels.buttonActive' : 'movieLevels.button')]);
+    // Round 3, N2.6: an icon button with a tooltip keeps the toolbar on one row at 1024x640.
+    var ownLabel = BO.t(item.levels ? 'movieLevels.buttonActive' : 'movieLevels.button');
+    var own = BO.el('button', { 'class': 'bo-button bo-button--secondary bo-button--sm bo-button--icon bo-review__own', type: 'button', data: { act: 'movie-levels' },
+      attrs: { 'aria-pressed': item.levels ? 'true' : 'false', 'aria-label': ownLabel, title: ownLabel } }, BO.icon('settings'));
     own.addEventListener('click', function () {
       BO.movieLevels.open(item, function (it) { if (it) { item = it; render(); } });
     });
@@ -405,15 +420,40 @@
     var counts = {};
     doc.ranges.forEach(function (r) { counts[r.category] = (counts[r.category] || 0) + 1; });
     if (item.status) { summary.appendChild(BO.statusPill.create(item, BO.store.get('scan'))); }
+    if (doc.ranges.length) { summary.appendChild(intensityFilter()); }
     BO.CATEGORIES.forEach(function (cat) {
       if (!counts[cat]) { return; }
       summary.appendChild(BO.el('span', { 'class': 'bo-chip bo-chip--' + cat }, [BO.icon('cat-' + cat), BO.t('review.chip', { category: BO.t('cat.' + cat), count: counts[cat] })]));
     });
   }
 
+  // Round 3, P3: show only the strong scenes (or moderate and strong) in the list. A filter of the
+  // view only: nothing about what is skipped changes. Hand and panic marks have no measured strength.
+  var intensity = 'all';
+  function shown(r) {
+    if (intensity === 'all') { return true; }
+    var n = r.source === 'auto' ? r.intensity || 0 : 0;
+    return intensity === 'strong' ? n >= 3 : n >= 2;
+  }
+
+  function intensityFilter() {
+    var group = BO.el('div', { 'class': 'bo-filter', attrs: { role: 'group', 'aria-label': BO.t('review.filter.label') } });
+    [['all', 'review.filter.all'], ['moderate', 'review.filter.moderate'], ['strong', 'review.filter.strong']].forEach(function (f) {
+      var b = BO.el('button', { 'class': 'bo-filter__opt', type: 'button', data: { intensity: f[0] }, attrs: { 'aria-pressed': intensity === f[0] ? 'true' : 'false' }, text: BO.t(f[1]) });
+      b.addEventListener('click', function () { intensity = f[0]; renderSummary(); renderList(); });
+      group.appendChild(b);
+    });
+    return group;
+  }
+
   function renderList() {
     BO.clear(listEl);
-    var list = sorted();
+    var all = sorted();
+    var list = all.filter(shown);
+    if (all.length && !list.length) {
+      listEl.appendChild(BO.el('p', { 'class': 'bo-body-2 bo-review__filtered', data: { filtered: '' }, text: BO.tn('review.filter.none', all.length) }));
+      return;
+    }
     if (!list.length) { return; }
     var ul = BO.el('ul', { 'class': 'bo-range-list', attrs: { 'aria-label': BO.t('review.listLabel') } });
     list.forEach(function (r) {

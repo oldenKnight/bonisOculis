@@ -26,6 +26,8 @@ local opts = {
     markout = "o",
     undo = "u",
     leadin = 2,
+    start = "",     -- probed format.start_time of the media (seconds); empty = unknown
+    resume = "",    -- start playback here (skip-file timeline); empty = from the beginning
 }
 options.read_options(opts, "bonis")
 
@@ -63,6 +65,8 @@ local STRINGS = {
         reload_ok = "Protection updated (%d scenes)",
         reload_fail = "Protection update failed. Keeping the previous list.",
         save_fail = "Could not save the mark to disk. The app still has it.",
+        timeline_warn = "This file's clock does not match its protection list. Scenes may not be "
+            .. "skipped at the right time. Rescan the movie.",
     },
     es = {
         skipped = "Escena omitida",
@@ -86,6 +90,8 @@ local STRINGS = {
         reload_ok = "Protección actualizada (%d escenas)",
         reload_fail = "No se pudo actualizar la protección. Se mantiene la lista anterior.",
         save_fail = "No se pudo guardar la marca en el disco. La app sí la tiene.",
+        timeline_warn = "El reloj de este archivo no coincide con su lista de protección. Las "
+            .. "escenas podrían no omitirse a tiempo. Vuelve a analizar la película.",
     },
 }
 
@@ -124,6 +130,23 @@ local maxend = {}             -- prefix max of ranges[i].stop
 local session_marks = {}      -- stack of completed manual marks (for undo)
 local mark_in = nil           -- pending mark-in (playback time)
 local panic = { active = false, start = 0 }
+-- Timelines. Skip files count seconds from the media's probed format.start_time (ffmpeg's view).
+-- mpv's time-pos does not always: it keeps absolute timestamps for MP4/MOV with an edit list and
+-- for MKV with a negative start, and rebases MPEG-TS. origin = mpv time-pos - media time, found
+-- from bonis-start and demuxer-start-time when the file opens. Everything below works in media
+-- time; only the mpv boundary (time-pos reads, seek targets, duration, chapters) adds origin.
+local origin = 0
+local origin_checked = false   -- the first frame was compared against the expected position
+local expected_first = 0       -- media time the first frame should show (0 or the resume point)
+
+local function media_pos()
+    local v = mp.get_property_number("time-pos")
+    if v == nil then
+        return nil
+    end
+    return v - origin
+end
+
 local last_t = nil            -- last observed time-pos
 local pre_seek_t = nil        -- time-pos before the current (user) seek
 local in_seek = false         -- between a "seek" event and "playback-restart"
@@ -345,7 +368,7 @@ local function publish()
         kid = kid,
         loaded = loaded,
         enforced = #ranges,
-        at = mp.get_property_number("time-pos"),   -- playback position when this took effect
+        at = media_pos(),   -- media position at which this took effect
     })
 end
 
@@ -438,7 +461,7 @@ local function seek_to(target, why)
     end
     own_seek = { target = target, at = now, why = why, pending = true }
     msg.debug(string.format("seek %s -> %.3f", why, target))
-    mp.commandv("seek", string.format("%.3f", target), "absolute+exact")
+    mp.commandv("seek", string.format("%.3f", target + origin), "absolute+exact")
     return true
 end
 
@@ -544,10 +567,11 @@ local function evaluate(t, origin)
     end
 end
 
-mp.observe_property("time-pos", "number", function(_, t)
-    if t == nil then
+mp.observe_property("time-pos", "number", function(_, tp)
+    if tp == nil then
         return
     end
+    local t = tp - origin
     if in_seek then
         return
     end
@@ -566,7 +590,7 @@ mp.observe_property("time-pos", "number", function(_, t)
 end)
 
 mp.register_event("seek", function()
-    local t = mp.get_property_number("time-pos")
+    local t = media_pos()
     msg.debug(string.format("event seek t=%s last=%s in_seek=%s", tostring(t), tostring(last_t), tostring(in_seek)))
     if not in_seek then
         pre_seek_t = last_t
@@ -583,12 +607,21 @@ mp.register_event("seek", function()
     end
 end)
 
+local check_origin
+local timeline_error = nil     -- kept so a late "hello" from the app still learns about it
+
 mp.register_event("playback-restart", function()
     in_seek = false
-    local t = mp.get_property_number("time-pos")
+    local t = media_pos()
     msg.debug(string.format("event restart t=%s pre=%s", tostring(t), tostring(pre_seek_t)))
     if t == nil then
         return
+    end
+    if not origin_checked then
+        origin_checked = true
+        if not check_origin(t) then
+            return
+        end
     end
     -- A restart from an earlier (user) seek can arrive after we issued our own corrective seek.
     -- Ignore it while ours is on its way, or it would be judged again and override ours.
@@ -613,7 +646,7 @@ mp.add_periodic_timer(1.0, function()
     if stale_seek or stale_skip then
         skip_pending = false
         in_seek = false
-        evaluate(mp.get_property_number("time-pos"), "tick")
+        evaluate(media_pos(), "tick")
     end
 end)
 
@@ -683,8 +716,7 @@ local function initial_load()
 end
 
 -- The start position may lie inside a range (resume after a crash): cover from the first frame.
-local function cover_start()
-    local s = tonumber(mp.get_property("options/start") or "")
+local function cover_start(s)
     if s ~= nil and #active_at(s) > 0 then
         skip_pending = true
         apply({ black = true, mute = true, blur = false })
@@ -695,7 +727,7 @@ end
 -- Keys: marking (parent only) and panic (everyone)
 -------------------------------------------------------------------------------------------------
 local function now_t()
-    return mp.get_property_number("time-pos") or last_t or 0
+    return media_pos() or last_t or 0
 end
 
 local function make_range(start_pt, end_pt, source, review)
@@ -765,7 +797,10 @@ end
 -- enforcement above stays as the safety net (IPC seeks from the app, other scripts).
 -------------------------------------------------------------------------------------------------
 local function safe_target(target, forward)
-    local dur = mp.get_property_number("duration")
+    local dur = mp.get_property_number("duration")    -- mpv's end position
+    if dur then
+        dur = dur - origin
+    end
     for _ = 1, 50 do
         if target < 0 then
             target = 0
@@ -814,7 +849,7 @@ local function safe_chapter(delta)
     if idx < 0 then
         safe_seek_abs(0)
     elseif idx < #list then
-        safe_seek_abs(list[idx + 1].time)
+        safe_seek_abs(list[idx + 1].time - origin)
     end
 end
 
@@ -947,8 +982,14 @@ mp.register_script_message("reload", function(path)
     end
 end)
 
+-- One way only: a session can be locked into kid mode, never unlocked (the app stops and
+-- relaunches the player to leave kid mode). Anything but "1" is ignored.
 mp.register_script_message("set-kidmode", function(v)
-    kid = (v == "1" or v == "yes" or v == "true")
+    if v ~= "1" then
+        msg.warn("set-kidmode " .. tostring(v) .. " ignored")
+        return
+    end
+    kid = true
     publish()
     if kid and (not loaded or scan_status == "none") then
         fail_closed(load_error or "scan status is none")
@@ -960,12 +1001,61 @@ mp.register_script_message("hello", function()
     if load_error then
         send({ t = "error", msg = load_error, code = kid and "kid-refused" or "skipfile" })
     end
+    if timeline_error then
+        send(timeline_error)
+    end
     send(ready_message())
 end)
 
+-- Origin of mpv's clock, measured once the demuxer is open and before the first frame.
+mp.add_hook("on_preloaded", 50, function()
+    local dst = mp.get_property_number("demuxer-start-time")
+    local probed = tonumber(opts.start)
+    if probed ~= nil and dst ~= nil then
+        origin = probed - dst
+    else
+        origin = 0                 -- unknown: checked against the first frame below
+    end
+    local r = tonumber(opts.resume)
+    if r ~= nil and r > 0 then
+        expected_first = r
+        mp.set_property("file-local-options/start", string.format("%.3f", r + origin))
+    else
+        local s = tonumber(mp.get_property("options/start") or "")
+        expected_first = s and (s - origin) or 0
+    end
+    mp.set_property_native("user-data/bonis-origin", origin)
+    msg.debug(string.format("origin %.4f (probed %s, demuxer-start-time %s)", origin, tostring(probed), tostring(dst)))
+    cover_start(expected_first)
+    if kid then
+        -- kid mode: covered until the first frame has proven the timeline (check_origin)
+        skip_pending = true
+        apply({ black = true, mute = true, blur = false })
+    end
+    publish()
+end)
+
+-- The first frame must sit where the skip file's timeline says. If it does not (an unknown or
+-- wrong start time), kid mode refuses to play; parent mode warns and goes on.
+check_origin = function(t)
+    if math.abs(t - expected_first) <= 1.0 then
+        return true
+    end
+    local why = string.format("timeline mismatch: first frame at %.3f, expected %.3f (origin %.3f)",
+        t, expected_first, origin)
+    msg.warn(why)
+    timeline_error = { t = "error", code = "timeline", msg = why }
+    send(timeline_error)
+    if kid then
+        fail_closed(why)
+        return false
+    end
+    osd(tr("timeline_warn"), 6)
+    return true
+end
+
 math.randomseed(os.time())
 initial_load()
-cover_start()
 -- Panic key discoverability: a hint at every file start (unless a load warning is showing).
 mp.register_event("file-loaded", function()
     if not closing and not load_error then

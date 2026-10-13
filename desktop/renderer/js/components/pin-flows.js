@@ -53,7 +53,14 @@
     var check = BO.el('input', { 'class': 'bo-switch__input', type: 'checkbox', id: BO.nextId('wrote') });
     var cont = BO.el('button', { 'class': 'bo-button bo-button--primary bo-button--lg', type: 'button', disabled: true, data: { action: 'code-continue' } }, [confirmLabel || BO.t('common.continue'), BO.icon('chevron-right')]);
     check.addEventListener('change', function () { cont.disabled = !check.checked; });
-    var copy = BO.el('button', { 'class': 'bo-button bo-button--ghost', type: 'button', data: { action: 'copy-code' } }, [BO.icon('download'), BO.t('code.copy')]);
+    var copy = BO.el('button', { 'class': 'bo-button bo-button--ghost', type: 'button', data: { action: 'copy-code' } }, [BO.icon('check'), BO.t('code.copy')]);
+    var save = BO.el('button', { 'class': 'bo-button bo-button--ghost', type: 'button', data: { action: 'save-code' } }, [BO.icon('download'), BO.t('code.save')]);
+    save.addEventListener('click', function () {
+      BO.invoke('app:saveCode', { code: code }, function (r) {
+        if (!r.ok) { BO.toast.error(r.error); return; }
+        if (r.data && r.data.path) { BO.toast.show({ kind: 'success', title: BO.t('code.saved'), text: r.data.path }); }
+      });
+    });
     copy.addEventListener('click', function () {
       BO.invoke('app:copyText', { text: 'bonis oculis: ' + code }, function (r) { if (r.ok) { BO.toast.show({ kind: 'success', title: BO.t('code.copied') }); } });
     });
@@ -62,7 +69,7 @@
       BO.el('p', { 'class': 'bo-code__value bo-num', attrs: { 'aria-label': code.split('').join(' ') }, text: code }),
       BO.el('div', { 'class': 'bo-notice bo-notice--warning' }, [BO.icon('alert'), BO.el('p', { text: BO.t('code.warning') })]),
       BO.el('label', { 'class': 'bo-switch', attrs: { 'for': check.id } }, [check, BO.el('span', { 'class': 'bo-switch__track' }), BO.el('span', { 'class': 'bo-switch__label', text: BO.t('code.wrote') })]),
-      BO.el('div', { 'class': 'bo-code__actions' }, [copy, cont])
+      BO.el('div', { 'class': 'bo-code__actions' }, [BO.el('span', { 'class': 'bo-code__tools' }, [copy, save]), cont])
     ]);
   }
 

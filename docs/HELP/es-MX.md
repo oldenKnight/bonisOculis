@@ -192,7 +192,7 @@ El PIN reserva los ajustes, las revisiones y la biblioteca para los adultos.
 ## Privacidad {#privacy}
 
 - bonis oculis no tiene cuenta, ni anuncios, ni estadísticas, y nunca se conecta a internet.
-- Las imágenes de las escenas marcadas se difuminan antes de guardarse. Nunca se escribe en el disco una imagen nítida. **Mantén para echar un vistazo** muestra la imagen real solo mientras lo mantienes presionado, y no la guarda.
+- Las imágenes de las escenas marcadas se difuminan antes de guardarse. Nunca se escribe en el disco una imagen nítida. **Mantén para echar un vistazo** muestra la imagen real solo mientras lo mantienes presionado, y no la guarda. Una excepción: para una película protegida cuyo primer minuto no tiene ninguna escena marcada, la tarjeta de la biblioteca muestra una imagen nítida de ese minuto, guardada en la carpeta de la app.
 - Tu biblioteca, tus revisiones, la actividad y los ajustes se quedan en la carpeta de la app en esta computadora. Los archivos solo se comparten cuando presionas un botón de exportar.
 - La primera vez que se abre cada versión, bonis oculis comprueba en segundo plano que sus programas y archivos de detección incluidos sean exactamente los que traía. Si alguno no lo es, la biblioteca dice **Requiere atención: un archivo incluido está dañado** y lo nombra. Vuelve a instalar la app.
 

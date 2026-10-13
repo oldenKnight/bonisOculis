@@ -242,7 +242,10 @@
     var cur = BO.store.item(selectedId);
     page.appendChild(BO.el('div', { 'class': 'bo-field bo-export__movie' }, [BO.el('label', { 'class': 'bo-field__label', attrs: { 'for': sel.id }, text: BO.t('export.movie') }), sel]));
     if (cur && cur.status !== 'protected') {
-      page.appendChild(BO.el('div', { 'class': 'bo-notice bo-notice--warning' }, [BO.icon('alert'), BO.el('p', { text: BO.tn('export.notReviewed', cur.pending || 0) })]));
+      // Round 3, N-R6: one line with a link, so the cards' buttons stay above the fold.
+      var go = BO.el('button', { 'class': 'bo-button bo-button--ghost bo-button--sm', type: 'button', data: { act: 'review-first' } }, [BO.icon('eye'), BO.t('library.review')]);
+      go.addEventListener('click', function () { BO.router.go('review', { id: cur.id }); });
+      page.appendChild(BO.el('div', { 'class': 'bo-notice bo-notice--warning bo-export__waiting', data: { banner: 'waiting' } }, [BO.icon('alert'), BO.el('p', { text: BO.tn('export.waiting', cur.pending || 0) }), go]));
     }
     // Same order as the help: the clean copy is the easiest way to the TV.
     page.appendChild(BO.el('div', { 'class': 'bo-export__grid' }, [

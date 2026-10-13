@@ -192,7 +192,7 @@ The PIN keeps settings, reviews and the library for grown-ups.
 ## Privacy {#privacy}
 
 - bonis oculis has no account, no ads and no statistics, and it never connects to the internet.
-- Pictures of flagged scenes are blurred before they are saved. A clear picture is never written to disk. **Hold to peek** shows the real frame only while you hold it, and does not save it.
+- Pictures of flagged scenes are blurred before they are saved. A clear picture is never written to disk. **Hold to peek** shows the real frame only while you hold it, and does not save it. One exception: for a protected movie whose first minute has no flagged scene at all, the library card shows one sharp frame from that minute, saved in the app's folder.
 - Your library, reviews, activity and settings stay in the app's folder on this computer. Files are only shared when you press an export button.
 - The first time each version opens, bonis oculis checks in the background that its bundled programs and detection files are exactly the ones it shipped with. If one is not, the library says **Needs attention: a bundled file is damaged** and names it. Install the app again.
 

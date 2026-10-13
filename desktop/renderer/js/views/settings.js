@@ -219,8 +219,23 @@
     });
     var acc = BO.el('button', { 'class': 'bo-button bo-button--secondary', type: 'button', data: { act: 'accuracy' } }, [BO.icon('check'), BO.t('acc.title')]);
     acc.addEventListener('click', function () { BO.router.go('accuracy'); });
+    // Security round 2, N3: check the installed models and programs now, not only once per version.
+    var check = BO.el('button', { 'class': 'bo-button bo-button--secondary', type: 'button', data: { act: 'check-files' } }, [BO.icon('shield-check'), BO.t('settings.about.check')]);
+    var checkOut = BO.el('p', { 'class': 'bo-body-2', attrs: { role: 'status', 'aria-live': 'polite' }, data: { checkResult: '' } });
+    check.addEventListener('click', function () {
+      check.disabled = true;
+      checkOut.textContent = BO.t('settings.about.checking');
+      BO.invoke('app:checkFiles', {}, function (r) {
+        check.disabled = false;
+        var d = r.ok ? r.data : null;
+        if (!d || !d.available) { checkOut.textContent = BO.t('settings.about.checkNone'); return; }
+        if (d.busy) { checkOut.textContent = BO.t('settings.about.checking'); return; }
+        checkOut.textContent = d.damaged.length ? BO.tn('integrity.text', d.damaged.length, { file: d.damaged[0].file }) : BO.tn('settings.about.checkOk', d.checked);
+        BO.invoke('settings:get', {}, function (r2) { if (r2.ok) { BO.store.set('settings', r2.data); } });
+      });
+    });
     return card('about', [BO.el('p', { 'class': 'bo-body-2', text: BO.t('settings.about.lead') }), dl,
-      BO.el('p', { 'class': 'bo-body-2', text: BO.t('settings.about.accuracy') }), BO.el('div', { 'class': 'bo-toolbar' }, [acc, lic])]);
+      BO.el('p', { 'class': 'bo-body-2', text: BO.t('settings.about.accuracy') }), BO.el('div', { 'class': 'bo-toolbar' }, [acc, lic, check]), checkOut]);
   }
 
   function render() {

@@ -54,6 +54,8 @@
       ]),
       BO.el('button', { 'class': 'bo-toast__close', type: 'button', attrs: { 'aria-label': BO.t('common.dismiss') }, on: { click: dismiss } }, BO.icon('close', 'bo-icon--md'))
     ]);
+    node.__keys = o.keys || null; // {title: [key, params], text: [key, params]}: re-rendered on a language change
+    node.__dismiss = dismiss;
     node.addEventListener('focusin', function () { hovering = true; });
     node.addEventListener('focusout', function () { hovering = false; });
     region().appendChild(node);
@@ -65,21 +67,42 @@
   function fromMain(ev) {
     if (!ev || !ev.key) { return; }
     if (BO.i18n.has(ev.key)) {
-      show({ kind: ev.kind || 'info', title: BO.t(ev.key, ev.params) });
+      show({ kind: ev.kind || 'info', title: BO.t(ev.key, ev.params), keys: { title: [ev.key, ev.params] } });
       return;
     }
-    show({ kind: ev.kind || 'info', title: BO.t(ev.key + '.title', ev.params), text: BO.i18n.has(ev.key + '.text') ? BO.t(ev.key + '.text', ev.params) : null });
+    var hasText = BO.i18n.has(ev.key + '.text');
+    show({ kind: ev.kind || 'info', title: BO.t(ev.key + '.title', ev.params), text: hasText ? BO.t(ev.key + '.text', ev.params) : null,
+      keys: { title: [ev.key + '.title', ev.params], text: hasText ? [ev.key + '.text', ev.params] : null } });
   }
 
   /* An {ok:false, error} answer: the sentence for the code, with what to do next. */
   function error(code) {
     var key = 'error.' + (code || 'failed');
     if (!BO.i18n.has(key + '.title')) { key = 'error.failed'; }
-    show({ kind: 'error', title: BO.t(key + '.title'), text: BO.t(key + '.text') });
+    show({ kind: 'error', title: BO.t(key + '.title'), text: BO.t(key + '.text'), keys: { title: [key + '.title'], text: [key + '.text'] } });
   }
 
   // Removes every toast at once (lock: a parent's messages never reach the kids' screen; X5).
   function clearAll() { var r = region(); waiting.length = 0; if (r) { BO.clear(r); } }
 
-  BO.toast = { show: show, fromMain: fromMain, error: error, clearAll: clearAll };
+  // Round 3, N-R4: a language change re-renders the toasts made from keys and closes the others,
+  // so two languages never share the screen.
+  function relocalize() {
+    var r = region();
+    if (!r) { return; }
+    waiting.length = 0;
+    BO.qsa('.bo-toast', r).forEach(function (n) {
+      var k = n.__keys;
+      if (!k) { if (n.__dismiss) { n.__dismiss(); } else if (n.parentNode) { n.parentNode.removeChild(n); } return; }
+      var t = BO.qs('.bo-toast__title', n);
+      var x = BO.qs('.bo-toast__text', n);
+      if (t && k.title) { t.textContent = BO.t(k.title[0], k.title[1]); }
+      if (x && k.text) { x.textContent = BO.t(k.text[0], k.text[1]); }
+      var close = BO.qs('.bo-toast__close', n);
+      if (close) { close.setAttribute('aria-label', BO.t('common.dismiss')); }
+    });
+  }
+  if (BO.i18n && BO.i18n.onChange) { BO.i18n.onChange(relocalize); }
+
+  BO.toast = { show: show, fromMain: fromMain, error: error, clearAll: clearAll, relocalize: relocalize };
 }(window));

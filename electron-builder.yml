@@ -67,6 +67,8 @@ extraResources:
       - florence_prompts.json
   - from: player/bonis.lua
     to: player/bonis.lua
+  - from: build/player.lock.json          # tools/make-player-lock.js (CI), checked by integrity.js
+    to: player/player.lock.json
   - from: spec/lexicon
     to: spec/lexicon
     filter: ["en.json", "es.json"]

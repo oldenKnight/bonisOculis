@@ -7,7 +7,7 @@
 (function (window) {
   'use strict';
   var BO = window.BO;
-  var PARTS = ['skipped', 'covered', 'muted', 'below', 'letPlay'];
+  var PARTS = ['skipped', 'covered', 'muted', 'below', 'off', 'letPlay'];
 
   function startPlay(id, unprotected) {
     BO.invoke('player:play', { id: id, kidMode: false, unprotected: !!unprotected }, function (r) {

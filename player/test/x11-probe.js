@@ -26,7 +26,7 @@ function grab() {
 
 function attempt(vo) {
   var player = controller.createPlayer({
-    mpvPath: h.MPV, vo: vo, ao: 'null', savePosition: false, observe: ['user-data/bonis'],
+    mpvPath: h.MPV, vo: vo, ao: 'null', observe: ['user-data/bonis'],
     extraArgs: ['--really-quiet', '--pause', '--geometry=' + W + 'x' + H]
   });
   var state = { t: null, bonis: null };

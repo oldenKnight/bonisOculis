@@ -45,17 +45,27 @@
     });
     var n = found.length;
     var key;
-    if (filtered === n) { key = cat === 'language' ? 'parents.foundMuted' : 'parents.foundSkipped'; } else if (letPlay === n) { key = 'parents.foundLetPlay'; } else if (below === n) { key = 'parents.foundBelow'; } else { key = 'parents.foundMixed'; }
+    var off = settings && settings.levels && settings.levels[cat] === 'off';
+    if (filtered === n) { key = cat === 'language' ? 'parents.foundMuted' : 'parents.foundSkipped'; } else if (letPlay === n) { key = 'parents.foundLetPlay'; } else if (below === n) { key = off ? 'parents.foundOff' : 'parents.foundBelow'; } else { key = 'parents.foundMixed'; }
     return { kind: filtered === n ? 'filtered' : 'plays', text: BO.tn(key, n, { filtered: filtered, plays: letPlay + below }), count: n, max: max };
   }
 
   // Round 2, X2: only a title the parent finished reviewing (every scene decided, "Mark as fully
   // reviewed", "Looks clean" or "Use this list for kids": status Protected) says "checked by you".
+  // Round 3: a moment a child hid that the parent has not opened yet (N-R3), and an automatic list
+  // accepted without looking at each scene (P2), are said as they are.
   function footerLine(item) {
+    var pu = item && item.panicUnseen;
+    if (pu && (!Array.isArray(pu.rangeIds) || pu.rangeIds.length)) {
+      return BO.el('p', { data: { footer: 'panic' }, text: BO.t('parents.footer.panic') });
+    }
     var done = item && item.status === 'protected';
     if (!done) { return BO.el('p', { data: { footer: 'unchecked' }, text: BO.t('parents.footer.unchecked') }); }
     var d = item.reviewedAt ? new Date(item.reviewedAt) : null;
     var when = d && !isNaN(d.getTime()) ? d.toLocaleDateString(BO.i18n.lang(), { year: 'numeric', month: 'short', day: 'numeric' }) : '';
+    if (item.reviewMode === 'trusted') {
+      return BO.el('p', { data: { footer: 'trusted' }, text: when ? BO.t('parents.footer.trusted', { date: when }) : BO.t('parents.footer.trustedNoDate') });
+    }
     return BO.el('p', { data: { footer: 'checked' }, text: when ? BO.t('parents.footer.checked', { date: when }) : BO.t('parents.footer.checkedNoDate') });
   }
 

@@ -130,6 +130,15 @@ function createHandlers(c) {
     });
   };
 
+  // Settings › About › "Check installed files" (security round 2, N3).
+  h['app:checkFiles'] = function (p, ctx, cb) {
+    if (!c.integrity) { cb(null, { available: false }); return; }
+    c.integrity.run(true, function (e, res) {
+      if (!res) { cb(null, { available: true, busy: true }); return; }
+      cb(null, { available: true, checked: res.checked, missing: res.missing, damaged: res.damaged });
+    });
+  };
+
   h['app:reveal'] = function (p, ctx, cb) {
     if (!exported[p.path]) { cb('forbidden'); return; }
     try { c.electron.shell.showItemInFolder(p.path); } catch (e) { cb('failed'); return; }
@@ -228,6 +237,8 @@ function createHandlers(c) {
   };
   h['skip:approve'] = function (p, ctx, cb) {
     var r = c.skips.approve(p.id, p.rangeIds);
+    // "Skip all N scenes" accepts the automatic list as it is (round 3, P2).
+    if (r.ok && p.rangeIds === 'all') { c.library.update(p.id, { reviewMode: 'trusted' }, true); }
     if (r.ok) { act(p.rangeIds === 'all' ? 'skipAll' : 'skip', { id: p.id, title: titleOf(p.id), count: p.rangeIds === 'all' ? null : p.rangeIds.length }); }
     skipResult(cb)(r);
   };
@@ -266,8 +277,8 @@ function createHandlers(c) {
   h['skip:delete'] = function (p, ctx, cb) { skipResult(cb)(c.skips.deleteRange(p.id, p.rangeId)); };
   h['skip:undo'] = function (p, ctx, cb) { skipResult(cb)(c.skips.undo(p.id)); };
   h['skip:markReviewed'] = function (p, ctx, cb) {
-    var r = c.skips.markReviewed(p.id);
-    if (r.ok) { act('markReviewed', { id: p.id, title: titleOf(p.id) }); }
+    var r = c.skips.markReviewed(p.id, p.mode);
+    if (r.ok) { act('markReviewed', { id: p.id, title: titleOf(p.id), detail: p.mode === 'trusted' ? 'trusted' : 'looked' }); }
     skipResult(cb)(r);
   };
   h['skip:thumbs'] = function (p, ctx, cb) { cb(null, c.thumbs.rangeThumbs(p.id, p.rangeIds)); };
@@ -492,6 +503,20 @@ function createHandlers(c) {
 
   h['activity:list'] = function (p, ctx, cb) { cb(null, c.activity ? c.activity.list(500) : []); };
 
+  // Round 3, N2.2: the recovery code as a small text file the parent chooses where to keep (or
+  // print). Only a code-shaped string is accepted; the words around it come from main.
+  h['app:saveCode'] = function (p, ctx, cb) {
+    c.dialogsOpen = (c.dialogsOpen || 0) + 1;
+    var w = win();
+    var opts = { title: t('code.saveTitle'), defaultPath: t('code.fileName') + '.txt', filters: [{ name: t('code.fileType'), extensions: ['txt'] }] };
+    var pr = w ? c.electron.dialog.showSaveDialog(w, opts) : c.electron.dialog.showSaveDialog(opts);
+    pr.then(function (r) {
+      c.dialogsOpen -= 1;
+      if (r.canceled || !r.filePath) { cb(null, { canceled: true }); return; }
+      var text = '\ufeff' + [t('code.fileHeading'), '', p.code, '', t('code.fileText')].join('\r\n') + '\r\n';
+      fs.writeFile(r.filePath, text, function (err) { if (err) { cb('writeFailed'); return; } cb(null, { path: rememberExport(r.filePath) }); });
+    }, function () { c.dialogsOpen -= 1; cb('dialogFailed'); });
+  };
   h['app:copyText'] = function (p, ctx, cb) {
     try { c.electron.clipboard.writeText(p.text); } catch (e) { cb('failed'); return; }
     cb(null, true);

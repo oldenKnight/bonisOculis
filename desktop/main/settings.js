@@ -83,7 +83,7 @@ var RULES = {
     if (!v || typeof v !== 'object' || typeof v.version !== 'string') { return undefined; }
     var list = Array.isArray(v.damaged) ? v.damaged.slice(0, 50).filter(function (d) { return d && typeof d.file === 'string'; })
       .map(function (d) { return { file: d.file.slice(0, 300), reason: String(d.reason || '').slice(0, 40) }; }) : [];
-    return { version: v.version.slice(0, 40), at: typeof v.at === 'string' ? v.at.slice(0, 40) : null, checked: typeof v.checked === 'number' ? v.checked : 0,
+    return { version: v.version.slice(0, 40), resources: typeof v.resources === 'string' ? v.resources.slice(0, 1024) : null, at: typeof v.at === 'string' ? v.at.slice(0, 40) : null, checked: typeof v.checked === 'number' ? v.checked : 0,
       missing: typeof v.missing === 'number' ? v.missing : 0, damaged: list };
   },
   windowBounds: function (v) {

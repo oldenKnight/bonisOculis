@@ -156,6 +156,17 @@
     });
     BO.on('app:navigate', function (ev) { if (ev && ev.view && !BO.store.get('locked') && BO.views[ev.view]) { BO.router.go(ev.view, ev.params || {}); } });
     BO.on('files:dropped', addPaths);
+    // Round 3, N3: "?" opens the key sheet in the library and the review (not while typing).
+    window.addEventListener('keydown', function (e) {
+      if (e.key !== '?' || e.ctrlKey || e.metaKey || e.altKey || BO.store.get('locked')) { return; }
+      var t = e.target;
+      if (t && (/^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName) || t.isContentEditable)) { return; }
+      if (document.querySelector('.bo-modal')) { return; }
+      var v = BO.router.current();
+      if (v !== 'review' && v !== 'library') { return; }
+      e.preventDefault();
+      BO.hotkeys.openSheet(v === 'review');
+    });
     BO.on('app:integrity', function () {
       if (BO.store.get('locked')) { return; }
       BO.invoke('settings:get', {}, function (r) { if (r.ok) { BO.store.set('settings', r.data); } });

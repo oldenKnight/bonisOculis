@@ -5,6 +5,10 @@
 //   <resources>/models/manifest.json        {files: [{file, sha256, size}]}
 //   <resources>/bin/binaries.lock.json      {files: {relPath: {sha256, size}}}  (written by
 //                                           tools/fetch-binaries.js from packaging/binaries.json pins)
+//   <resources>/player/player.lock.json     {files: {'bonis.lua': {sha256, size}}} (tools/make-player-lock.js)
+// It runs again when the version or the resources folder changes, and on demand (Settings › About).
+// A damaged model or scanning program stops scans; a damaged mpv or bonis.lua stops the player
+// (board security round 2, N3): blocks(result) says which.
 // Low priority: one file at a time, 1 MiB reads with a pause between them. The result is stored
 // in settings (integrity) so it runs once per version. A file that does not match makes the app
 // say "Needs attention: a bundled file is damaged" with its name. A file listed in the manifest
@@ -49,6 +53,22 @@ function targets(resources) {
       }
     });
   }
+  var pl = readJson(path.join(resources, 'player', 'player.lock.json'));
+  if (pl && pl.files && pl.files['bonis.lua'] && /^[0-9a-f]{64}$/.test(pl.files['bonis.lua'].sha256 || '')) {
+    out.push({ label: 'player/bonis.lua', file: path.join(resources, 'player', 'bonis.lua'), sha256: pl.files['bonis.lua'].sha256, size: pl.files['bonis.lua'].size || null });
+  }
+  return out;
+}
+
+// What a damaged file stops: {scan, play}. Scans need the models and ffmpeg/ffprobe/whisper; the
+// player needs mpv (and its bundle) and bonis.lua.
+function blocks(result) {
+  var out = { scan: false, play: false };
+  ((result && result.damaged) || []).forEach(function (d) {
+    var f = String(d.file || '');
+    if (/^models\//.test(f) || /^bin\/(ffmpeg|ffprobe|whisper)/.test(f)) { out.scan = true; }
+    if (/^player\//.test(f) || /^bin\/mpv/.test(f) || /^bin\/d3dcompiler/.test(f)) { out.play = true; }
+  });
   return out;
 }
 
@@ -86,7 +106,7 @@ function createIntegrity(opts) {
 
   function needed() {
     var r = last();
-    return !r || r.version !== o.version;
+    return !r || r.version !== o.version || r.resources !== o.resources;
   }
 
   // cb(null, result|null). force: run even when this version was already checked.
@@ -96,7 +116,7 @@ function createIntegrity(opts) {
     var list = targets(o.resources);
     if (!list.length) { log.info('integrity: nothing to check'); done(null, null); return; }
     running = true;
-    var res = { version: o.version, at: null, checked: 0, missing: 0, damaged: [] };
+    var res = { version: o.version, resources: o.resources, at: null, checked: 0, missing: 0, damaged: [] };
     var i = 0;
     function next() {
       if (stopped) { running = false; done(null, null); return; }
@@ -130,4 +150,4 @@ function createIntegrity(opts) {
   return { run: run, needed: needed, last: last, stop: function () { stopped = true; }, targets: function () { return targets(o.resources); } };
 }
 
-module.exports = { createIntegrity: createIntegrity, targets: targets, hashFile: hashFile };
+module.exports = { createIntegrity: createIntegrity, targets: targets, hashFile: hashFile, blocks: blocks };

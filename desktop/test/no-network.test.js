@@ -51,5 +51,6 @@ test('no telemetry, auto-updater or crash reporter in main', function () {
   var main = fs.readFileSync(path.join(ROOT, 'desktop', 'main', 'main.js'), 'utf8');
   assert.ok(/onBeforeRequest\(function \(details, cb\) \{\s*cb\(\{ cancel: !\/\^\(file\|data\|devtools\|chrome-devtools\):\/i/.test(main), 'every request but file:, data: and DevTools is cancelled');
   assert.ok(/setSpellCheckerEnabled\(false\)/.test(main), 'no spell-check dictionary download');
+  assert.ok(/app\.setPath\('crashDumps', path\.join\(app\.getPath\('userData'\), 'crash'\)\)/.test(main), 'crash dumps stay in the app folder');
   ['disable-component-update', 'disable-background-networking'].forEach(function (sw) { assert.ok(main.indexOf("appendSwitch('" + sw + "')") >= 0, sw); });
 });

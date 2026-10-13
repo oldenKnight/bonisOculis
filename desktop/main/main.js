@@ -20,7 +20,8 @@ var createPlayerService = require('./player-service.js').createPlayerService;
 var createPlayer = require('./player-controller.js').createPlayer;
 var createThumbs = require('./thumbs.js').createThumbs;
 var createHelp = require('./help.js').createHelp;
-var createIntegrity = require('./integrity.js').createIntegrity;
+var integrityMod = require('./integrity.js');
+var createIntegrity = integrityMod.createIntegrity;
 var createAccuracy = require('./accuracy.js').createAccuracy;
 var createActivity = require('./activity.js').createActivity;
 var createHandlers = require('./handlers.js').createHandlers;
@@ -30,6 +31,10 @@ var menu = require('./menu.js');
 var BO = require('../../shared/skipfile.js');
 
 if (process.env.BONIS_USER_DATA) { app.setPath('userData', process.env.BONIS_USER_DATA); }
+// Crash dumps stay inside the app's own folder and the crash reporter is never started (nothing is
+// ever uploaded; board security round 2, A10). A dump could hold a peeked frame, so it is not left
+// in a system folder; desktop/test/no-network.test.js checks the crash reporter is never used.
+app.setPath('crashDumps', path.join(app.getPath('userData'), 'crash'));
 
 // No network, ever (brief 4.7; board review A2). Chromium's own background services are switched
 // off before the app is ready: component updates, background networking (variations, safe
@@ -149,14 +154,34 @@ function boot() {
   }
   reconcile();
 
+  // Bundled models and binaries, hashed in the background once per app version and resources folder,
+  // and on demand from Settings › About (board A9, security round 2 N3). Packaged builds check
+  // process.resourcesPath; BONIS_VERIFY_RESOURCES points a dev run or a test at another tree.
+  // A damaged file stops what depends on it: scans (models, ffmpeg) or the player (mpv, bonis.lua).
+  var verifyRoot = process.env.BONIS_VERIFY_RESOURCES || (packaged ? process.resourcesPath : null);
+  var integrity = verifyRoot ? createIntegrity({
+    resources: verifyRoot, settings: settings, version: app.getVersion(), log: log.child('integrity'),
+    onDamaged: function (res) {
+      res.damaged.forEach(function (d) { activity.add('integrity', { file: d.file, detail: d.reason }); });
+      emit('toast', { kind: 'error', key: 'toast.integrity', params: { file: res.damaged[0].file, count: res.damaged.length } });
+      emit('app:integrity', res);
+    }
+  }) : null;
+  function bundleBlocks() {
+    var r = settings.value('integrity');
+    if (!verifyRoot || !r || r.resources !== verifyRoot) { return { scan: false, play: false }; }
+    return integrityMod.blocks(r);
+  }
+
   var supervisor = createSupervisor({
     store: store, library: library, skips: skips, paths: paths, settings: settings, log: log.child('scan'), emit: emit,
-    power: electron.powerMonitor
+    power: electron.powerMonitor, blocked: function () { return bundleBlocks().scan; }
   });
   supervisor.load();
   var player = createPlayerService({
     createPlayer: createPlayer, paths: paths, settings: settings, library: library, skips: skips, supervisor: supervisor,
-    activity: activity, t: function (k, p) { return i18n.t(k, p); }, log: log.child('player'), emit: emit
+    activity: activity, t: function (k, p) { return i18n.t(k, p); }, log: log.child('player'), emit: emit,
+    blocked: function () { return bundleBlocks().play; }
   });
   player.recover();
   var thumbs = createThumbs({ paths: paths, library: library, skips: skips });
@@ -176,7 +201,7 @@ function boot() {
   var handlerCtx = {
     electron: electron, getWindow: function () { return win; }, store: store, pin: pin, settings: settings, i18n: i18n,
     library: library, skips: skips, supervisor: supervisor, player: player, thumbs: thumbs, help: help, paths: paths,
-    accuracy: accuracy, activity: activity, log: log.child('ipc'), emit: emit, versions: versions,
+    accuracy: accuracy, activity: activity, log: log.child('ipc'), emit: emit, versions: versions, integrity: integrity,
     // The PIN file was lost and the recovery code restored the original key: read everything again
     // with it, and start the scan queue that stayed stopped meanwhile.
     onPinRestored: function () {
@@ -207,22 +232,7 @@ function boot() {
   });
   if (!pin.isLost()) { supervisor.start(); }
 
-  // Bundled models and binaries, hashed once per app version in the background (board review A9).
-  // Packaged builds check process.resourcesPath; BONIS_VERIFY_RESOURCES points a dev run or a test
-  // at another tree.
-  var verifyRoot = process.env.BONIS_VERIFY_RESOURCES || (packaged ? process.resourcesPath : null);
-  if (verifyRoot) {
-    var integrity = createIntegrity({
-      resources: verifyRoot, settings: settings, version: app.getVersion(), log: log.child('integrity'),
-      onDamaged: function (res) {
-        res.damaged.forEach(function (d) { activity.add('integrity', { file: d.file, detail: d.reason }); });
-        emit('toast', { kind: 'error', key: 'toast.integrity', params: { file: res.damaged[0].file, count: res.damaged.length } });
-        emit('app:integrity', res);
-      }
-    });
-    s.integrity = integrity;
-    setTimeout(function () { integrity.run(false); }, process.env.BONIS_VERIFY_RESOURCES ? 500 : 15000);
-  }
+  if (integrity) { setTimeout(function () { integrity.run(false); }, process.env.BONIS_VERIFY_RESOURCES ? 500 : 15000); }
 }
 
 function shutdown() {

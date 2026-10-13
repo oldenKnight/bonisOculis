@@ -38,7 +38,7 @@
       words = BO.tn('status.protected', item.enforced || 0);
     } else if (st === 'needsAttention') {
       cls = 'attention'; iconName = 'alert';
-      words = BO.t(item.error === 'skipCorrupt' ? 'status.damaged' : 'status.attention');
+      words = BO.t(item.error === 'skipCorrupt' ? 'status.damaged' : (item.error === 'bundleDamaged' ? 'status.bundleDamaged' : 'status.attention'));
     } else {
       cls = 'not-scanned'; iconName = 'scan';
       words = BO.t('status.notScanned');

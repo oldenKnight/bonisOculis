@@ -218,7 +218,9 @@ jobs:
 
       # ---- installer ----
       - name: First-launch text files (FIRST-LAUNCH.txt, PRIMER-INICIO.txt)
-        run: node tools/make-first-launch.js build/first-launch
+        run: |
+          node tools/make-first-launch.js build/first-launch
+          node tools/make-player-lock.js build/player.lock.json
       - name: electron-builder
         env:
           CSC_LINK: ${{ matrix.platform == 'darwin' && secrets.MAC_CSC_LINK || '' }}

@@ -204,7 +204,7 @@ function createSupervisor(options) {
       if (!old && item.title) { merged.media.title = item.title.slice(0, 500); }
     }
     // A new scan result needs a new parent look when it found nothing (planner decision 2).
-    library.update(run.id, { wholeApproved: false }, true);
+    library.update(run.id, { wholeApproved: false, reviewMode: null }, true);
     var res = skips.replace(run.id, merged, false);
     if (!res.ok) { return false; }
     // The analyzer's own result, before the merge with the parent's review: "Check accuracy"
@@ -263,6 +263,13 @@ function createSupervisor(options) {
     if (shuttingDown) { return; }
     var item = library.get(id);
     if (!item) { dropFromQueue(id); kick(); return; }
+    // Board security round 2, N3: a damaged bundled model or program never scans anything.
+    if (o.blocked && o.blocked()) {
+      dropFromQueue(id);
+      attention(id, 'bundleDamaged');
+      kick();
+      return;
+    }
     if (!fs.existsSync(item.path)) {
       dropFromQueue(id);
       attention(id, 'fileMissing');
