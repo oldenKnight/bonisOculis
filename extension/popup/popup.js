@@ -104,8 +104,40 @@
     $('levelsSkipNote').hidden = !s.skipFiles.length;
 
     renderFiles(s);
+    renderMarks(s);
     renderTiming(s);
     liveRefresh();
+  }
+
+  /* Moments hidden with the panic key or covered by live listening, with a
+     two-step forget (the second step says what happens). */
+  function renderMarks(s) {
+    var live = s.live && s.live.marks ? s.live.marks : 0, parts = [];
+    if (s.marks) { parts.push(t('sourceMarks', [s.marks])); }
+    if (live) { parts.push(t('sourceLive', [live])); }
+    $('marksBox').hidden = !parts.length;
+    $('marksCount').textContent = parts.join(' · ');
+    if (!parts.length) { $('forgetMarksConfirm').hidden = true; }
+  }
+
+  function forgetMarksAsk(on) {
+    $('forgetMarksConfirm').hidden = !on;
+    $('forgetMarks').hidden = on;
+    (on ? $('forgetMarksNo') : $('forgetMarks')).focus();
+  }
+
+  function forgetMarksDo() {
+    send({ t: 'forgetMarks' }, function (res) {
+      forgetMarksAsk(false);
+      if (!res || res.ok === false) { BO.ui.toast(t('somethingWrong'), true); return; }
+      render(res);
+      BO.ui.toast(t('forgetMarksDone'));
+    });
+  }
+
+  /* No shortcut means Chrome gave Alt+Shift+P to someone else: say so, offer the fix. */
+  function renderShortcutWarning(hasPanicCommand) {
+    $('panicNoKey').hidden = !hasPanicCommand || !!keys;
   }
 
   /* ------------------------------------------------------------------ */
@@ -348,6 +380,10 @@
     $('allowAll').addEventListener('click', allowAll);
     $('openOptions').addEventListener('click', function () { chrome.runtime.openOptionsPage(); });
     $('liveSwitch').addEventListener('click', liveToggle);
+    $('openShortcuts').addEventListener('click', function () { chrome.tabs.create({ url: 'chrome://extensions/shortcuts' }); });
+    $('forgetMarks').addEventListener('click', function () { forgetMarksAsk(true); });
+    $('forgetMarksNo').addEventListener('click', function () { forgetMarksAsk(false); });
+    $('forgetMarksYes').addEventListener('click', forgetMarksDo);
   }
 
   function applyLanguage() {
@@ -368,7 +404,9 @@
       BO.i18n.load(s.lang, function () {
         applyLanguage();
         chrome.commands.getAll(function (list) {
-          (list || []).forEach(function (c) { if (c.name === 'panic') { keys = c.shortcut || ''; } });
+          var has = false;
+          (list || []).forEach(function (c) { if (c.name === 'panic') { has = true; keys = c.shortcut || ''; } });
+          renderShortcutWarning(has);
           resolveTab(function (tb) { tab = tb; refresh(); });
         });
       });

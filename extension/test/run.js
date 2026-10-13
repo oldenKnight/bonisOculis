@@ -792,6 +792,116 @@ function browserTest(pw, done) {
       });
     }],
 
+    ['popup: two-step forget for hidden moments; no-PIN note with help link; shortcut warning matches Chrome\'s state', function (next) {
+      function vis(sel, cb) { p(popup.evaluate(function (q) { var e = document.querySelector(q); return !!e && !e.closest('[hidden]') && e.getClientRects().length > 0; }, sel), cb); }
+      function marks(cb) { state(function (e, st) { cb(e, st ? st.marks + st.live.marks : -1); }); }
+      p(popup.reload(), function (err) {
+        if (err) { next(err); return; }
+        p(popup.waitForSelector('#ready:not([hidden])', { timeout: 8000 }), function (e2) {
+          if (e2) { next(e2); return; }
+          vis('#panicNoKey', function (e3, warn) {
+            if (e3) { next(e3); return; }
+            swEval(function () { return new Promise(function (r) { chrome.commands.getAll(function (l) { r(l.filter(function (c) { return c.name === 'panic'; })[0].shortcut || ''); }); }); }, null, function (e3b, key) {
+            if (e3b) { next(e3b); return; }
+            /* Chromium started with --load-extension may leave the suggested key unassigned: then the warning is right */
+            assert.strictEqual(warn, !key, 'warning shown exactly when the panic key has no shortcut (' + JSON.stringify(key) + ')');
+            if (!key) { liveNote('this Chromium left Alt+Shift+P unassigned; the popup warns, as it should'); }
+            p(popup.evaluate(function () { var a = document.querySelector('a[data-i18n="noPinHelpLink"]'); return a ? [a.href, a.textContent, a.target] : null; }), function (e4, link) {
+              if (e4) { next(e4); return; }
+              assert.ok(link && /^https:\/\/support\.google\.com\/families\//.test(link[0]) && link[1].length > 10 && link[2] === '_blank', JSON.stringify(link));
+              marks(function (e5, before) {
+                if (e5) { next(e5); return; }
+                assert.ok(before >= 2, 'hidden moments to forget: ' + before);
+                p(popup.click('#forgetMarks', { timeout: 5000 }), function (e6) {
+                  if (e6) { next(e6); return; }
+                  vis('#forgetMarksConfirm', function (e7, shown) {
+                    assert.strictEqual(shown, true, 'first click only asks');
+                    marks(function (e8, still) {
+                      assert.strictEqual(still, before, 'nothing forgotten yet');
+                      p(popup.click('#forgetMarksNo', { timeout: 5000 }), function (e9) {
+                        if (e9) { next(e9); return; }
+                        vis('#forgetMarksConfirm', function (e10, shown2) {
+                          assert.strictEqual(shown2, false);
+                          p(popup.click('#forgetMarks', { timeout: 5000 }).then(function () { return popup.click('#forgetMarksYes', { timeout: 5000 }); }), function (e11) {
+                            if (e11) { next(e11); return; }
+                            waitFor('moments forgotten', function (k) { marks(function (e, n) { k(e, n === 0); }); }, 5000, next);
+                          });
+                        });
+                      });
+                    });
+                  });
+                });
+              });
+            });
+            });
+          });
+        });
+      });
+    }],
+
+    ['popup: no warning with a shortcut; a missing one shows a warning that opens the shortcuts page', function (next) {
+      /* shortcuts cannot be set from automation: stand in for both states */
+      function stubbed(key, cb) {
+        p(ctx.newPage(), function (err, pg) {
+          if (err) { cb(err); return; }
+          pg.on('pageerror', function (e) { pageErrors.push('popup2: ' + String(e)); });
+          p(pg.addInitScript(function (k) { if (window.chrome && chrome.commands) { chrome.commands.getAll = function (f) { f([{ name: 'panic', shortcut: k }]); }; } }, key).then(function () {
+            return pg.goto('chrome-extension://' + extId + '/popup/popup.html?tab=' + tabId);
+          }).then(function () { return pg.waitForSelector('#ready:not([hidden])', { timeout: 8000 }); }), function (e2) { cb(e2, pg); });
+        });
+      }
+      function missing() {
+        stubbed('', function (err, pg) {
+          if (err) { next(err); return; }
+          p(pg.waitForSelector('#panicNoKey:not([hidden])', { timeout: 5000 }), function (e2) {
+            if (e2) { next(e2); return; }
+            p(Promise.all([ctx.waitForEvent('page', { timeout: 5000 }), pg.click('#openShortcuts')]), function (e3, r) {
+              if (e3) { next(e3); return; }
+              waitFor('shortcuts page', function (k) { k(null, /^chrome:\/\/extensions\/shortcuts/.test(r[0].url())); }, 3000, function (e4) {
+                if (e4) { next(e4); return; }
+                p(r[0].close().then(function () { return pg.close(); }), next);
+              });
+            });
+          });
+        });
+      }
+      stubbed('Alt+Shift+P', function (err, pg) {
+        if (err) { next(err); return; }
+        p(pg.evaluate(function () { return [document.getElementById('panicNoKey').hidden, document.getElementById('panicHint').textContent]; }), function (e2, r) {
+          if (e2) { next(e2); return; }
+          assert.strictEqual(r[0], true, 'no warning while a shortcut is set');
+          assert.ok(/Alt\+Shift\+P/.test(r[1]), 'the hint names the keys');
+          p(pg.close(), function () { missing(); });
+        });
+      });
+    }],
+
+    ['options: "Forget everything" asks first and names what is lost; the no-PIN note links to help', function (next) {
+      p(ctx.newPage(), function (err, pg) {
+        if (err) { next(err); return; }
+        pg.on('pageerror', function (e) { pageErrors.push('options: ' + String(e)); });
+        p(pg.goto('chrome-extension://' + extId + '/options/options.html').then(function () { return pg.click('#forget', { timeout: 5000 }); }), function (e2) {
+          if (e2) { next(e2); return; }
+          p(pg.evaluate(function () {
+            return { confirm: !document.getElementById('forgetConfirm').hidden, text: document.getElementById('forgetConfirmText').textContent, first: document.getElementById('forget').hidden, link: !!document.querySelector('a[data-i18n="noPinHelpLink"][href^="https://support.google.com/"]') };
+          }), function (e3, r) {
+            if (e3) { next(e3); return; }
+            assert.strictEqual(r.confirm, true);
+            assert.ok(r.text.length > 40, 'the confirmation names the consequence');
+            assert.strictEqual(r.first, true, 'the first button is replaced by the confirmation');
+            assert.strictEqual(r.link, true);
+            p(pg.click('#forgetNo', { timeout: 5000 }), function (e4) {
+              if (e4) { next(e4); return; }
+              swEval(function () { return new Promise(function (resolve) { chrome.storage.local.get('settings', function (x) { resolve(!!x.settings); }); }); }, null, function (e5, kept) {
+                assert.strictEqual(kept, true, 'nothing forgotten after "Keep it"');
+                p(pg.close(), function () { next(e5); });
+              });
+            });
+          });
+        });
+      });
+    }],
+
     ['never left covered or muted; no request left 127.0.0.1; no page errors', function (next) {
       play(56.5, function (err) {
         if (err) { next(err); return; }
@@ -800,7 +910,8 @@ function browserTest(pw, done) {
             if (e2) { next(e2); return; }
             assert.strictEqual(v.overlay, false);
             assert.strictEqual(v.muted, false);
-            var outside = requests.filter(function (u) { return !(u.indexOf(base) === 0 || /^(chrome-extension|data|blob|about):/.test(u)); });
+            /* chrome:// is the browser's own pages (the shortcuts page opened by the popup), never the network */
+            var outside = requests.filter(function (u) { return !(u.indexOf(base) === 0 || /^(chrome-extension|chrome|data|blob|about):/.test(u)); });
             assert.deepStrictEqual(outside, []);
             assert.deepStrictEqual(pageErrors, []);
             next();

@@ -23,6 +23,12 @@
 </header>
 
 <main id="main" class="bo-main">
+  <div id="panicNoKey" class="bo-note bo-note--warn" role="alert" hidden>
+    <svg class="bo-icon" aria-hidden="true"><use href="#bo-i-alert"/></svg>
+    <div class="bo-stack"><p data-i18n="panicNoKey"></p>
+      <button type="button" id="openShortcuts" class="bo-button bo-button--secondary bo-button--sm bo-filebtn"><svg class="bo-icon" aria-hidden="true"><use href="#bo-i-keyboard"/></svg><span data-i18n="panicNoKeyButton">Choose a shortcut</span></button>
+    </div>
+  </div>
   <section id="msg" class="bo-card bo-stack" hidden>
     <p id="msgText" class="bo-msg"></p>
     <div id="msgActions" class="bo-stack" hidden>
@@ -77,6 +83,7 @@
         <div id="levels"></div>
         <p id="levelsSkipNote" class="bo-hint" data-i18n="levelsFromSkipFile" hidden></p>
         <button type="button" id="resetLevels" class="bo-button bo-button--ghost bo-button--sm" hidden><span data-i18n="resetLevels">Use my defaults</span></button>
+        <p class="bo-note"><svg class="bo-icon" aria-hidden="true"><use href="#bo-i-lock"/></svg><span><span data-i18n="noPinNote"></span> <a class="bo-link" href="https://support.google.com/families/answer/7087030" target="_blank" rel="noopener noreferrer" data-i18n="noPinHelpLink"></a></span></p>
       </div>
     </details>
 
@@ -107,6 +114,19 @@
           <button type="button" id="skipWindow" class="bo-button bo-button--secondary bo-button--sm bo-filebtn">
             <svg class="bo-icon" aria-hidden="true"><use href="#bo-i-upload"/></svg><span data-i18n="chooseFile">Choose a file</span>
           </button>
+        </div>
+        <div id="marksBox" class="bo-stack" hidden>
+          <h2 class="bo-file__title" data-i18n="marksTitle">Hidden moments on this video</h2>
+          <p id="marksCount" class="bo-hint"></p>
+          <p class="bo-hint" data-i18n="marksHelp"></p>
+          <button type="button" id="forgetMarks" class="bo-button bo-button--secondary bo-button--sm bo-filebtn"><svg class="bo-icon" aria-hidden="true"><use href="#bo-i-trash"/></svg><span data-i18n="forgetMarks">Forget my hidden moments</span></button>
+          <div id="forgetMarksConfirm" class="bo-stack bo-confirm" hidden>
+            <p data-i18n="forgetMarksConfirmText"></p>
+            <div class="bo-row">
+              <button type="button" id="forgetMarksYes" class="bo-button bo-button--danger bo-button--sm"><span data-i18n="forgetMarksConfirm">Yes, forget them</span></button>
+              <button type="button" id="forgetMarksNo" class="bo-button bo-button--primary bo-button--sm"><span data-i18n="keepThem">Keep them</span></button>
+            </div>
+          </div>
         </div>
         <p id="fileWindowNote" class="bo-hint" data-i18n="fileWindowNote"></p>
       </div>

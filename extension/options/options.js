@@ -60,11 +60,13 @@
       });
     });
     $('openShortcuts').addEventListener('click', function () { chrome.tabs.create({ url: 'chrome://extensions/shortcuts' }); });
-    $('forget').addEventListener('click', function () { $('forgetConfirm').hidden = false; $('forgetNo').focus(); });
-    $('forgetNo').addEventListener('click', function () { $('forgetConfirm').hidden = true; $('forget').focus(); });
+    /* two steps: the first click only shows what would be lost */
+    $('forget').addEventListener('click', function () { $('forgetConfirm').hidden = false; $('forget').hidden = true; $('forgetNo').focus(); });
+    $('forgetNo').addEventListener('click', function () { $('forgetConfirm').hidden = true; $('forget').hidden = false; $('forget').focus(); });
     $('forgetYes').addEventListener('click', function () {
       BO.store.forgetAll(function () {
         $('forgetConfirm').hidden = true;
+        $('forget').hidden = false;
         BO.store.getSettings(function (s) { settings = s; BO.i18n.load(s.lang, render); BO.ui.toast(t('forgetAllDone')); });
       });
     });

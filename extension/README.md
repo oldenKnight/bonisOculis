@@ -44,7 +44,10 @@ this video. Click the eye to see them by category, change what is skipped for th
 subtitle file, import a skip file, or hide the video at once.
 
 **Panic key:** press **Alt+Shift+P** to cover the video and mute it immediately. Press it again to
-show it. That moment is saved and skipped the next time this video plays.
+show it. That moment is saved and skipped the next time this video plays. If Chrome could not give
+bonis oculis that shortcut (another extension already uses it), the eye's panel says so in red with a
+"Choose a shortcut" button. Saved moments can be forgotten from the panel ("Your files"); like
+"Forget everything" in the settings, it asks a second time and says what will happen.
 
 ## Live listening (experimental)
 

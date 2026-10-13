@@ -558,5 +558,38 @@
   },
   "importSkipWhere": {
     "message": "La app de escritorio lo guarda junto a la película como “nombre de la película.bonis.json”, y en su biblioteca."
+  },
+  "marksTitle": {
+    "message": "Momentos ocultos en este video"
+  },
+  "marksHelp": {
+    "message": "Se omiten cada vez que se reproduce este video. Si los olvidas, esos momentos se vuelven a ver."
+  },
+  "forgetMarksConfirmText": {
+    "message": "Estos momentos se volverán a ver en este video. No se puede deshacer."
+  },
+  "forgetMarksConfirm": {
+    "message": "Sí, olvidarlos"
+  },
+  "keepThem": {
+    "message": "Conservarlos"
+  },
+  "forgetMarksDone": {
+    "message": "Se olvidaron los momentos ocultos."
+  },
+  "forgetAllConfirmText": {
+    "message": "Esto borra de este navegador todas tus opciones, archivos de escenas, archivos de subtítulos y momentos ocultos. Las escenas que cubrían se verán. No se puede deshacer."
+  },
+  "panicNoKey": {
+    "message": "La tecla de pánico no tiene atajo ahora, quizá porque otra extensión ya usa Alt+Shift+P. Elige un atajo para poder ocultar el video al instante."
+  },
+  "panicNoKeyButton": {
+    "message": "Elegir un atajo"
+  },
+  "noPinNote": {
+    "message": "bonis oculis no tiene PIN: cualquiera que use este navegador puede cambiar estas opciones o apagarlo. Para que un niño no lo cambie, dale un perfil de Chrome supervisado (Family Link) y revisa sus ajustes de extensiones."
+  },
+  "noPinHelpLink": {
+    "message": "Cómo funcionan los perfiles supervisados (ayuda de Google)"
   }
 }

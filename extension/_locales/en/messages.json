@@ -558,5 +558,38 @@
   },
   "importSkipWhere": {
     "message": "The desktop app saves it next to the movie as “movie name.bonis.json”, and in its library."
+  },
+  "marksTitle": {
+    "message": "Hidden moments on this video"
+  },
+  "marksHelp": {
+    "message": "They are skipped every time this video plays. Forgetting them lets those moments play again."
+  },
+  "forgetMarksConfirmText": {
+    "message": "These moments will play again on this video. This cannot be undone."
+  },
+  "forgetMarksConfirm": {
+    "message": "Yes, forget them"
+  },
+  "keepThem": {
+    "message": "Keep them"
+  },
+  "forgetMarksDone": {
+    "message": "Hidden moments forgotten."
+  },
+  "forgetAllConfirmText": {
+    "message": "This removes all your choices, imported skip files, subtitle files and hidden moments from this browser. The scenes they covered will play. This cannot be undone."
+  },
+  "panicNoKey": {
+    "message": "The panic key has no shortcut right now, maybe because another extension already uses Alt+Shift+P. Choose a shortcut so you can hide the video at once."
+  },
+  "panicNoKeyButton": {
+    "message": "Choose a shortcut"
+  },
+  "noPinNote": {
+    "message": "bonis oculis has no PIN: anyone using this browser can change these settings or turn it off. To keep a child from changing it, give them a supervised Chrome profile (Family Link) and check its extension settings."
+  },
+  "noPinHelpLink": {
+    "message": "How supervised profiles work (Google help)"
   }
 }

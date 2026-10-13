@@ -63,7 +63,7 @@
     <ul class="bo-points">
       <li><svg class="bo-icon" aria-hidden="true"><use href="#bo-i-info"/></svg><span data-i18n="limits1"></span></li>
       <li><svg class="bo-icon" aria-hidden="true"><use href="#bo-i-info"/></svg><span data-i18n="limits2"></span></li>
-      <li><svg class="bo-icon" aria-hidden="true"><use href="#bo-i-info"/></svg><span data-i18n="limits3"></span></li>
+      <li><svg class="bo-icon" aria-hidden="true"><use href="#bo-i-lock"/></svg><span><span data-i18n="noPinNote"></span> <a class="bo-link" href="https://support.google.com/families/answer/7087030" target="_blank" rel="noopener noreferrer" data-i18n="noPinHelpLink"></a></span></li>
     </ul>
   </section>
 
@@ -83,9 +83,12 @@
     <div class="bo-row">
       <button type="button" id="forget" class="bo-button bo-button--secondary bo-button--sm"><svg class="bo-icon" aria-hidden="true"><use href="#bo-i-trash"/></svg><span data-i18n="forgetAll">Forget everything</span></button>
     </div>
-    <div id="forgetConfirm" class="bo-row" hidden>
-      <button type="button" id="forgetYes" class="bo-button bo-button--danger bo-button--sm"><span data-i18n="forgetAllConfirm">Yes, forget everything</span></button>
-      <button type="button" id="forgetNo" class="bo-button bo-button--primary bo-button--sm"><span data-i18n="keepIt">Keep it</span></button>
+    <div id="forgetConfirm" class="bo-stack bo-confirm" hidden>
+      <p id="forgetConfirmText" data-i18n="forgetAllConfirmText"></p>
+      <div class="bo-row">
+        <button type="button" id="forgetYes" class="bo-button bo-button--danger bo-button--sm"><span data-i18n="forgetAllConfirm">Yes, forget everything</span></button>
+        <button type="button" id="forgetNo" class="bo-button bo-button--primary bo-button--sm"><span data-i18n="keepIt">Keep it</span></button>
+      </div>
     </div>
   </section>
 </main>

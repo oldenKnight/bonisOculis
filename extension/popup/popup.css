@@ -30,3 +30,7 @@
 .bo-switch[aria-busy="true"] { opacity: 0.6; cursor: progress; }
 #liveStatus.is-error { background: var(--bo-danger-soft); color: var(--bo-danger-ink); }
 @media (prefers-reduced-motion: reduce) { .bo-switch, .bo-switch__knob { transition: none; } }
+/* warnings and two-step confirmations */
+.bo-note--warn { background: var(--bo-danger-soft); color: var(--bo-danger-ink); margin-bottom: var(--bo-space-3); }
+.bo-row { display: flex; flex-wrap: wrap; gap: var(--bo-space-2); }
+.bo-confirm { padding: var(--bo-space-3); border-radius: var(--bo-radius-md); background: var(--bo-danger-soft); color: var(--bo-danger-ink); font-size: var(--bo-fs-sm); }
