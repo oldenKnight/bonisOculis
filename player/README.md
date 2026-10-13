@@ -23,9 +23,39 @@ mpv --script=player/bonis.lua \
 | `panickey` | `p` | Panic key. `Ctrl+Space` always works too. |
 | `markin` / `markout` / `undo` | `i` / `o` / `u` | Marking keys (parent mode only). |
 | `leadin` | `2` | Seconds the panic range starts before the moment the key was pressed. |
+| `start` | (empty) | The media's probed `format.start_time` (ffprobe), i.e. where skip-file time 0 is. Empty = unknown. |
+| `resume` | (empty) | Start playback here, in skip-file time (the app never uses mpv's `--start`, which is on mpv's clock). |
 
 The app passes each option as its own `--script-opts-append` so paths containing commas survive
 (`--script-opts=a=1,b=2` would split them).
+
+## Timelines (board review 2, N1)
+
+A skip file counts seconds from the media's probed `format.start_time`, as ffmpeg/ffprobe, the
+analyzer and the clean copy do. mpv's `time-pos` does not always: it keeps absolute timestamps for
+MP4/MOV with an edit list and for MKV with a negative start, and rebases MPEG-TS. When the file
+opens (`on_preloaded` hook), the script computes
+
+    origin = bonis-start - demuxer-start-time        (0 when bonis-start is unknown)
+
+and works in skip-file time everywhere: it subtracts `origin` from every `time-pos` it reads and
+adds it to every seek target, the resume position, `duration` and chapter times. Marks, panic
+ranges, OSD times and the controller's `timepos` events are all in skip-file time. `origin` is
+published as `user-data/bonis-origin`.
+
+Measured with mpv 0.37 on the test fixtures (`test/timeline.test.js`):
+
+| fixture | ffprobe start | mpv `demuxer-start-time` | origin |
+|---|---|---|---|
+| MP4 remuxed with `-copyts` from a TS starting at 601.4 s | 601.378 | 0 | 601.378 |
+| MKV, x264 B-frames + AAC priming | −0.021 | 0 | −0.021 |
+| MPEG-TS starting at 1.4 s | 1.379 | 1.379 | 0 |
+| plain MP4 | 0 | 0 | 0 |
+
+Check: the first frame must land within 1 s of where it should (0, or the resume point). If it
+does not — typically because the start time was unknown — kid mode refuses to play (`error` with
+code `timeline`, then exit 3) and parent mode shows a warning and goes on. Kid mode stays covered
+from before the first frame until this check has passed.
 
 ## What is enforced
 
@@ -66,6 +96,9 @@ The app starts mpv so that **only the keys below do anything** (`desktop/main/pl
 `--input-default-bindings=no --input-conf=player/input.conf` (an intentionally empty file)
 `--no-input-terminal --osc=no --load-scripts=no --load-osd-console=no --load-stats-overlay=no`
 `--load-auto-profiles=no --ytdl=no --screenshot-directory=<player/input.conf>/no-screenshots`
+`--watch-later-dir=<player/input.conf>/no-watch-later --write-filename-in-watch-later-config=no`
+`--no-save-position-on-quit --no-resume-playback` (no resume file is ever written or read, even by
+an IPC `write-watch-later-config`; the app resumes by itself with `bonis-resume`),
 (a directory under a regular file can never be created, so every `screenshot` command fails), and
 the IPC socket in a fresh 0700 directory. `--load-scripts=no` alone does not stop mpv's bundled
 console and stats scripts; the two `--load-*` flags do.
@@ -123,7 +156,7 @@ Sent with `script-message bonis <json>`; IPC clients receive them as
 | `{"t":"undo","id":"r…"}` | the last mark was undone (same line is in the marks file) |
 | `{"t":"panic","phase":"start","at":12.3}` | panic phase 1 |
 | `{"t":"panic","phase":"end","at":20.1,"range":{…}}` | panic phase 2 (same line is in the marks file) |
-| `{"t":"error","code":"skipfile"\|"kid-refused"\|"reload","msg":"…"}` | load or reload failure |
+| `{"t":"error","code":"skipfile"\|"kid-refused"\|"reload"\|"timeline","msg":"…"}` | load or reload failure; timeline mismatch |
 
 The marks file is append-only JSON lines in exactly these shapes (`mark`, `undo`, `panic` end); each
 line is written, flushed and closed before the message is sent, so nothing is lost if the app is
@@ -133,8 +166,9 @@ gone. The app merges it into the skip file.
 
 - `reload <path>` — load another skip file (keeps the previous list if the new one is invalid; in
   kid mode with nothing valid loaded, fails closed).
-- `set-kidmode 0|1` — switch modes; switching to kid mode with no valid file fails closed.
-- `hello` — re-sends `ready` (and the last load error), for an app that connected late.
+- `set-kidmode 1` — lock the session into kid mode (with no valid file it fails closed). One way
+  only: `set-kidmode 0` (or anything else) is ignored; to leave kid mode the app stops the player.
+- `hello` — re-sends `ready` and any load or timeline error, for an app that connected late.
 
 State for tests and the app is also published as the mpv property `user-data/bonis`
 (`{black, mute, blur, panic, kid, loaded, enforced, at}`, where `at` is the playback position at

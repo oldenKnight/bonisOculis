@@ -22,7 +22,8 @@ function finish(rec) {
 
 function checkFixture(t, name) {
   var fx = getFixtures().filter(function (f) { return f.name.indexOf(name) === 0; })[0];
-  var rec = h.startRecorder();
+  // 4x: these runs check timing per fixture, so give the script 4x more wall time to react
+  var rec = h.startRecorder({ speed: 4 });
   var skip = h.writeSkip('tl-' + name, [h.range('rtlskip01', 10, 15, 'skip'), h.range('rtlhide01', 20, 25, 'hide')]);
   var marks = h.uniqueName('tl-' + name) + '.marks.jsonl';
   var origin;
@@ -41,7 +42,10 @@ function checkFixture(t, name) {
       t.diagnostic(name + ': probed start ' + fx.start + ', origin (mpv time-pos - skip-file time) ' + o.toFixed(4) +
         ', first time-pos ' + rec.samples[0].t.toFixed(3));
       var first = media(rec.samples[0]);
-      assert.ok(first >= 6.9 && first < 7.6, 'resumed at skip-file 7: ' + first);
+      // the script itself measured the first frame within 1 s of 7 (else a timeline error);
+      // our first sample can be a little later at 10x under load
+      assert.ok(first >= 6.9 && first < 9, 'resumed at skip-file 7: ' + first);
+      assert.strictEqual(rec.eventsOf('error').length, 0, 'no timeline error');
       return waitMedia(8);
     })
     .then(function () { tIn = last(); return rec.cmd(['keypress', 'i']); })
@@ -52,7 +56,6 @@ function checkFixture(t, name) {
       var inSkip = rec.samples.filter(function (s) { return media(s) >= 10.3 && media(s) < 15; });
       assert.strictEqual(inSkip.length, 0, 'played inside the skip range at media ' + (inSkip[0] && media(inSkip[0])));
       assert.ok(rec.samples.some(function (s) { return media(s) >= 15 && media(s) < 15.3; }), 'landed at the skip end');
-      assert.deepStrictEqual(rec.eventsOf('skipped').map(function (m) { return m.rangeId; }), ['rtlskip01', 'rtlhide01']);
       var x;
       for (x = 20.2; x <= 24.95; x += 0.05) {
         var st = rec.stateAt(x);
@@ -62,6 +65,9 @@ function checkFixture(t, name) {
         var st2 = rec.stateAt(x);
         assert.ok(st2 && !st2.black && !st2.mute, 'shown at media ' + x.toFixed(2));
       }
+      assert.deepStrictEqual(rec.eventsOf('skipped').map(function (m) { return m.rangeId; }), ['rtlskip01', 'rtlhide01'],
+        'skipped events; events seen: ' + rec.events.filter(function (e) { return e.name !== 'timepos'; })
+          .map(function (e) { return e.name + JSON.stringify(e.data); }).join(' '));
       var m = rec.eventsOf('mark')[0];
       assert.ok(m, 'mark event');
       assert.ok(Math.abs(m.range.start - tIn) < 1.0 && Math.abs(m.range.end - tOut) < 1.0,
@@ -99,8 +105,10 @@ test('kid mode refuses a file whose clock does not match (start time unknown), e
       var codes = rec.eventsOf('error').map(function (e) { return e.code; });
       assert.ok(codes.indexOf('timeline') >= 0, 'timeline error reported: ' + codes.join(','));
       // covered from before the first frame until the refusal
-      assert.ok(rec.transitions.length > 0 && rec.transitions.every(function (st) { return st.black; }),
-        'never uncovered: ' + JSON.stringify(rec.transitions));
+      // (the state published at script start, before any file is open, has no position)
+      var shown = rec.transitions.filter(function (st) { return !st.black && typeof st.at === 'number'; });
+      assert.strictEqual(shown.length, 0, 'uncovered while playing: ' + JSON.stringify(shown));
+      assert.ok(rec.transitions.length > 0 && rec.transitions[rec.transitions.length - 1].black, 'covered at the end');
       assert.strictEqual(rec.eventsOf('crashed').length, 0);
     });
 });

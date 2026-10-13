@@ -182,3 +182,49 @@ test('the panic hint is shown at start and again after every automatic skip (loc
     })
     .then(finish(rec)[0], finish(rec)[1]);
 });
+
+function watchLaterFiles() {
+  var home = os.homedir();
+  var dirs = [path.join(home, '.local', 'state', 'mpv', 'watch_later'), path.join(home, '.config', 'mpv', 'watch_later'),
+    path.join(home, '.mpv', 'watch_later'), path.join(path.dirname(h.MPV), 'watch_later'), path.join(process.cwd(), 'watch_later')];
+  if (process.env.XDG_STATE_HOME) { dirs.push(path.join(process.env.XDG_STATE_HOME, 'mpv', 'watch_later')); }
+  if (process.env.APPDATA) { dirs.push(path.join(process.env.APPDATA, 'mpv', 'watch_later')); }
+  var found = [];
+  dirs.forEach(function (d) {
+    var names = [];
+    try { names = fs.readdirSync(d); } catch (e) { names = []; }
+    names.forEach(function (n) {
+      var st = fs.statSync(path.join(d, n));
+      found.push(path.join(d, n) + '@' + st.mtimeMs);
+    });
+  });
+  return found.sort();
+}
+
+test('no resume (watch-later) file can be written, and kid mode cannot be switched off', opts, function () {
+  var rec = h.startRecorder();
+  var skip = h.writeSkip('watchlater', h.standardRanges());
+  var before = watchLaterFiles();
+  var pid;
+  return rec.play(h.ensureVideo(), skip, { kidMode: true, resumeAt: 2 })
+    .then(function () { return rec.waitTime(3); })
+    .then(function () {
+      pid = rec.player.status().pid;
+      return rec.cmd(['write-watch-later-config']).catch(function () { /* refused is fine too */ });
+    })
+    .then(function () { return rec.cmd(['script-message-to', 'bonis', 'set-kidmode', '0']); })
+    .then(function () { return h.delay(200); })
+    .then(function () { return rec.cmd(['get_property', 'user-data/bonis/kid']); })
+    .then(function (kid) {
+      assert.strictEqual(kid, true, 'set-kidmode 0 is ignored');
+      return rec.cmd(['keypress', 'q']).then(function () { return h.delay(300); });
+    })
+    .then(function () {
+      assert.strictEqual(rec.player.status().pid, pid, 'q still does nothing in kid mode');
+      assert.strictEqual(rec.eventsOf('ended').length, 0);
+      return rec.stop();
+    })
+    .then(function () {
+      assert.deepStrictEqual(watchLaterFiles(), before, 'no watch-later file written or changed');
+    }, function (err) { return rec.stop().then(function () { throw err; }); });
+});
