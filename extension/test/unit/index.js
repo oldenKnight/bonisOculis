@@ -3,3 +3,4 @@
 require('./static.test.js');
 require('./enforcer.test.js');
 require('./live.test.js');
+require('./channel.test.js');

@@ -2,6 +2,28 @@
  * bonis oculis content script - receives subtitle text captured by the
  * page-world hook (inject/hook.js) and keeps it per track (BO.bridge). ES5.
  *
+ * Channel to the hook (security review A10). The hook lives in the page's
+ * world, so anything sent through window (postMessage, events on window)
+ * can be read or forged by the page. Instead:
+ *   1. This script makes a random 128-bit nonce per page (never a constant).
+ *   2. Handshake, once, at document_start before any page script runs: the
+ *      hook attaches a fresh element to the document, fires a bubbling
+ *      'bonis-oculis:hello' from it and detaches it again; this script keeps
+ *      that element (event.target) as the private channel and answers with
+ *      the nonce in a NON-bubbling event on the element only. Whichever of
+ *      the two scripts runs first, 'bonis-oculis:ready' (no data) makes the
+ *      hook repeat its hello. After the first hello, every later hello is
+ *      ignored, so a page script can neither obtain the nonce nor replace
+ *      the channel.
+ *   3. All traffic both ways is CustomEvents dispatched on that detached
+ *      element, which the page never had a reference to, and each one must
+ *      carry the nonce. window messages are not listened to at all, so a
+ *      forged window.postMessage (even with a guessed nonce) is ignored.
+ * Limit: "Protect this tab" injects into a page that is already running; a
+ * hostile page that listens for the handshake at that moment could take
+ * part in it. It could then only add subtitle text (more covering, never
+ * less), and a page that hostile controls its own video anyway.
+ *
  * Track: {key, url, lang, format, cues: [{start, end, text}], segments}
  * Segmented WebVTT (HLS, e.g. Disney+) arrives as many small files; files
  * whose URLs differ only in digits of the last path part are one track and
@@ -21,6 +43,9 @@
   if (BO.bridge) { return; }
 
   var nonce = null;
+  var chan = null;          /* the detached element shared with the hook */
+  var TAG_HOOK = 'bonis-oculis-hook';
+  var TAG_CONTENT = 'bonis-oculis-content';
   var tracks = {};
   var order = [];
   var listeners = [];
@@ -125,26 +150,32 @@
     return t;
   }
 
-  function onMessage(e) {
-    var d = e.data, parsed;
-    if (e.source !== window || !d || d.bo !== 'bonis-oculis-hook' || d.nonce !== nonce) { return; }
+  /* Only events on the private channel, carrying this page's nonce. */
+  function onChannel(e) {
+    var d = e && e.detail, parsed;
+    if (!chan || e.target !== chan || !d || typeof d !== 'object' || d.bo !== TAG_HOOK || typeof nonce !== 'string' || d.nonce !== nonce) { return; }
     if (d.type === 'track' && typeof d.text === 'string') {
       parsed = BO.subscan.parseAuto(d.text, d.format || d.url);
       if (parsed.cues.length) { addTrack({ url: d.url, format: parsed.format, cues: parsed.cues, timestampMap: parsed.cues.timestampMap || null, source: 'hook' }); }
     }
   }
 
+  function onHello(e) {
+    var node = e && e.target;
+    if (chan || !node || node === window || node === document || typeof node.dispatchEvent !== 'function') { return; }
+    chan = node;
+    window.removeEventListener('bonis-oculis:hello', onHello, true);
+    chan.addEventListener('bonis-oculis:msg', onChannel);
+    chan.dispatchEvent(new CustomEvent('bonis-oculis:nonce', { detail: nonce, bubbles: false }));
+  }
+
   function start() {
     if (started) { return; }
     started = true;
     nonce = BO.util.randomHex(16);
-    window.addEventListener('message', onMessage);
-    window.addEventListener('bonis-oculis:hello', function () { announce(); }, true);
-    announce();
-  }
-
-  function announce() {
-    try { window.dispatchEvent(new CustomEvent('bonis-oculis:nonce', { detail: nonce })); } catch (e) { /* ignore */ }
+    window.addEventListener('bonis-oculis:hello', onHello, true);
+    /* the hook may have run first: ask it to say hello again (carries no data) */
+    try { window.dispatchEvent(new CustomEvent('bonis-oculis:ready')); } catch (e) { /* ignore */ }
   }
 
   /* fn(track) for every track now and every new or grown track later. Returns an unsubscribe function. */
@@ -177,12 +208,14 @@
 
   function send(cmd) {
     var msg = {}, k;
-    if (!nonce) { return; }
+    if (!nonce || !chan) { return; }
     for (k in cmd) { if (Object.prototype.hasOwnProperty.call(cmd, k)) { msg[k] = cmd[k]; } }
-    msg.bo = 'bonis-oculis-content';
+    msg.bo = TAG_CONTENT;
     msg.nonce = nonce;
-    window.postMessage(msg, window.location.origin && window.location.origin !== 'null' ? window.location.origin : '*');
+    chan.dispatchEvent(new CustomEvent('bonis-oculis:cmd', { detail: msg, bubbles: false }));
   }
 
-  BO.bridge = { start: start, onTrack: onTrack, addTrack: addTrack, list: list, reset: reset, send: send, trackKey: trackKey, langFromUrl: langFromUrl, parseTimestampMap: parseTimestampMap };
+  function connected() { return !!chan; }
+
+  BO.bridge = { start: start, onTrack: onTrack, addTrack: addTrack, list: list, reset: reset, send: send, trackKey: trackKey, langFromUrl: langFromUrl, parseTimestampMap: parseTimestampMap, connected: connected };
 }(typeof self !== 'undefined' ? self : this));

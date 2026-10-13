@@ -902,6 +902,37 @@ function browserTest(pw, done) {
       });
     }],
 
+    ['hook channel: subtitles the page fetches arrive; forged messages and late handshakes get nothing (A10)', function (next) {
+      state(function (err, s0) {
+        if (err) { next(err); return; }
+        pgEval(function () {
+          var leaked = [], el = document.createElement('div');
+          window.addEventListener('bonis-oculis:nonce', function (e) { leaked.push(e.detail); }, true);
+          el.addEventListener('bonis-oculis:nonce', function (e) { leaked.push(e.detail); });
+          document.documentElement.appendChild(el);
+          el.dispatchEvent(new CustomEvent('bonis-oculis:hello', { bubbles: true }));
+          window.dispatchEvent(new CustomEvent('bonis-oculis:ready'));
+          el.remove();
+          window.postMessage({ bo: 'bonis-oculis-hook', nonce: '0123456789abcdef0123456789abcdef', type: 'track', url: location.origin + '/forged.vtt', text: 'WEBVTT\n\n00:00:01.000 --> 00:00:59.000\n[moaning]\n', format: 'vtt' }, '*');
+          return fetch('/hook-check.vtt').then(function (r) { return r.text(); }).then(function () { return leaked; });
+        }, null, function (e2, leaked) {
+          if (e2) { next(e2); return; }
+          assert.deepStrictEqual(leaked, [], 'a late hello from the page gets no nonce');
+          waitFor('the fetched subtitle arrives through the hook', function (k) { state(function (e, s) { k(e, s && s.pageCues === s0.pageCues + 1); }); }, 5000, function (e3) {
+            if (e3) { next(e3); return; }
+            sleep(300, function () {
+              state(function (e4, s1) {
+                if (e4) { next(e4); return; }
+                assert.strictEqual(s1.pageCues, s0.pageCues + 1, 'the forged message added nothing');
+                assert.deepStrictEqual(cmpRanges(byPrefix(s1, 'rpage')), cmpRanges(byPrefix(s0, 'rpage')), 'no range from the forged cue');
+                next();
+              });
+            });
+          });
+        });
+      });
+    }],
+
     ['never left covered or muted; no request left 127.0.0.1; no page errors', function (next) {
       play(56.5, function (err) {
         if (err) { next(err); return; }

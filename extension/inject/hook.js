@@ -7,18 +7,22 @@
  * makes a request of its own, never touches video or audio data, and never
  * changes what the page receives: it reads a copy of text responses that
  * look like subtitles and hands the text to the extension's isolated world
- * with window.postMessage, tagged with a per-page nonce.
+ * over a private channel, tagged with the content script's per-page nonce.
  *
- * Nonce handshake: the isolated content script makes a random nonce and
- * announces it with a 'bonis-oculis:nonce' CustomEvent; this script asks for
- * it with 'bonis-oculis:hello' in case it ran second. Both run at
- * document_start, before any page script, and only the first nonce is kept.
- * The nonce tells our messages apart from anything else on the page; it is
- * not a security boundary (a hostile page controls its own video anyway).
+ * Channel (see content/bridge.js): at document_start, before any page
+ * script, this script attaches a fresh element, fires a bubbling
+ * 'bonis-oculis:hello' from it and detaches it at once. The content script
+ * keeps that element and answers with its random nonce in a non-bubbling
+ * event on it. From then on every message, both ways, is a CustomEvent on
+ * that detached element (which page scripts never see) carrying the nonce;
+ * nothing goes through window.postMessage. The first nonce wins; until it
+ * arrives, reports wait in a short queue. 'bonis-oculis:ready' from the
+ * content script (if it started second) makes this script say hello again,
+ * only until the channel is set up.
  *
- * Commands from the isolated world (same nonce): {cmd: 'netflix-seek',
- * seconds} asks the Netflix player to seek. Best effort, may break when
- * Netflix updates its player; the extension never relies on it.
+ * Commands from the isolated world (same channel and nonce): {cmd:
+ * 'netflix-seek', seconds} asks the Netflix player to seek. Best effort, may
+ * break when Netflix updates its player; the extension never relies on it.
  * ES5. No dependencies.
  */
 (function () {
@@ -32,11 +36,10 @@
   var URL_HINT = /timedtext|\.vtt(\b|$)|webvtt|\.ttml2?(\b|$)|\.dfxp(\b|$)|\.srt(\b|$)|\.xml(\b|$)|subtitle|caption|texttrack|\/subs?\//i;
   var TYPE_HINT = /vtt|ttml|dfxp|xml|json|text\/plain|octet-stream/i;
   var nonce = null;
+  var chan = null;
   var queue = [];
   var origFetch = w.fetch;
   var XHR = w.XMLHttpRequest;
-
-  function target() { return w.location.origin && w.location.origin !== 'null' ? w.location.origin : '*'; }
 
   function post(msg) {
     msg.bo = TAG;
@@ -45,20 +48,37 @@
       return;
     }
     msg.nonce = nonce;
-    try { w.postMessage(msg, target()); } catch (e) { /* ignore */ }
+    try { chan.dispatchEvent(new CustomEvent('bonis-oculis:msg', { detail: msg, bubbles: false })); } catch (e) { /* ignore */ }
   }
 
-  function setNonce(v) {
-    var q, i;
-    if (nonce || typeof v !== 'string' || v.length < 16) { return; }
+  function setNonce(e) {
+    var v = e && e.detail, q, i;
+    if (nonce || e.target !== chan || typeof v !== 'string' || !/^[0-9a-f]{32,}$/.test(v)) { return; }
     nonce = v;
+    w.removeEventListener('bonis-oculis:ready', hello, true);
+    chan.addEventListener('bonis-oculis:cmd', onCommand);
     q = queue;
     queue = [];
     for (i = 0; i < q.length; i++) { post(q[i]); }
   }
 
-  w.addEventListener('bonis-oculis:nonce', function (e) { setNonce(e && e.detail); }, true);
-  try { w.dispatchEvent(new CustomEvent('bonis-oculis:hello')); } catch (e1) { /* ignore */ }
+  /* attach, announce from the element, detach: synchronous, before page scripts */
+  function hello() {
+    var doc = w.document, parent = doc && (doc.documentElement || doc), node;
+    if (nonce || !parent) { return; }
+    if (chan) { chan.removeEventListener('bonis-oculis:nonce', setNonce); }
+    node = doc.createElement('bonis-oculis-channel');
+    chan = node;
+    node.addEventListener('bonis-oculis:nonce', setNonce);
+    try {
+      parent.appendChild(node);
+      node.dispatchEvent(new CustomEvent('bonis-oculis:hello', { bubbles: true }));
+    } catch (e) { /* ignore */ }
+    if (node.parentNode) { node.parentNode.removeChild(node); }
+  }
+
+  w.addEventListener('bonis-oculis:ready', hello, true);
+  hello();
 
   function head(text) { return String(text).slice(0, 4096).replace(/^﻿/, '').replace(/^\s+/, ''); }
 
@@ -192,11 +212,11 @@
     } catch (e) { return false; }
   }
 
-  w.addEventListener('message', function (e) {
-    var d = e.data;
-    if (e.source !== w || !d || d.bo !== 'bonis-oculis-content' || !nonce || d.nonce !== nonce) { return; }
+  function onCommand(e) {
+    var d = e && e.detail;
+    if (e.target !== chan || !d || d.bo !== 'bonis-oculis-content' || !nonce || d.nonce !== nonce) { return; }
     if (d.cmd === 'netflix-seek' && typeof d.seconds === 'number' && isFinite(d.seconds)) {
       post({ type: 'cmd-result', cmd: d.cmd, ok: netflixSeek(d.seconds) });
     }
-  });
+  }
 }());

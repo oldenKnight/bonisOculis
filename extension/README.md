@@ -159,7 +159,9 @@ a skip file made by the desktop app (.bonis.json). Each has its own timing contr
 ```
 manifest.json            MV3; per-site content scripts: inject/hook.js in the MAIN world + the content set
 background/background.js classic service worker: panic command, badge, init data, generic registration
-inject/hook.js           page world: wraps fetch/XHR, posts subtitle text with a nonce (window.postMessage)
+inject/hook.js           page world: wraps fetch/XHR, hands subtitle text to the content script over a
+                         private detached element set up once before page scripts run, with the
+                         content script's random per-page nonce on every message (never postMessage)
 content/core.js          BO.util          content/bridge.js   BO.bridge (tracks, nonce handshake)
 adapters/base.js         BO.adapters      adapters/{generic,youtube,netflix,primevideo,disneyplus}.js
 content/enforcer.js      BO.enforcer (pure; 100 ms tick + timeupdate; skip/verify/cover/mute/restore)
