@@ -105,6 +105,17 @@ D19 Design accepted: Atkinson Hyperlegible Next (body) + Fraunces (titles), both
     pending (owner).
 D17 PIN is a deterrent, not a security boundary; hashed properly; settings tamper-evident; help says
     so plainly.
+D24 Clean copy is an EXACT re-encode (supersedes D6 and D21's "mute ranges are cut because copy
+    cannot mute" reasoning; all enforced ranges are still cut): one ffmpeg pass, -copyts, select /
+    aselect filter-script trees on probed frame times (a frame touching a range goes; audio cut at
+    the same frame boundaries in 5 ms pieces, edges filled by aresample), analytic setpts (not
+    N/FRAME_RATE: VFR-safe, no rounding drift). Encoder probed per session with a dry run:
+    VideoToolbox / QSV -> NVENC -> AMF -> libx264 veryfast crf 20; all audio AAC (<= 5.1);
+    subtitles dropped; MP4 (MKV only for kept HEVC). Fails closed on a timeline mismatch or a
+    frame-count / duration check after encoding. Measured: 0 leaked frames, A/V within 5 ms at
+    every cut (H.264 B-frame MKV, open-GOP HEVC, TS at 1.4 s, MP4). Cost: hours -> "a while" on
+    CPUs (libx264, 2 threads: 5.5x real time at 720p measured, ~2.5x expected at 1080p); the UI
+    shows a measured estimate first.
 
 ## Honest findings so far (brief 6.5)
 - Qwen3-0.6B scores SDH-only windows such as "[moaning]" as 0; the lexicon carries that signal.

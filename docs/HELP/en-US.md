@@ -73,6 +73,8 @@ Every change is saved the moment you make it. A message at the bottom left offer
 
 **Skip all N scenes** skips every scene still waiting, even the ones below your level. **Mark as fully reviewed** is for a movie you checked on your own.
 
+**An imported skip file** (from another family, or made for another copy) arrives with every scene waiting. The movie shows **Needs review — imported list** until you look it over and press **Use this list for kids**.
+
 **When nothing was found**, the movie still waits for you. If you know the movie, press **Looks clean — approve for kids**. Only then can kids play it.
 
 > We can miss things, and we sometimes flag a scene that is fine. That is why the review exists. You can also mark a scene while you watch (see [The panic key](#panic)).
@@ -105,11 +107,13 @@ If something appears that should not, press **P** (or **Ctrl+Space**). The scree
 
 bonis oculis cannot change what streaming apps show on the TV. It works with movie files you own. These steps are for a Fire TV, such as a Hisense Fire TV or a Fire TV Stick. The menus can differ a little between models.
 
+The TV files follow your levels exactly as the app's player does: a scene below your level is not cut or listed, a scene you skip is.
+
 ### Easiest: a clean copy on a USB stick with VLC
 
 **On the computer**
 
-1. In bonis oculis, open **Send to TV**, choose the movie, and press **Make a clean copy**. You get a new video file with the skipped scenes cut out. Your original stays as it is.
+1. In bonis oculis, open **Send to TV**, choose the movie, and press **Make a clean copy**. You get a new video file with the skipped scenes cut out. Your original stays as it is. The app first tries a few seconds of the movie and tells you about how long the copy will take. This makes a new file; it takes a while on computers without a video chip (often close to an hour for a two-hour film on an older laptop). You can keep using the computer, and **Cancel** leaves nothing behind.
 2. Copy the new file to a USB stick formatted as **exFAT** (best) or **FAT32**. FAT32 cannot hold a file bigger than 4 GB. A new stick is usually ready as it comes. If you need to format it, do it on the computer, before you copy the movie.
 
 **On the TV, once**
@@ -121,7 +125,7 @@ bonis oculis cannot change what streaming apps show on the TV. It works with mov
 4. Plug the stick into the TV. If the TV offers to **format** the stick or use it as **internal storage**, say no: choose **View**, **Cancel** or **Not now**. Formatting erases the movie.
 5. Open VLC, go to **Browsing**, choose the stick by its name, and pick the movie.
 
-If the copy plays without sound on your TV, make it again with **Also convert the sound to AAC** turned on.
+**What the copy has.** Not one frame of a cut scene is left, and the sound stays in step with the picture after every cut. The picture is made again as an H.264 video in an .mp4 file, which TVs and VLC play. Every sound track is kept (each language), always as AAC, so you do not need **Also convert the sound to AAC** any more. Up to 5.1 surround is kept. Subtitles are not included in the clean copy, because they could still show the words of a cut scene. A movie in HDR is converted to normal colors, so it may look a little flatter.
 
 ### Advanced: Kodi with a Kodi list (.edl)
 
@@ -169,13 +173,15 @@ The PIN keeps settings, reviews and the library for grown-ups.
 - After 5 wrong tries the PIN pad waits 30 seconds, and longer after each new wrong try.
 - If you forget the PIN, press **Parent** on the kid screen, then **I forgot my PIN**, and type the recovery code you wrote down at setup. You then get a new code.
 - **Activity** (Settings › PIN) lists, for parents only, when the app was unlocked, wrong PINs, changes to settings and levels, movies played without protection, uses of the panic key and your approvals. It is kept on this computer only.
-- The PIN is a family lock, not a safe. Someone with an administrator account on this computer can get around it, for example by deleting the app's data. Settings and scene lists are signed, so changes made outside the app are noticed and a movie stops counting as protected until you review it again. Keep the administrator account for grown-ups.
+- If the file that keeps the PIN disappears, the app does not offer a new PIN. It stays locked and asks for the recovery code. A second copy of the code's check is kept in another file for this.
+- The PIN is a family lock, not a safe. Someone with an administrator account on this computer can get around it. Deleting both PIN files resets the app, for example. Settings and scene lists are signed, so changes made outside the app are noticed: the movie shows **Needs review — the list changed outside the app** and kids cannot play it until you look at it and press **Use this list for kids**. Keep the administrator account for grown-ups.
 
 ## Privacy {#privacy}
 
 - bonis oculis has no account, no ads and no statistics, and it never connects to the internet.
 - Pictures of flagged scenes are blurred before they are saved. A clear picture is never written to disk. **Hold to peek** shows the real frame only while you hold it, and does not save it.
 - Your library, reviews, activity and settings stay in the app's folder on this computer. Files are only shared when you press an export button.
+- The first time each version opens, bonis oculis checks in the background that its bundled programs and detection files are exactly the ones it shipped with. If one is not, the library says **Needs attention: a bundled file is damaged** and names it. Install the app again.
 
 ## How accurate is it? {#accuracy}
 

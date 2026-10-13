@@ -73,6 +73,8 @@ Cada cambio se guarda en cuanto lo haces. Un mensaje abajo a la izquierda ofrece
 
 **Omitir las N escenas** omite cada escena en espera, aun las que están por debajo de tu nivel. **Marcar como revisada** es para una película que revisaste por tu cuenta.
 
+**Un archivo de escenas importado** (de otra familia, o hecho para otra copia) llega con todas las escenas en espera. La película muestra **Por revisar: lista importada** hasta que la revises y presiones **Usar esta lista para los niños**.
+
 **Cuando no se encontró nada**, la película igual te espera. Si conoces la película, presiona **Se ve bien: aprobar para niños**. Solo entonces los niños la pueden ver.
 
 > Se nos pueden pasar cosas, y a veces marcamos una escena que está bien. Para eso existe la revisión. También puedes marcar una escena mientras la ves (consulta [La tecla de pánico](#panic)).
@@ -105,11 +107,13 @@ Si aparece algo que no debería, presiona **P** (o **Ctrl+Espacio**). La pantall
 
 bonis oculis no puede cambiar lo que muestran las apps de streaming en la TV. Funciona con archivos de películas que tienes. Estos pasos son para una Fire TV, como una Hisense Fire TV o un Fire TV Stick. Los menús pueden cambiar un poco entre modelos.
 
+Los archivos para la TV siguen tus niveles igual que el reproductor de la app: una escena por debajo de tu nivel no se corta ni se anota; una escena que omites, sí.
+
 ### Lo más fácil: una copia limpia en una memoria USB con VLC
 
 **En la computadora**
 
-1. En bonis oculis, abre **Enviar a la TV**, elige la película y presiona **Hacer una copia limpia**. Obtienes un archivo de video nuevo sin las escenas omitidas. Tu original queda igual.
+1. En bonis oculis, abre **Enviar a la TV**, elige la película y presiona **Hacer una copia limpia**. Obtienes un archivo de video nuevo sin las escenas omitidas. Tu original queda igual. Primero la app prueba unos segundos de la película y te dice más o menos cuánto va a tardar la copia. Esto crea un archivo nuevo; tarda un buen rato en computadoras sin chip de video (a menudo cerca de una hora para una película de dos horas en una laptop no tan nueva). Puedes seguir usando la computadora, y **Cancelar** no deja nada a medias.
 2. Copia el archivo nuevo a una memoria USB con formato **exFAT** (lo mejor) o **FAT32**. FAT32 no admite archivos de más de 4 GB. Una memoria nueva casi siempre viene lista. Si necesitas darle formato, hazlo en la computadora, antes de copiar la película.
 
 **En la TV, una sola vez**
@@ -121,7 +125,7 @@ bonis oculis no puede cambiar lo que muestran las apps de streaming en la TV. Fu
 4. Conecta la memoria a la TV. Si la TV ofrece **formatear** la memoria o usarla como **almacenamiento interno**, di que no: elige **Ver**, **Cancelar** o **Ahora no**. Formatear borra la película.
 5. Abre VLC, entra a **Explorar**, elige la memoria por su nombre y elige la película.
 
-Si la copia se ve sin sonido en tu TV, hazla otra vez con **Convertir también el sonido a AAC** activado.
+**Qué tiene la copia.** No queda ni un cuadro de una escena cortada, y el sonido sigue al mismo tiempo que la imagen después de cada corte. La imagen se vuelve a hacer como video H.264 en un archivo .mp4, que las TV y VLC reproducen. Se conservan todas las pistas de sonido (cada idioma), siempre en AAC, así que ya no necesitas **Convertir también el sonido a AAC**. Se conserva el sonido envolvente hasta 5.1. Los subtítulos no se incluyen en la copia limpia, porque podrían mostrar las palabras de una escena cortada. Una película en HDR se convierte a colores normales, así que puede verse un poco más apagada.
 
 ### Avanzado: Kodi con una lista de Kodi (.edl)
 
@@ -169,13 +173,15 @@ El PIN reserva los ajustes, las revisiones y la biblioteca para los adultos.
 - Después de 5 intentos fallidos, el teclado del PIN espera 30 segundos, y más tiempo con cada nuevo intento fallido.
 - Si olvidas el PIN, presiona **Adulto** en la pantalla infantil, luego **Olvidé mi PIN**, y escribe el código de recuperación que anotaste al empezar. Después recibes un código nuevo.
 - **Actividad** (Ajustes › PIN) muestra, solo a los adultos, cuándo se desbloqueó la app, los PIN equivocados, los cambios de ajustes y niveles, las películas vistas sin protección, los usos de la tecla de pánico y tus aprobaciones. Se guarda solo en esta computadora.
-- El PIN es un candado familiar, no una caja fuerte. Alguien con una cuenta de administrador en esta computadora puede saltárselo, por ejemplo borrando los datos de la app. Los ajustes y las listas de escenas están firmados, así que los cambios hechos fuera de la app se notan y una película deja de contar como protegida hasta que la revises de nuevo. Deja la cuenta de administrador para los adultos.
+- Si desaparece el archivo que guarda el PIN, la app no ofrece crear uno nuevo. Se queda bloqueada y pide el código de recuperación. Para eso se guarda una segunda copia de la comprobación del código en otro archivo.
+- El PIN es un candado familiar, no una caja fuerte. Alguien con una cuenta de administrador en esta computadora puede saltárselo. Por ejemplo, borrar los dos archivos del PIN reinicia la app. Los ajustes y las listas de escenas están firmados, así que los cambios hechos fuera de la app se notan: la película muestra **Por revisar: la lista cambió fuera de la app** y los niños no la pueden ver hasta que la revises y presiones **Usar esta lista para los niños**. Deja la cuenta de administrador para los adultos.
 
 ## Privacidad {#privacy}
 
 - bonis oculis no tiene cuenta, ni anuncios, ni estadísticas, y nunca se conecta a internet.
 - Las imágenes de las escenas marcadas se difuminan antes de guardarse. Nunca se escribe en el disco una imagen nítida. **Mantén para echar un vistazo** muestra la imagen real solo mientras lo mantienes presionado, y no la guarda.
 - Tu biblioteca, tus revisiones, la actividad y los ajustes se quedan en la carpeta de la app en esta computadora. Los archivos solo se comparten cuando presionas un botón de exportar.
+- La primera vez que se abre cada versión, bonis oculis comprueba en segundo plano que sus programas y archivos de detección incluidos sean exactamente los que traía. Si alguno no lo es, la biblioteca dice **Requiere atención: un archivo incluido está dañado** y lo nombra. Vuelve a instalar la app.
 
 ## ¿Qué tan preciso es? {#accuracy}
 
