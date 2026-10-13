@@ -7,6 +7,8 @@ BOARD-REVIEWED PROTOTYPE, all milestones done. Three board rounds (docs/reviews/
 auditor PASS with conditions, video engineer PASS with conditions (all fixed in the last commits),
 product lead / kids-protection commission / parent PASS with conditions. Nothing has run on real
 Windows or macOS hardware yet; CI builds installers once the whisper-cli pins are completed.
+Added after the board: in-app "Mark by hand" mode writes a separate truth file for Check
+accuracy; toast band on library/kid screens; macOS 12/13 Apple Silicon guidance.
 Next for the OWNER: (1) run the GitHub Actions workflow and pin whisper-cli (packaging/README.md),
 (2) install on a real Windows and Mac and run the Help "first launch" steps, (3) scan hand-marked
 movies and read the Check accuracy screen (brief 6.5), (4) decide the licence (Q1), (5) try the
@@ -169,16 +171,12 @@ D24 Clean copy is an EXACT re-encode (supersedes D6 and D21's "mute ranges are c
   it reacts ~2 s after a scene starts, so it is a backstop, never the primary protection.
 
 ## Backlog (not blocking; from the board rounds)
-- Check accuracy: no in-app way to make an independent hand-marked list (the owner marks in a
-  separate copy of the title or with another tool); X13.
-- Error toasts can still cover library buttons at 1024x640 briefly (X6, cosmetic).
 - Release page must link FIRST-LAUNCH.txt / PRIMER-INICIO.txt next to the installers (CI only
   uploads them as artifacts).
-- Help text for Apple Silicon Macs on macOS 13 ("what to do next").
 - `library:add` accepts a renderer path (needed for drag-and-drop); all other channels are ids.
 - IPC `screenshot-to-file` on mpv's local socket still writes the frame (same-OS-user only).
 - Analyzer: no per-stage model hash (the app hashes before each scan instead); no --require-hashes.
-- Player timing tests run at 4x; one intermittent failure seen under heavy host load.
+- Player timing tests run at 4x with bounded polling; 5/5 full runs green under heavy load.
 - Windows bin folder 316 MiB (two static ffmpeg binaries).
 
 ## Polish backlog (historical, M9)
