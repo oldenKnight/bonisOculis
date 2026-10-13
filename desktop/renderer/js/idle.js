@@ -1,6 +1,7 @@
 /* Auto-relock (planner decision 10): parent mode locks again after Settings > PIN > "Lock again
    after" minutes without input (5 / 10 / 30 / never; default 10), with a 30-second warning toast.
-   Time spent with a movie open does not count. ES5. */
+   A parent-mode movie does not lock the app while it plays, but its time counts: when it ends and
+   the time is already up, the app locks at once (board round 2, K5). ES5. */
 (function (window) {
   'use strict';
   var BO = window.BO;
@@ -17,8 +18,10 @@
   function active() {
     var s = BO.store.get('settings') || {};
     // setupDone means a PIN exists (the wizard sets it before finishing).
-    return minutes() > 0 && !BO.store.get('locked') && s.setupDone && BO.router.current() !== 'player' && BO.router.current() !== 'setup';
+    return minutes() > 0 && !BO.store.get('locked') && s.setupDone && BO.router.current() !== 'setup';
   }
+
+  function playing() { return BO.router.current() === 'player' && BO.views.player && BO.views.player.active(); }
 
   function touch() {
     last = Date.now();
@@ -27,6 +30,7 @@
 
   function tick() {
     if (!active()) { last = Date.now(); return; }
+    if (playing()) { if (warning) { warning.dismiss(); warning = null; } return; } // counts, but never locks mid-movie
     var left = minutes() * 60000 - (Date.now() - last);
     if (left <= 0) {
       if (warning) { warning.dismiss(); warning = null; }

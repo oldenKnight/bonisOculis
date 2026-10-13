@@ -104,7 +104,11 @@ mac:
   target: dmg                           # one DMG per arch: the CI runs --x64 and --arm64 separately
   category: public.app-category.video
   icon: packaging/icons/icon.icns
-  minimumSystemVersion: "12.0"          # Electron 38; mpv arm64 build itself needs macOS 14
+  # Intel: Electron 38 needs macOS 12 (the pinned stolendata mpv 0.39.0 x64 needs 11). Apple Silicon:
+  # the pinned stolendata mpv 0.40.0 arm64 needs macOS 14, so the arm64 CI job overrides this with
+  # -c.mac.minimumSystemVersion=14.0 (.github/workflows/build.yml) and the Mac refuses to open an
+  # app it could not play with. Help and docs/INSTALL state the same requirements.
+  minimumSystemVersion: "12.0"
   hardenedRuntime: false                # turn on together with signing + notarization
   gatekeeperAssess: false
   extraResources:
@@ -116,6 +120,28 @@ mac:
 dmg:
   artifactName: bonis-oculis-${version}-mac-${arch}.${ext}
   writeUpdateInfo: false
+  # The first-launch steps sit in the DMG window next to the app, readable before Gatekeeper asks
+  # (board N6). build/first-launch/ is written by tools/make-first-launch.js (CI step before this
+  # one) from docs/INSTALL/*.md. The first entry without a path is the app itself.
+  window:
+    width: 540
+    height: 440
+  contents:
+    - x: 130
+      y: 150
+      type: file
+    - x: 410
+      y: 150
+      type: link
+      path: /Applications
+    - x: 200
+      y: 320
+      type: file
+      path: build/first-launch/FIRST-LAUNCH.txt
+    - x: 340
+      y: 320
+      type: file
+      path: build/first-launch/PRIMER-INICIO.txt
 
 linux:                                  # development / CI smoke test only; not a shipped target
   target: dir

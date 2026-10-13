@@ -200,6 +200,7 @@
         BO.el('div', null, [BO.el('label', { 'class': 'bo-settings-row__title', attrs: { 'for': sel.id }, text: BO.t('settings.autoLock') }), BO.el('p', { 'class': 'bo-settings-row__help', text: BO.t('settings.autoLock.help') })]),
         sel
       ]),
+      switchRow('lockOnBlur', 'settings.lockOnBlur', 'settings.lockOnBlur.help'),
       BO.el('p', { 'class': 'bo-caption', text: BO.t('settings.pin.recovery') })
     ]);
   }

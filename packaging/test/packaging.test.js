@@ -233,3 +233,36 @@ test('verify-bundle forbidden-word rule: strings and code count, comments and lo
   assert.deepStrictEqual(vb.forbiddenHits('p.lua', '-- telemetry free\nlocal x = 1'), []);
   assert.strictEqual(vb.stripJsComments('var a = "//x"; // c').indexOf('"//x"'), 8);
 });
+
+test('first-launch files: both languages rendered as plain text with the help\'s steps, shipped by DMG and CI', function () {
+  var fl = require('../../tools/make-first-launch.js');
+  var out = fs.mkdtempSync(path.join(os.tmpdir(), 'bonis-first-launch-'));
+  var res = fl.make(out);
+  assert.deepStrictEqual(res.map(function (r) { return path.basename(r.file); }), ['FIRST-LAUNCH.txt', 'PRIMER-INICIO.txt']);
+  var en = fs.readFileSync(path.join(out, 'FIRST-LAUNCH.txt'), 'utf8');
+  var es = fs.readFileSync(path.join(out, 'PRIMER-INICIO.txt'), 'utf8');
+  [en, es].forEach(function (t) {
+    assert.strictEqual(t.charCodeAt(0), 0xfeff, 'UTF-8 BOM');
+    assert.ok(t.indexOf('\r\n') > 0 && !/[^\r]\n/.test(t), 'CRLF only');
+    assert.ok(!/\*\*|`|\{#/.test(t), 'no Markdown marks left');
+    t.split('\r\n').forEach(function (l) { assert.ok(l.replace('﻿', '').length <= 76, 'wrapped: ' + l); });
+  });
+  ['Privacy & Security', 'Open Anyway', 'More info', 'Run anyway', 'macOS 14 Sonoma', 'Windows 10 (version 1809', '4 GB of memory', 'FIRST-LAUNCH.txt'].forEach(function (w) {
+    assert.ok(en.replace(/\s+/g, ' ').indexOf(w) >= 0, 'en: ' + w);
+  });
+  ['Privacidad y seguridad', 'Abrir de todos modos', 'Más información', 'Ejecutar de todas formas', 'Windows protegió su PC', 'macOS 14 Sonoma', '4 GB de memoria', 'PRIMER-INICIO.txt'].forEach(function (w) {
+    assert.ok(es.replace(/\s+/g, ' ').indexOf(w) >= 0, 'es: ' + w);
+  });
+  // The numbered steps are the in-app Help's own steps.
+  function steps(md) { return (md.match(/^\d+\. .*$/mg) || []).map(function (l) { return l.replace(/\*\*/g, '').replace(/^\d+\. /, ''); }); }
+  var helpEn = fs.readFileSync(path.join(ROOT, 'docs', 'HELP', 'en-US.md'), 'utf8');
+  var instEn = fs.readFileSync(path.join(ROOT, 'docs', 'INSTALL', 'en-US.md'), 'utf8');
+  steps(instEn).forEach(function (s) { assert.ok(helpEn.replace(/\*\*/g, '').indexOf(s) >= 0, 'Help has the step: ' + s); });
+  var yml = fs.readFileSync(path.join(ROOT, 'electron-builder.yml'), 'utf8');
+  assert.ok(yml.indexOf('path: build/first-launch/FIRST-LAUNCH.txt') > 0 && yml.indexOf('path: build/first-launch/PRIMER-INICIO.txt') > 0, 'in the DMG window');
+  var ci = fs.readFileSync(path.join(ROOT, '.github', 'workflows', 'build.yml'), 'utf8');
+  assert.ok(ci.indexOf('node tools/make-first-launch.js build/first-launch') > 0, 'generated in CI');
+  assert.ok(ci.indexOf('dist/electron/FIRST-LAUNCH.txt') > 0 && ci.indexOf('dist/electron/PRIMER-INICIO.txt') > 0, 'uploaded next to the installers');
+  assert.ok(ci.indexOf('-c.mac.minimumSystemVersion=14.0') > 0, 'Apple Silicon build needs macOS 14');
+  fs.rmSync(out, { recursive: true, force: true });
+});

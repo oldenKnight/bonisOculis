@@ -198,9 +198,10 @@ the table was written, and where the publisher offers a checksum it matched (BIN
 
 ## Known limits
 
-- **mpv on Apple Silicon needs macOS 14+** (stolendata's arm64 build). Electron 38 runs on
-  macOS 12+, so an M1 on macOS 12-13 installs the app but the player will not start. Options:
-  ship the Intel mpv there under Rosetta, or build mpv for arm64 with a lower deployment target.
+- **mpv on Apple Silicon needs macOS 14+** (stolendata's arm64 build). The arm64 DMG now declares
+  `LSMinimumSystemVersion` 14.0, so an M1 on macOS 12-13 cannot open it (and the requirements say
+  so) instead of installing and failing at Play. Lowering it would need the Intel mpv under Rosetta
+  or an arm64 mpv built with a lower deployment target.
 - **CPU baseline of the LM and whisper-cli builds.** With `GGML_NATIVE=OFF`, llama.cpp and
   whisper.cpp still assume AVX2/FMA/F16C on x86 by default (Haswell, 2013+). Pre-Haswell i5s
   would crash in the LM stage; ONNX Runtime, numpy and FFmpeg detect the CPU at runtime. Not
@@ -210,12 +211,25 @@ the table was written, and where the publisher offers a checksum it matched (BIN
   workflow has not run yet. The Linux run above is the evidence that the spec, entry point,
   extraResources mapping and verify-bundle work.
 
-## First-launch text files (from the desktop agent)
+## First-launch text files and system requirements
 
 The unsigned-build steps (macOS 15+ Privacy & Security › Open Anyway, macOS 14 and earlier
-Control-click › Open, Windows SmartScreen More info › Run anyway) must be readable before the app
-opens. They live in `docs/INSTALL/en-US.md` and `docs/INSTALL/es-MX.md` (the same text as the
-in-app Help section "Before you install"). The packaging owner should ship them next to the
-installer as plain text files: `FIRST-LAUNCH.txt` (en-US) and `PRIMER-INICIO.txt` (es-MX), inside
-the DMG window and beside the NSIS installer on the download page. Not wired into
-electron-builder.yml by this note.
+Control-click › Open, Windows SmartScreen More info › Run anyway) and the system requirements must
+be readable before the app opens. Source: `docs/INSTALL/en-US.md` and `docs/INSTALL/es-MX.md` (the
+same text as Help › "What you need" and "Before you install").
+
+How they ship (wired):
+1. CI step "First-launch text files" runs `node tools/make-first-launch.js build/first-launch`,
+   which renders both Markdown files to plain text (UTF-8 with BOM, CRLF, 76 columns):
+   `FIRST-LAUNCH.txt` (en-US) and `PRIMER-INICIO.txt` (es-MX).
+2. macOS: `electron-builder.yml` `dmg.contents` puts both files in the DMG window, under the app
+   and the Applications link.
+3. All platforms: after electron-builder, CI copies both files into `dist/electron/`, next to the
+   `.exe` / `.dmg`, and uploads them with the installers (put them on the download page too).
+4. `packaging/test/packaging.test.js` checks that the generator writes both files with the help's
+   steps and that the DMG contents and the CI steps reference them.
+
+System requirements as built: Windows 10 1809+ / 11 x64; macOS 12+ on Intel (Electron 38's floor;
+the pinned mpv 0.39.0 x64 needs 11); macOS 14+ on Apple Silicon (the pinned mpv 0.40.0 arm64 needs
+14; the arm64 CI job passes `-c.mac.minimumSystemVersion=14.0`, so macOS itself refuses older
+systems); 4 GB RAM, 3 GB free disk.

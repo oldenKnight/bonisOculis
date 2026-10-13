@@ -2,6 +2,17 @@
 
 Read this before you open bonis oculis for the first time. The same text is in the app under Help › Before you install, and next to the installer as FIRST-LAUNCH.txt.
 
+## What you need
+
+- **Windows:** Windows 10 (version 1809 or later) or Windows 11, 64-bit.
+- **Mac with Apple Silicon** (M1 or later): macOS 14 Sonoma or later. Use the download whose name ends in **arm64**.
+- **Mac with Intel:** macOS 12 Monterey or later. Use the download whose name ends in **x64**. To see which Mac you have, open the Apple menu › **About This Mac**: it says **Chip** (Apple Silicon) or **Processor** (Intel).
+- At least **4 GB of memory** and **3 GB of free disk space**, plus room for any clean copies you make.
+- A computer with a video chip scans and makes clean copies faster. Without one it still works, only more slowly.
+- On computers from before about 2013, the checks that listen to the dialogue are skipped; the picture and the subtitles are still checked.
+
+## Before you open it
+
 This early version of bonis oculis is not signed by Apple or Microsoft yet, so your computer asks before it opens it the first time. You do this only once. bonis oculis never connects to the internet, so it is fine if your firewall blocks it.
 
 ## On a Mac with macOS 15 (Sequoia) or later

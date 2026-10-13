@@ -34,6 +34,7 @@ var path = require('path');
 var childProcess = require('child_process');
 var skipfile = require('../shared/skipfile.js');
 var fingerprint = require('../shared/fingerprint.js');
+var notes = require('../desktop/renderer/js/notes.js');
 
 var STEPS_PER_STAGE = 10;
 var KNOWN = ['subtitles', 'frames', 'audio', 'speech', 'captions'];
@@ -291,9 +292,9 @@ function main() {
       var base = path.basename(a.input);
       var now = new Date().toISOString();
       var specs = [
-        { cat: 'nudity', at: 0.2, conf: 0.92, intensity: 3, sig: { frames: 0.95, subtitles: 0.2 }, note: { en: 'Nudity detected in the picture.', es: 'Se detectó desnudez en la imagen.' } },
-        { cat: 'kissing', at: 0.45, conf: 0.66, intensity: 1, sig: { frames: 0.6, subtitles: 0.5 }, note: { en: 'The picture and dialogue suggest kissing.', es: 'La imagen y el diálogo sugieren besos.' } },
-        { cat: 'gore', at: 0.7, conf: 0.71, intensity: 2, sig: { frames: 0.74 }, note: { en: 'A violent injury may be shown.', es: 'Podría mostrarse una herida violenta.' } }
+        { cat: 'nudity', at: 0.2, conf: 0.92, intensity: 3, sig: { frames: 0.95, subtitles: 0.2 } },
+        { cat: 'kissing', at: 0.45, conf: 0.66, intensity: 1, sig: { frames: 0.6, subtitles: 0.5 } },
+        { cat: 'gore', at: 0.7, conf: 0.71, intensity: 2, sig: { frames: 0.74 } }
       ];
       var len = Math.max(2, duration * 0.04);
       if (clean) { specs = []; }
@@ -307,7 +308,8 @@ function main() {
         r.cutStart = Math.floor(start / 5) * 5;
         r.cutEnd = Math.min(duration, Math.ceil(r.end / 5) * 5);
         r.signals = s.sig;
-        r.note = /^es/.test(a.lang) ? s.note.es : s.note.en;
+        // The analyzer's own template sentence (notes.py), from the same port the app uses.
+        r.note = notes.note(s.cat, notes.presentOf(r), a.lang);
         return r;
       });
       var stageInfo = {};

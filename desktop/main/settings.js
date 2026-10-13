@@ -36,6 +36,7 @@ function defaults(lang) {
     thorough: false,
     listenSpeech: true,
     autoLockMinutes: 10,
+    lockOnBlur: false,
     analyzerCommand: null,
     windowBounds: null,
     integrity: null
@@ -67,6 +68,7 @@ var RULES = {
   reduceMotion: function (v) { return typeof v === 'boolean' ? v : undefined; },
   thorough: function (v) { return typeof v === 'boolean' ? v : undefined; },
   listenSpeech: function (v) { return typeof v === 'boolean' ? v : undefined; },
+  lockOnBlur: function (v) { return typeof v === 'boolean' ? v : undefined; },
   autoLockMinutes: function (v) { return [0, 5, 10, 30].indexOf(v) >= 0 ? v : undefined; },
   analyzerCommand: function (v) {
     if (v === null) { return null; }
@@ -95,7 +97,7 @@ var RULES = {
 
 // Keys the renderer may change through settings:set (analyzerCommand, windowBounds and integrity are main-only).
 var RENDERER_KEYS = ['lang', 'setupDone', 'preset', 'levels', 'skipScenes', 'nonSkipAction', 'panicKey',
-  'lockOnStart', 'scanOnlyPluggedIn', 'pauseWhilePlaying', 'threads', 'reduceMotion', 'thorough', 'listenSpeech', 'autoLockMinutes'];
+  'lockOnStart', 'scanOnlyPluggedIn', 'pauseWhilePlaying', 'threads', 'reduceMotion', 'thorough', 'listenSpeech', 'autoLockMinutes', 'lockOnBlur'];
 
 function createSettings(options) {
   var o = options || {};

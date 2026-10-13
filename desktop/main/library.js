@@ -202,6 +202,9 @@ function createLibrary(options) {
     var d = deriveStatus(doc, validate, it);
     it.pending = d.pending; it.enforced = d.enforced; it.total = d.total; it.cleanPending = !!d.cleanPending;
     if (!(it.status === 'needsAttention' && d.status === 'notScanned')) {
+      // When the parent finished the review (every scene decided, or the title approved as a
+      // whole): the parents card says "checked by you on <date>" (round 2, X2).
+      if (d.status === 'protected' && (it.status !== 'protected' || !it.reviewedAt)) { it.reviewedAt = new Date().toISOString(); }
       it.status = d.status;
       it.error = d.error || null;
     }

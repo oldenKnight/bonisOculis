@@ -67,7 +67,8 @@
 
   function span(r) { return BO.fmt.time(r.start) + ' – ' + BO.fmt.time(r.end); }
 
-  function settings() { return BO.store.get('settings') || {}; }
+  // The levels that apply to this title ("For this movie" or the usual ones).
+  function settings() { return BO.effective.settingsFor(item, BO.store.get('settings') || {}); }
 
   function eff(r) { return BO.effective.of(r, settings()); }
 
@@ -222,14 +223,14 @@
     var holder = BO.el('div', { 'class': 'bo-note' });
     function view() {
       BO.clear(holder);
-      holder.appendChild(BO.el('p', { 'class': 'bo-panel__note', text: r.note || BO.t(r.source === 'auto' ? 'panel.noNote' : 'panel.manualNote') }));
+      holder.appendChild(BO.el('p', { 'class': 'bo-panel__note', text: BO.notes.text(r, BO.i18n.lang()) || BO.t(r.source === 'auto' ? 'panel.noNote' : 'panel.manualNote') }));
       holder.appendChild(BO.el('button', { 'class': 'bo-button bo-button--ghost bo-button--sm', type: 'button', data: { act: 'edit-note' }, on: { click: edit } }, [BO.icon('edit'), BO.t('panel.editNote')]));
     }
     function edit() {
       BO.clear(holder);
       var fieldId = BO.nextId('note');
       var ta = BO.el('textarea', { 'class': 'bo-input bo-note__input', id: fieldId, attrs: { maxlength: '300', rows: '3' } });
-      ta.value = r.note || '';
+      ta.value = BO.notes.text(r, BO.i18n.lang()) || '';
       var save = BO.el('button', { 'class': 'bo-button bo-button--secondary bo-button--sm', type: 'button', text: BO.t('common.save') });
       var cancel = BO.el('button', { 'class': 'bo-button bo-button--ghost bo-button--sm', type: 'button', text: BO.t('common.cancel') });
       save.addEventListener('click', function () { mutate('skip:edit', { rangeId: r.id, patch: { note: ta.value } }); });
@@ -337,7 +338,7 @@
     var n = pending().length;
     var scanned = !!(doc.scan && doc.scan.status && doc.scan.status !== 'none');
     var top = BO.el('div', { 'class': 'bo-panel__section' }, [
-      BO.parentsCard.create({ compact: true, title: item.title, meta: [item.year, item.duration ? BO.fmt.duration(item.duration) : null].filter(function (x) { return x; }).join(' · '), doc: doc, settings: settings() })
+      BO.parentsCard.create({ compact: true, title: item.title, meta: [item.year, item.duration ? BO.fmt.duration(item.duration) : null].filter(function (x) { return x; }).join(' · '), doc: doc, settings: settings(), item: item })
     ]);
     var msg;
     if (damaged) {
@@ -390,7 +391,12 @@
     });
     bar.appendChild(back);
     bar.appendChild(BO.el('h1', { 'class': 'bo-review__title', text: item.title, attrs: { tabindex: '-1', 'data-view-heading': '' } }));
-    bar.appendChild(BO.el('div', { 'class': 'bo-toolbar' }, [mark, all]));
+    var own = BO.el('button', { 'class': 'bo-button bo-button--ghost', type: 'button', data: { act: 'movie-levels' }, attrs: { 'aria-pressed': item.levels ? 'true' : 'false' } },
+      [BO.icon('settings'), BO.t(item.levels ? 'movieLevels.buttonActive' : 'movieLevels.button')]);
+    own.addEventListener('click', function () {
+      BO.movieLevels.open(item, function (it) { if (it) { item = it; render(); } });
+    });
+    bar.appendChild(BO.el('div', { 'class': 'bo-toolbar' }, [own, mark, all]));
   }
 
   function renderSummary() {

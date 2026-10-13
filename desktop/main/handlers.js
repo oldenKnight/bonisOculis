@@ -46,6 +46,16 @@ function createHandlers(c) {
 
   function win() { return c.getWindow(); }
 
+  // A native file dialog takes the focus from the window: "Lock when I switch to another app"
+  // must not fire for it, so main can ask c.dialogsOpen.
+  c.dialogsOpen = 0;
+  function openDialog(opts) {
+    c.dialogsOpen += 1;
+    var p = c.electron.dialog.showOpenDialog(win(), opts);
+    p.then(function () { c.dialogsOpen -= 1; }, function () { c.dialogsOpen -= 1; });
+    return p;
+  }
+
   function publicSettings() {
     var s = c.settings.get();
     delete s.analyzerCommand;
@@ -74,8 +84,7 @@ function createHandlers(c) {
   function enforcedDocOf(id) {
     var d = docOf(id);
     if (!d) { return null; }
-    var s = c.settings.get();
-    return enforce.playbackDoc(d, { levels: s.levels, skipScenes: s.skipScenes, nonSkipAction: s.nonSkipAction });
+    return enforce.playbackDoc(d, enforce.settingsFor(c.library.get(id), c.settings.get()));
   }
 
   function skipResult(cb) {
@@ -135,8 +144,20 @@ function createHandlers(c) {
 
   h['library:add'] = function (p, ctx, cb) { addPaths(p.paths, cb); };
 
+  // "For this movie" levels (round 2 decision 6), kept in the signed library index; null = usual levels.
+  h['library:setLevels'] = function (p, ctx, cb) {
+    var it = c.library.get(p.id);
+    if (!it) { cb('notFound'); return; }
+    if (p.levels !== undefined && p.levels !== null && !enforce.validLevels(p.levels)) { cb('badValue'); return; }
+    var lv = p.levels ? {} : null;
+    if (lv) { enforce.CATS.forEach(function (k) { lv[k] = p.levels[k]; }); }
+    c.library.update(p.id, { levels: lv });
+    act('movieLevels', { id: p.id, title: it.title, detail: lv ? enforce.CATS.map(function (k) { return k + ' ' + lv[k]; }).join('; ') : 'usual' });
+    cb(null, c.library.get(p.id));
+  };
+
   h['library:pick'] = function (p, ctx, cb) {
-    c.electron.dialog.showOpenDialog(win(), {
+    openDialog({
       title: t('dialog.pickMovies'), properties: ['openFile', 'multiSelections'],
       filters: [{ name: t('dialog.videos'), extensions: VIDEO_EXT }, { name: t('dialog.allFiles'), extensions: ['*'] }]
     }).then(function (r) {
@@ -384,7 +405,7 @@ function createHandlers(c) {
     cb(null, true);
   };
   h['export:pickFolder'] = function (p, ctx, cb) {
-    c.electron.dialog.showOpenDialog(win(), { title: t('dialog.pickFolder'), properties: ['openDirectory', 'createDirectory'] }).then(function (r) {
+    openDialog({ title: t('dialog.pickFolder'), properties: ['openDirectory', 'createDirectory'] }).then(function (r) {
       if (!r.canceled && r.filePaths.length) { pickedDirs[r.filePaths[0]] = true; }
       cb(null, r.canceled || !r.filePaths.length ? { canceled: true } : { dir: r.filePaths[0] });
     }, function () { cb('dialogFailed'); });
@@ -411,7 +432,7 @@ function createHandlers(c) {
       runImport(text, p.targetId, cb);
       return;
     }
-    c.electron.dialog.showOpenDialog(win(), {
+    openDialog({
       title: t('dialog.pickSkipFile'), properties: ['openFile'],
       filters: [{ name: t('dialog.skipFiles'), extensions: ['json'] }]
     }).then(function (r) {
@@ -432,7 +453,7 @@ function createHandlers(c) {
   h['accuracy:run'] = function (p, ctx, cb) {
     if (!c.library.get(p.id)) { cb('notFound'); return; }
     if (!c.skips.load(p.id).doc) { cb('noSkip'); return; }
-    c.electron.dialog.showOpenDialog(win(), {
+    openDialog({
       title: t('dialog.pickTruth'), properties: ['openFile'],
       filters: [{ name: t('dialog.skipFiles'), extensions: ['json'] }]
     }).then(function (r) {

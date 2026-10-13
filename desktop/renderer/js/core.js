@@ -81,6 +81,7 @@
 
   /* "1 h 52 min" / "52 min" / "45 s" (same in both languages, DESIGN 13.7). */
   function fmtDuration(sec) {
+    if (sec > 0 && sec < 1) { return '<1 s'; } // a quick hand mark is not "0 s" (round 2, X11)
     var s = Math.round(sec || 0);
     if (s < 60) { return s + ' s'; }
     var h = Math.floor(s / 3600);

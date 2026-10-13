@@ -11,6 +11,21 @@
 var BO = require('../../shared/skipfile.js');
 
 var THRESHOLDS = { light: 0.8, moderate: 0.6, strict: 0.4 };
+var CATS = ['nudity', 'sex', 'implied', 'kissing', 'gore', 'language'];
+var LEVELS = ['off', 'light', 'moderate', 'strict'];
+
+function validLevels(v) {
+  if (!v || typeof v !== 'object') { return false; }
+  return CATS.every(function (c) { return LEVELS.indexOf(v[c]) >= 0; });
+}
+
+// The settings that apply to one title: its own "For this movie" levels (library index entry,
+// board round 2 decision 6) or the parent's usual levels. Every enforcement path calls this.
+function settingsFor(item, settings) {
+  var s = settings || {};
+  var own = item && validLevels(item.levels) ? item.levels : null;
+  return { levels: own || s.levels, skipScenes: s.skipScenes, nonSkipAction: s.nonSkipAction, perMovie: !!own };
+}
 
 // settings: {levels, skipScenes, nonSkipAction}
 function playbackDoc(doc, settings) {
@@ -37,4 +52,4 @@ function playbackDoc(doc, settings) {
 // The ranges that will really be acted on, as the player sees them.
 function enforcedRanges(doc, settings) { return BO.enforced(playbackDoc(doc, settings)); }
 
-module.exports = { playbackDoc: playbackDoc, enforcedRanges: enforcedRanges, THRESHOLDS: THRESHOLDS };
+module.exports = { playbackDoc: playbackDoc, enforcedRanges: enforcedRanges, settingsFor: settingsFor, validLevels: validLevels, THRESHOLDS: THRESHOLDS, CATS: CATS, LEVELS: LEVELS };

@@ -32,6 +32,7 @@
       group('keys.watching', [
         row([[BO.t('keys.space')]], BO.t('keys.pause')),
         row([[BO.icon('chevron-left')], [BO.icon('chevron-right')]], BO.t('keys.seek')),
+        row([[BO.icon('chevron-down')], [BO.icon('chevron-up')]], BO.t('keys.seekMinute')),
         row([['F']], BO.t('keys.fullscreen')),
         row([['M']], BO.t('keys.mute'))
       ])

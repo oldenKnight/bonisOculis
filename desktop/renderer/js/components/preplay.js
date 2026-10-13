@@ -51,6 +51,7 @@
       ]));
     });
     var body = [BO.el('p', { 'class': 'bo-lead bo-preplay__summary', data: { summary: '' }, text: summaryLine(d.totals) })];
+    if (d.perMovie) { body.push(BO.el('p', { 'class': 'bo-caption', data: { perMovie: '' } }, [BO.icon('settings', 'bo-icon--sm'), BO.t('movieLevels.active')])); }
     if (rows.firstChild) { body.push(rows); }
     if (d.totals.below) { body.push(BO.el('div', { 'class': 'bo-notice bo-notice--warning' }, [BO.icon('alert'), BO.el('p', { text: BO.tn('preplay.belowNote', d.totals.below) })])); }
     if (d.pending) { body.push(BO.el('p', { 'class': 'bo-body-2', text: BO.tn('preplay.pendingNote', d.pending) })); }
@@ -58,6 +59,10 @@
     BO.modal.open({
       title: BO.t('preplay.title', { title: item.title }), icon: 'play', wide: true, variant: 'preplay', body: body,
       actions: [
+        { label: BO.t('movieLevels.button'), kind: 'ghost', id: 'movie-levels', icon: 'settings', onClick: function (close) {
+          close();
+          BO.movieLevels.open(BO.store.item(item.id) || item, function (it) { playFlow(it || BO.store.item(item.id) || item); });
+        } },
         { label: BO.t('preplay.reviewFirst'), kind: 'secondary', id: 'review-first', icon: 'eye', onClick: function (close) { close(); BO.router.go('review', { id: item.id }); } },
         { label: BO.t('library.play'), kind: 'primary', id: 'play', icon: 'play', autofocus: true, onClick: function (close) { close(); startPlay(item.id, false); } }
       ]

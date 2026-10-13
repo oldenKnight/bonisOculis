@@ -109,7 +109,8 @@ jobs:
           - runner: macos-14
             platform: darwin
             arch: arm64
-            eb: --mac --arm64
+            # mpv for Apple Silicon needs macOS 14 (packaging/BINARIES.md): the Mac refuses older systems.
+            eb: --mac --arm64 -c.mac.minimumSystemVersion=14.0
             unpacked: dist/electron/mac-arm64
             cmake_args: -DGGML_NATIVE=OFF -DGGML_METAL=ON
             whisper_cmake: -DGGML_METAL=ON -DGGML_METAL_EMBED_LIBRARY=ON
@@ -216,6 +217,8 @@ jobs:
         run: echo "Windows installer will be signed with WIN_CSC_LINK"
 
       # ---- installer ----
+      - name: First-launch text files (FIRST-LAUNCH.txt, PRIMER-INICIO.txt)
+        run: node tools/make-first-launch.js build/first-launch
       - name: electron-builder
         env:
           CSC_LINK: ${{ matrix.platform == 'darwin' && secrets.MAC_CSC_LINK || '' }}
@@ -228,6 +231,8 @@ jobs:
         run: npx --yes "$ELECTRON_BUILDER" ${{ matrix.eb }} --publish never $EB_SIGN_FLAGS
       - name: Verify the bundle
         run: node tools/verify-bundle.js "${{ matrix.unpacked }}" --target "$TARGET" --run-analyzer
+      - name: First-launch files next to the installer
+        run: cp build/first-launch/FIRST-LAUNCH.txt build/first-launch/PRIMER-INICIO.txt dist/electron/
       - name: Checksums
         run: |
           cd dist/electron
@@ -240,6 +245,8 @@ jobs:
             dist/electron/*.exe
             dist/electron/*.dmg
             dist/electron/SHA256SUMS-*.txt
+            dist/electron/FIRST-LAUNCH.txt
+            dist/electron/PRIMER-INICIO.txt
             bin/${{ env.TARGET }}/binaries.lock.json
           if-no-files-found: error
           retention-days: 14

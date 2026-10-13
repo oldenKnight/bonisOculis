@@ -140,6 +140,7 @@
     BO.on('app:locked', function (ev) {
       setKidMode(ev && ev.locked);
       if (ev && ev.locked) {
+        BO.toast.clearAll();
         // A movie that went on in kid mode keeps its Now playing page (kid version).
         BO.router.go(ev.player === 'switched' && BO.views.player.active() ? 'player' : 'kid');
       } else {

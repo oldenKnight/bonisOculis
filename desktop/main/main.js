@@ -171,7 +171,7 @@ function boot() {
     menu.buildMenu({ i18n: i18n, packaged: packaged, onHelp: function () { if (!pin.isLocked()) { emit('app:navigate', { view: 'help' }); } } });
   }
 
-  var handlers = createHandlers({
+  var handlerCtx = {
     electron: electron, getWindow: function () { return win; }, store: store, pin: pin, settings: settings, i18n: i18n,
     library: library, skips: skips, supervisor: supervisor, player: player, thumbs: thumbs, help: help, paths: paths,
     accuracy: accuracy, activity: activity, log: log.child('ipc'), emit: emit, versions: versions,
@@ -188,11 +188,21 @@ function boot() {
     },
     takeToasts: function () { var t = pendingToasts; pendingToasts = []; return t; },
     onLangChanged: function (lang) { i18n.setLang(lang); rebuildMenu(); }
-  });
+  };
+  var handlers = createHandlers(handlerCtx);
   ipc.createIpc(handlers, { isLocked: pin.isLocked, log: log.child('ipc'), checkSender: checkSender }).register(electron.ipcMain);
 
   rebuildMenu();
   win = windowMod.createWindow({ paths: paths, settings: settings, packaged: packaged, title: 'bonis oculis', onClosed: function () { win = null; } });
+  // "Lock when I switch to another app" (round 2, K5; off by default). Not for a file dialog of the
+  // app itself, and not while a parent-mode movie plays (mpv's own window takes the focus).
+  win.on('blur', function () {
+    if (!settings.value('lockOnBlur') || !pin.hasPin() || pin.isLocked() || player.isOpen() || handlerCtx.dialogsOpen > 0) { return; }
+    setTimeout(function () {
+      if (!win || win.isDestroyed() || win.isFocused() || pin.isLocked() || player.isOpen() || handlerCtx.dialogsOpen > 0) { return; }
+      handlers['pin:lock']({ reason: 'blur' }, {}, function () {});
+    }, 800);
+  });
   if (!pin.isLost()) { supervisor.start(); }
 
   // Bundled models and binaries, hashed once per app version in the background (board review A9).

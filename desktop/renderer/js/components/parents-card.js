@@ -48,7 +48,17 @@
     return { kind: filtered === n ? 'filtered' : 'plays', text: BO.tn(key, n, { filtered: filtered, plays: letPlay + below }), count: n, max: max };
   }
 
-  // opts: {title, meta, pill, doc, settings, headingLevel, compact}
+  // Round 2, X2: only a title the parent finished reviewing (every scene decided, "Mark as fully
+  // reviewed", "Looks clean" or "Use this list for kids": status Protected) says "checked by you".
+  function footerLine(item) {
+    var done = item && item.status === 'protected';
+    if (!done) { return BO.el('p', { data: { footer: 'unchecked' }, text: BO.t('parents.footer.unchecked') }); }
+    var d = item.reviewedAt ? new Date(item.reviewedAt) : null;
+    var when = d && !isNaN(d.getTime()) ? d.toLocaleDateString(BO.i18n.lang(), { year: 'numeric', month: 'short', day: 'numeric' }) : '';
+    return BO.el('p', { data: { footer: 'checked' }, text: when ? BO.t('parents.footer.checked', { date: when }) : BO.t('parents.footer.checkedNoDate') });
+  }
+
+  // opts: {title, meta, pill, doc, settings, item, headingLevel, compact}
   function create(opts) {
     var o = opts || {};
     var list = BO.el('ul', { 'class': 'bo-parents-card__list' });
@@ -71,7 +81,7 @@
         o.pill || null
       ]),
       list,
-      BO.el('footer', { 'class': 'bo-parents-card__footer' }, [BO.el('p', { text: BO.t('parents.footer') }), BO.el('p', { text: BO.t('parents.human') })])
+      BO.el('footer', { 'class': 'bo-parents-card__footer' }, [footerLine(o.item), BO.el('p', { text: BO.t('parents.human') })])
     ]);
   }
 

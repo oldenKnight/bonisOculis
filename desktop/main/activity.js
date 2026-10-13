@@ -9,7 +9,7 @@ var path = require('path');
 
 var MAX_LINES = 5000;
 var TYPES = ['setup', 'unlock', 'pinFailed', 'cooldown', 'lock', 'pinChanged', 'pinRecovered', 'settings', 'play',
-  'playUnprotected', 'panic', 'skip', 'letPlay', 'skipAll', 'approveClean', 'markReviewed', 'trust', 'import', 'remove', 'damaged', 'integrity'];
+  'playUnprotected', 'panic', 'skip', 'letPlay', 'skipAll', 'approveClean', 'markReviewed', 'trust', 'movieLevels', 'playerStopped', 'import', 'remove', 'damaged', 'integrity'];
 
 function createActivity(options) {
   var o = options || {};

@@ -302,3 +302,14 @@ ol.bo-help__list { list-style: decimal; }
 /* ---- export: actions right after the text ---- */
 .bo-export__card { grid-template-rows: none; }
 .bo-acc__compared { margin: 0; }
+
+/* Board round 2, X1: a category name never breaks inside a word ("Des/nud/ez"). The compact card
+   puts the status under the name instead of squeezing the name. */
+.bo-parents-row__name, .bo-preplay__cat, .bo-chip, .bo-range-row__title, .bo-level__legend, .bo-legend__label, .bo-panel .bo-tag {
+  overflow-wrap: normal; word-break: keep-all; hyphens: manual;
+}
+.bo-parents-row__name { white-space: nowrap; }
+.bo-parents-card--compact .bo-parents-row { grid-template-columns: 2.25rem minmax(0, 1fr); grid-template-areas: "icon name" "icon count" "icon meter"; }
+.bo-parents-card--compact .bo-parents-row__count { text-align: start; font-weight: var(--bo-fw-semibold); }
+/* Toasts stay under an open dialog (round 2, X6). */
+.bo-toast-region { z-index: calc(var(--bo-z-modal) - 1); }

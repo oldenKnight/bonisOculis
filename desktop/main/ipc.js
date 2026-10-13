@@ -19,6 +19,7 @@ var CHANNELS = {
   'library:add': { shape: { paths: 'paths' } },
   'library:pick': { shape: {} },
   'library:remove': { shape: { id: 'id' } },
+  'library:setLevels': { shape: { id: 'id', levels: 'levels?' } },
   'library:poster': { kid: true, shape: { id: 'id' } },
   'scan:queue': { shape: { id: 'id' } },
   'scan:pause': { shape: {} },
@@ -79,6 +80,9 @@ function checkType(type, v) {
     case 'count': return typeof v === 'number' && Math.floor(v) === v && v >= 1 && v <= 200;
     case 'boolean': return typeof v === 'boolean';
     case 'object': return isPlainObject(v);
+    case 'levels': return v === null || (isPlainObject(v) && Object.keys(v).length === 6 && ['nudity', 'sex', 'implied', 'kissing', 'gore', 'language'].every(function (c) {
+      return ['off', 'light', 'moderate', 'strict'].indexOf(v[c]) >= 0;
+    }));
     case 'paths': return Array.isArray(v) && v.length >= 1 && v.length <= 200 && v.every(function (p) { return typeof p === 'string' && p.length > 0 && p.length <= 4096; });
     case 'rangeIdList': return Array.isArray(v) && v.length <= 2000 && v.every(function (x) { return typeof x === 'string' && RE.rangeId.test(x); });
     case 'rangeIds': return v === 'all' || (Array.isArray(v) && v.length >= 1 && v.length <= 2000 && v.every(function (x) { return typeof x === 'string' && RE.rangeId.test(x); }));

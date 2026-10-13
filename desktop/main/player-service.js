@@ -237,7 +237,7 @@ function createPlayerService(options) {
     }
     if (!doc) { doc = skips.blank(id); }
     var s = settings.get();
-    var playDoc = buildPlaybackDoc(doc, { levels: s.levels, skipScenes: s.skipScenes, nonSkipAction: s.nonSkipAction });
+    var playDoc = buildPlaybackDoc(doc, enforce.settingsFor(item, s));
     var dir = playDir();
     var playFile = path.join(dir, id + '.play.bonis.json');
     var marksPath = path.join(dir, id + '.marks.jsonl');
@@ -282,21 +282,23 @@ function createPlayerService(options) {
     var doc = loaded.doc;
     if (!doc) { return { ok: true, data: { id: id, title: item.title, list: false, damaged: !!loaded.corrupt } }; }
     var s = settings.get();
-    var play = buildPlaybackDoc(doc, { levels: s.levels, skipScenes: s.skipScenes, nonSkipAction: s.nonSkipAction });
+    var play = buildPlaybackDoc(doc, enforce.settingsFor(item, s));
     var eff = {};
     play.ranges.forEach(function (r) { eff[r.id] = r.action; });
     var totals = { skipped: 0, covered: 0, muted: 0, letPlay: 0, below: 0 };
     var byCategory = {};
     doc.ranges.forEach(function (r) {
       var k;
-      if (r.review === 'rejected' || r.action === 'none') { k = r.review === 'rejected' ? 'letPlay' : 'below'; } else if (eff[r.id] === 'none') { k = 'below'; } else if (eff[r.id] === 'mute') { k = 'muted'; } else if (eff[r.id] === 'hide' || eff[r.id] === 'blur') { k = 'covered'; } else { k = 'skipped'; }
+      // What the player will do (the playback document), not the stored action: a pending scene
+      // stored as "none" is skipped when the level says so.
+      if (r.review === 'rejected') { k = 'letPlay'; } else if (eff[r.id] === 'none') { k = 'below'; } else if (eff[r.id] === 'mute') { k = 'muted'; } else if (eff[r.id] === 'hide' || eff[r.id] === 'blur') { k = 'covered'; } else { k = 'skipped'; }
       totals[k] += 1;
       var c = byCategory[r.category] = byCategory[r.category] || { skipped: 0, covered: 0, muted: 0, letPlay: 0, below: 0 };
       c[k] += 1;
     });
     return { ok: true, data: { id: id, title: item.title, list: true, damaged: false, status: item.status,
       complete: !!(doc.scan && doc.scan.status === 'complete'), pending: doc.ranges.filter(function (r) { return r.review === 'pending'; }).length,
-      totals: totals, byCategory: byCategory } };
+      totals: totals, byCategory: byCategory, perMovie: enforce.settingsFor(item, s).perMovie } };
   }
 
   function stop(cb) {

@@ -25,5 +25,15 @@
     return a === 'none' ? 'below' : a;
   }
 
-  BO.effective = { action: action, of: of, THRESHOLDS: THRESHOLDS };
+  var CATS = ['nudity', 'sex', 'implied', 'kissing', 'gore', 'language'];
+  function validLevels(v) { return !!v && CATS.every(function (c) { return ['off', 'light', 'moderate', 'strict'].indexOf(v[c]) >= 0; }); }
+
+  // Mirrors desktop/main/enforce.js settingsFor: a title's own "For this movie" levels, else the usual ones.
+  function settingsFor(item, s) {
+    var st = s || {};
+    var own = item && validLevels(item.levels) ? item.levels : null;
+    return { levels: own || st.levels, skipScenes: st.skipScenes, nonSkipAction: st.nonSkipAction, perMovie: !!own };
+  }
+
+  BO.effective = { action: action, of: of, settingsFor: settingsFor, THRESHOLDS: THRESHOLDS };
 }(typeof window !== 'undefined' ? window : this));

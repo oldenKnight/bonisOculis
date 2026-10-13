@@ -2,6 +2,15 @@
 
 bonis oculis checks a movie once, here on this computer, and writes down where the scenes you do not want are. When anyone presses Play, those scenes are skipped. Nothing is sent anywhere.
 
+## What you need {#requirements}
+
+- **Windows:** Windows 10 (version 1809 or later) or Windows 11, 64-bit.
+- **Mac with Apple Silicon** (M1 or later): macOS 14 Sonoma or later. Use the download whose name ends in **arm64**.
+- **Mac with Intel:** macOS 12 Monterey or later. Use the download whose name ends in **x64**. To see which Mac you have, open the Apple menu › **About This Mac**: it says **Chip** (Apple Silicon) or **Processor** (Intel).
+- At least **4 GB of memory** and **3 GB of free disk space**, plus room for any clean copies you make.
+- A computer with a video chip scans and makes clean copies faster. Without one it still works, only more slowly.
+- On computers from before about 2013, the checks that listen to the dialogue are skipped; the picture and the subtitles are still checked.
+
 ## Before you install {#install}
 
 This early version of bonis oculis is not signed by Apple or Microsoft yet, so your computer asks before it opens it the first time. You do this only once. bonis oculis never connects to the internet, so it is fine if your firewall blocks it.
@@ -154,7 +163,9 @@ Kodi is a free player that skips scenes by itself, using a small .edl file next 
 **Every time**
 
 12. Plug the stick into the TV. If the TV offers to format it, say no, as above.
-13. Open Kodi › **Videos** › **Files**, choose the stick, and play the movie. The listed scenes are skipped.
+13. Open Kodi. The first time, it asks to use the TV's storage: choose **Allow**.
+14. Go to **Videos** › **Files** › **Add videos…** › **Browse**, choose the USB stick by its name, then **OK**, and **OK** again. (Kodi on a Fire TV does not list the stick until you add it this way. You do this once per stick.)
+15. Open the stick under **Videos** › **Files** and play the movie. The listed scenes are skipped.
 
 > A Kodi list follows the copy of the movie it was made for. If you use a different copy of the movie, scan that copy instead.
 

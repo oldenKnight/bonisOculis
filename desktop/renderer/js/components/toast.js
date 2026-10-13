@@ -78,5 +78,8 @@
     show({ kind: 'error', title: BO.t(key + '.title'), text: BO.t(key + '.text') });
   }
 
-  BO.toast = { show: show, fromMain: fromMain, error: error };
+  // Removes every toast at once (lock: a parent's messages never reach the kids' screen; X5).
+  function clearAll() { var r = region(); waiting.length = 0; if (r) { BO.clear(r); } }
+
+  BO.toast = { show: show, fromMain: fromMain, error: error, clearAll: clearAll };
 }(window));

@@ -44,7 +44,7 @@ function render(md) {
   }
   function flushList() {
     if (list) {
-      html.push('<' + list.tag + ' class="bo-help__list">' + list.items.map(function (it) { return '<li>' + inline(it) + '</li>'; }).join('') + '</' + list.tag + '>');
+      html.push('<' + list.tag + ' class="bo-help__list"' + (list.start > 1 ? ' start="' + list.start + '"' : '') + '>' + list.items.map(function (it) { return '<li>' + inline(it) + '</li>'; }).join('') + '</' + list.tag + '>');
       list = null;
     }
   }
@@ -91,7 +91,8 @@ function render(md) {
     if ((m = /^\s*[-*]\s+(.*)$/.exec(line)) || (m = /^\s*\d+[.)]\s+(.*)$/.exec(line))) {
       flushPara();
       var tag = /^\s*\d/.test(line) ? 'ol' : 'ul';
-      if (!list || list.tag !== tag) { flushList(); list = { tag: tag, items: [] }; }
+      // A numbered list keeps its first number (steps 3-5 after a heading stay 3-5).
+      if (!list || list.tag !== tag) { flushList(); list = { tag: tag, items: [], start: tag === 'ol' ? parseInt(/\d+/.exec(line)[0], 10) : 1 }; }
       list.items.push(m[1]);
       i++;
       continue;
