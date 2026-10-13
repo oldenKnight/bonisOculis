@@ -266,3 +266,15 @@ test('first-launch files: both languages rendered as plain text with the help\'s
   assert.ok(ci.indexOf('-c.mac.minimumSystemVersion=14.0') > 0, 'Apple Silicon build needs macOS 14');
   fs.rmSync(out, { recursive: true, force: true });
 });
+
+test('player lock: the sha256 of player/bonis.lua that integrity.js checks, shipped by electron-builder', function () {
+  var pl = require('../../tools/make-player-lock.js');
+  var out = path.join(fs.mkdtempSync(path.join(os.tmpdir(), 'bonis-player-lock-')), 'player.lock.json');
+  var lock = pl.make(out);
+  var buf = fs.readFileSync(path.join(ROOT, 'player', 'bonis.lua'));
+  assert.strictEqual(lock.files['bonis.lua'].sha256, require('crypto').createHash('sha256').update(buf).digest('hex'));
+  assert.deepStrictEqual(JSON.parse(fs.readFileSync(out, 'utf8')), lock);
+  var yml = fs.readFileSync(path.join(ROOT, 'electron-builder.yml'), 'utf8');
+  assert.ok(/from: build\/player\.lock\.json\s+#[^\n]*\n\s+to: player\/player\.lock\.json/.test(yml), 'copied next to bonis.lua');
+  assert.ok(fs.readFileSync(path.join(ROOT, '.github', 'workflows', 'build.yml'), 'utf8').indexOf('node tools/make-player-lock.js build/player.lock.json') > 0, 'made in CI');
+});

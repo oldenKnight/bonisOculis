@@ -245,14 +245,19 @@ function main() {
   makeVideo(garden, 20, 25);
   var lake = path.join(MOVIES, 'Lake Day.mp4');
   makeVideo(lake, 12, 25);
-  // A bundled-files tree with one damaged model (board review A9: verified at first run).
+  // A bundled-files tree (board A9, security round 2 N3). At first run one licence text is damaged:
+  // the banner names it but nothing stops. Later a model is damaged and "Check installed files"
+  // finds it: scans stop.
   var RES = path.join(WORK, 'resources');
   fs.mkdirSync(path.join(RES, 'models'), { recursive: true });
+  fs.mkdirSync(path.join(RES, 'bin', 'licenses'), { recursive: true });
   fs.writeFileSync(path.join(RES, 'models', 'good.onnx'), 'good model bytes');
-  fs.writeFileSync(path.join(RES, 'models', 'nsfw-vit-int8.onnx'), 'changed model bytes');
+  fs.writeFileSync(path.join(RES, 'models', 'nsfw-vit-int8.onnx'), 'original model bytes');
+  fs.writeFileSync(path.join(RES, 'bin', 'licenses', 'GPL-3.0.txt'), 'changed licence');
   var sha = function (t) { return require('crypto').createHash('sha256').update(t).digest('hex'); };
   fs.writeFileSync(path.join(RES, 'models', 'manifest.json'), JSON.stringify({ files: [
-    { file: 'good.onnx', sha256: sha('good model bytes'), size: 16 }, { file: 'nsfw-vit-int8.onnx', sha256: sha('original model bytesXX'), size: 19 }] }));
+    { file: 'good.onnx', sha256: sha('good model bytes'), size: 16 }, { file: 'nsfw-vit-int8.onnx', sha256: sha('original model bytes'), size: 20 }] }));
+  fs.writeFileSync(path.join(RES, 'bin', 'binaries.lock.json'), JSON.stringify({ files: { 'licenses/GPL-3.0.txt': { sha256: sha('the licence'), size: 11 } } }));
   log('fixtures ready');
   var env = {};
   Object.keys(process.env).forEach(function (k) { env[k] = process.env[k]; });
@@ -289,6 +294,16 @@ function main() {
     function () { return page.textContent('.bo-code__value').then(function (t) { recovery = t; assert.match(t, /^[0-9A-Z]{4}-[0-9A-Z]{4}-[0-9A-Z]{4}$/); }); },
     function () { return page.isDisabled('[data-action="code-continue"]').then(function (d) { assert.ok(d, 'Continue waits for "I wrote it down"'); }); },
     shot('es-light-setup-3-code'),
+    // round 3, N2.2: the code can be saved as a text file (to print or keep)
+    function () {
+      return app.evaluate(function (electron, f) { electron.dialog.showSaveDialog = function () { return Promise.resolve({ canceled: false, filePath: f }); }; }, path.join(WORK, 'recovery.txt'));
+    },
+    click('[data-action="save-code"]'),
+    waitText('Se guardó el código de recuperación'),
+    function () {
+      var t = fs.readFileSync(path.join(WORK, 'recovery.txt'), 'utf8');
+      assert.ok(t.indexOf(recovery) > 0 && t.indexOf('Olvidé mi PIN') > 0, 'the code and what to do with it');
+    },
     click('.bo-code .bo-switch'),
     click('[data-action="code-continue"]'),
     waitText('¿Cuánto debemos omitir?'),
@@ -312,7 +327,7 @@ function main() {
     noHorizontalScroll('library'),
     waitSel('[data-banner="integrity"]'),
     waitText('Requiere atención: un archivo incluido está dañado.'),
-    waitText('models/nsfw-vit-int8.onnx'),
+    waitText('bin/licenses/GPL-3.0.txt'),
     shot('es-light-library-integrity'),
     // ---- review
     function () { return page.click('.bo-title-card[data-id="' + ids['Family Picnic'] + '"] [data-act="review"]'); },
@@ -320,6 +335,21 @@ function main() {
     function () { return page.$$eval('.bo-range', function (n) { return n.length; }).then(function (n) { assert.strictEqual(n, 3, 'three ranges on the timeline'); }); },
     waitFor(function () { return document.querySelectorAll('.bo-strip-tile__img').length >= 20; }, null, 30000),
     shot('es-light-review-overview'),
+    // round 3, P3: a strength filter on the list (fake scan: nudity strong, gore moderate, kissing mild)
+    click('[data-intensity="strong"]'),
+    waitFor(function () { return document.querySelectorAll('.bo-range-list .bo-range-row').length === 1; }),
+    click('[data-intensity="moderate"]'),
+    waitFor(function () { return document.querySelectorAll('.bo-range-list .bo-range-row').length === 2; }),
+    shot('es-light-review-filter'),
+    click('[data-intensity="all"]'),
+    waitFor(function () { return document.querySelectorAll('.bo-range-list .bo-range-row').length === 3; }),
+    // round 3, N3: "?" opens the key sheet
+    function () { return page.focus('[data-act="back"]'); },
+    press('?'),
+    waitSel('.bo-modal .bo-hotkeys'),
+    waitText('Escena siguiente o anterior'),
+    sleep(300), shot('es-light-key-sheet'),
+    press('Escape'), noModal(),
     // round 2, X2: nobody has checked this yet, and the card says so
     waitSel('.bo-parents-card__footer [data-footer="unchecked"]'),
     waitText('ningún adulto las ha revisado todavía'),
@@ -546,6 +576,16 @@ function main() {
       steps.push(go('library'), sleep(500), shot(p + 'library'), noHorizontalScroll(p + 'library'));
       steps.push(function () { return page.click('.bo-title-card[data-id="' + ids['Family Picnic'] + '"] [data-act="more"]'); }, sleep(150), shot(p + 'library-menu'), press('Escape'));
       steps.push(go('review', function () { return { id: ids['River Trip'] }; }), waitSel('.bo-range'), sleep(600), shot(p + 'review-overview'), noHorizontalScroll(p + 'review'), namesWhole(p + 'review'));
+      // round 3, N2.6: at 1024x640 at least three scene rows are fully visible
+      steps.push(function () {
+        return page.evaluate(function () {
+          var box = document.querySelector('.bo-review__list').getBoundingClientRect();
+          return Array.prototype.filter.call(document.querySelectorAll('.bo-range-list .bo-range-row'), function (r) {
+            var b = r.getBoundingClientRect();
+            return b.top >= box.top - 1 && b.bottom <= box.bottom + 1 && b.bottom <= window.innerHeight;
+          }).length;
+        }).then(function (n) { assert.ok(n >= 3, 'scene rows visible at 1024x640: ' + n); });
+      });
       steps.push(function () { return page.click(rangeSel(0)); }, waitSel('.bo-panel .bo-thumb'), sleep(200), shot(p + 'review-panel'), noHorizontalScroll(p + 'review-panel'));
       // round 2, P9: the scan ran in Spanish; the note follows the UI language
       steps.push((function (lang) {
@@ -574,6 +614,14 @@ function main() {
     });
   });
 
+  // ---- round 3, N-R4: a toast follows a language change instead of staying in the old language
+  steps.push(setLang('es-MX'), go('library'), sleep(200),
+    evaluate(function () { window.BO.toast.error('notFound'); }),
+    waitText('No encontramos esa película'),
+    setLang('en-US'),
+    waitFor(function () { var t = document.getElementById('toasts').textContent; return t.indexOf('We could not find that movie') >= 0 && t.indexOf('No encontramos') < 0; }),
+    evaluate(function () { window.BO.toast.clearAll(); }), setLang('es-MX'));
+
   // ---- a wide window too
   steps.push(setLang('es-MX'), setTheme('light'), resize(1600, 1000), go('library'), sleep(500), shot('es-light-1600-library'),
     go('review', function () { return { id: ids['River Trip'] }; }), waitSel('.bo-range'), sleep(500), function () { return page.click(rangeSel(0)); }, sleep(300), shot('es-light-1600-review'),
@@ -589,14 +637,15 @@ function main() {
     go('review', function () { return { id: ids['River Trip'] }; }), waitSel('.bo-range'),
     click('[data-act="movie-levels"]'),
     waitSel('.bo-modal .bo-level[data-category="kissing"]'),
-    function () { return page.click('.bo-modal .bo-level[data-category="kissing"] .bo-segmented__opt--light'); },
+    function () { return page.click('.bo-modal .bo-level[data-category="kissing"] .bo-segmented__opt--off'); },
     sleep(200), shot('es-light-movie-levels'),
     click('.bo-modal [data-action="save-levels"]'),
     waitFor(function () { var b = document.querySelector('[data-act="movie-levels"]'); return b && b.getAttribute('aria-pressed') === 'true'; }),
     waitSel('.bo-range-row [data-below]'),
+    waitText('Besos está desactivado para esta película: se verá a menos que la omitas'),
     invoke('library:list', {}, function (r) {
       var it = r.data.filter(function (x) { return x.id === ids['River Trip']; })[0];
-      assert.strictEqual(it.levels.kissing, 'light', 'kept in the library entry');
+      assert.strictEqual(it.levels.kissing, 'off', 'kept in the library entry');
     }),
     invoke('settings:get', {}, function (r) { assert.strictEqual(r.data.levels.kissing, 'strict', 'the usual levels did not change'); }),
     shot('es-light-review-movie-levels'),
@@ -604,6 +653,15 @@ function main() {
     click('.bo-modal [data-action="use-usual"]'),
     waitFor(function () { var b = document.querySelector('[data-act="movie-levels"]'); return b && b.getAttribute('aria-pressed') === 'false'; }),
     function () { return page.$('.bo-range-row [data-below]').then(function (n) { assert.strictEqual(n, null, 'usual levels again'); }); },
+    // round 3, N-R6: Send to TV with scenes still waiting: every button above the fold in Spanish
+    go('export', function () { return { id: ids['River Trip'] }; }), sleep(400),
+    waitSel('[data-banner="waiting"]'),
+    function () {
+      return page.evaluate(function () {
+        return ['export-clean', 'export-edl', 'export-json'].map(function (a) { var n = document.querySelector('[data-act="' + a + '"]'); return n ? Math.round(n.getBoundingClientRect().bottom) : 9999; });
+      }).then(function (b) { b.forEach(function (y) { assert.ok(y <= 640, 'button bottom ' + y + ' within 640'); }); });
+    },
+    shot('es-light-export-waiting'),
     go('library'), sleep(300),
     invoke('library:add', { paths: [garden, lake] }, function (r) { assert.strictEqual(r.data.added.length, 2); ids.garden = r.data.added[0]; ids.lake = r.data.added[1]; }),
     function () { return poll(function (id) { var c = document.querySelector('.bo-title-card[data-id="' + id + '"]'); return c && c.getAttribute('data-status') === 'needsReview'; }, ids.lake, 40000); },
@@ -682,8 +740,32 @@ function main() {
         assert.strictEqual(types[0], 'approveClean', 'newest first');
       });
     },
-    waitText('Un archivo incluido no coincidió: models/nsfw-vit-int8.onnx'),
+    waitText('Un archivo incluido no coincidió: bin/licenses/GPL-3.0.txt'),
     shot('es-light-activity-log'),
+    // round 3, P2: "I trust the automatic list" is what the card says
+    go('review', function () { return { id: ids['River Trip'] }; }), waitSel('.bo-range'),
+    click('[data-act="mark-reviewed"]'),
+    waitSel('.bo-modal [data-action="trusted"]'),
+    sleep(300), shot('es-light-mark-reviewed'),
+    click('.bo-modal [data-action="trusted"]'),
+    waitSel('.bo-parents-card__footer [data-footer="trusted"]'),
+    waitText('Lista automática, aceptada por ti el'),
+    // round 3, X8: a list damaged on disk shows "Needs attention" as soon as the library shows
+    go('settings'), sleep(200),
+    function () { [path.join(UD, 'library', ids['River Trip'] + '.bonis.json'), path.join(UD, 'library', ids['River Trip'] + '.bonis.json.bak')].forEach(function (f) { fs.writeFileSync(f, '{ damaged'); }); },
+    go('library'),
+    function () { return poll(function (id) { var c = document.querySelector('.bo-title-card[data-id="' + id + '"]'); return c && c.getAttribute('data-status') === 'needsAttention' && c.textContent.indexOf('lista de escenas dañada') >= 0; }, ids['River Trip'], 10000); },
+    // security round 2, N3: a damaged model found by "Check installed files" stops scans
+    function () { fs.writeFileSync(path.join(RES, 'models', 'nsfw-vit-int8.onnx'), 'changed model bytes!'); },
+    go('settings', { section: 'about' }), sleep(300),
+    click('[data-act="check-files"]'),
+    waitText('models/nsfw-vit-int8.onnx no coincide'),
+    sleep(200), shot('es-light-settings-check-files'),
+    invoke('scan:queue', function () { return { id: ids['River Trip'] }; }),
+    function () { return poll(function (id) { var it = (window.BO.store.get('library') || []).filter(function (x) { return x.id === id; })[0]; return it && it.status === 'needsAttention' && it.error === 'bundleDamaged'; }, ids['River Trip'], 15000); },
+    function () { fs.writeFileSync(path.join(RES, 'models', 'nsfw-vit-int8.onnx'), 'original model bytes'); fs.writeFileSync(path.join(RES, 'bin', 'licenses', 'GPL-3.0.txt'), 'the licence'); },
+    click('[data-act="check-files"]'),
+    waitText('coinciden con las copias'),
     // decision 10: auto-relock after the chosen minutes, with a 30 s warning
     go('settings', { section: 'pin' }), sleep(300),
     function () { return page.selectOption('[data-setting="autoLockMinutes"]', '5'); },
@@ -701,8 +783,8 @@ function main() {
     sleep(1500),
     invoke('pin:status', {}, function (r) { assert.ok(!r.data.locked, 'not while the movie plays'); }),
     evaluate(function () { window.BO.idle._setLast(Date.now() - 6 * 60000); }),
-    // the movie ends by itself (no click in the app: a click would count as a parent being there)
-    invoke('player:stop', {}),
+    // round 3, N-R1: the app's Stop button: the time ran out during the movie, so it locks first
+    click('[data-act="stop"]'),
     waitSel('[data-view="kid"]:not([hidden])', { timeout: 20000 }),
     invoke('pin:status', {}, function (r) { assert.ok(r.data.locked, 'locked as soon as the movie ended'); }),
     click('[data-act="parent"]'),

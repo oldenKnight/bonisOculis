@@ -488,3 +488,72 @@ test('player crashes go to the activity log', function (t, done) {
     done();
   });
 });
+
+/* ------------------------------------------------------------------ round 3 */
+
+test('a damaged bundled file stops what depends on it: models and ffmpeg stop scans, mpv and bonis.lua stop the player', function (t, done) {
+  var integrity = require('../main/integrity.js');
+  assert.deepStrictEqual(integrity.blocks({ damaged: [{ file: 'models/nsfw-vit-int8.onnx' }] }), { scan: true, play: false });
+  assert.deepStrictEqual(integrity.blocks({ damaged: [{ file: 'bin/mpv.exe' }] }), { scan: false, play: true });
+  assert.deepStrictEqual(integrity.blocks({ damaged: [{ file: 'player/bonis.lua' }] }), { scan: false, play: true });
+  assert.deepStrictEqual(integrity.blocks({ damaged: [{ file: 'bin/licenses/GPL-3.0.txt' }] }), { scan: false, play: false });
+  var s = setup('brd-bundle', doc([{ start: 10, end: 20, review: 'approved' }]));
+  var blocked = true;
+  var svc = createPlayerService({
+    createPlayer: fakePlayer([]), paths: s.paths, settings: s.settings, library: s.library, skips: s.skips,
+    supervisor: { setPlayerOpen: function () {} }, blocked: function () { return blocked; }
+  });
+  svc.play(ITEM.id, {}, function (e, r) {
+    assert.deepStrictEqual(r, { ok: false, error: 'bundleDamaged' });
+    svc.play(ITEM.id, { kidMode: true }, function (e2, r2) {
+      assert.strictEqual(r2.error, 'kidRefused');
+      var sup = require('../main/scanner-supervisor.js').createSupervisor({ store: s.store, library: s.library, skips: s.skips, paths: s.paths, settings: s.settings,
+        spawn: function () { throw new Error('must not spawn'); }, emit: function () {}, blocked: function () { return true; } });
+      sup.load();
+      sup.enqueue(ITEM.id);
+      setTimeout(function () {
+        var it = s.library.get(ITEM.id);
+        assert.strictEqual(it.status, 'needsAttention');
+        assert.strictEqual(it.error, 'bundleDamaged');
+        sup.shutdown(function () { done(); });
+      }, 50);
+    });
+  });
+});
+
+test('the integrity check runs again for another resources folder, and checks bonis.lua from its lock file', function (t, done) {
+  var res = h.tmpDir('brd-integ-res');
+  fs.mkdirSync(path.join(res, 'player'), { recursive: true });
+  fs.writeFileSync(path.join(res, 'player', 'bonis.lua'), '-- player');
+  fs.writeFileSync(path.join(res, 'player', 'player.lock.json'), JSON.stringify({ files: { 'bonis.lua': { sha256: require('crypto').createHash('sha256').update('-- original').digest('hex'), size: 11 } } }));
+  var s = setup('brd-integ', null);
+  var integrity = require('../main/integrity.js');
+  var ig = integrity.createIntegrity({ resources: res, settings: s.settings, version: '1.0.0', pauseMs: 0 });
+  ig.run(false, function (e, r) {
+    assert.deepStrictEqual(r.damaged, [{ file: 'player/bonis.lua', reason: 'size' }]);
+    assert.strictEqual(integrity.blocks(r).play, true);
+    var other = integrity.createIntegrity({ resources: h.tmpDir('brd-integ-res2'), settings: s.settings, version: '1.0.0', pauseMs: 0 });
+    assert.strictEqual(other.needed(), true, 'a different resources folder is checked again');
+    assert.strictEqual(ig.needed(), false);
+    done();
+  });
+});
+
+test('"Mark as fully reviewed" records how: looked at every scene, or accepted the automatic list', function () {
+  var s = setup('brd-review-mode', doc([{ start: 10, end: 20 }]));
+  assert.ok(s.skips.markReviewed(ITEM.id, 'trusted').ok);
+  assert.strictEqual(s.library.get(ITEM.id).reviewMode, 'trusted');
+  assert.strictEqual(s.library.get(ITEM.id).status, 'protected');
+  var s2 = setup('brd-review-mode2', doc([{ start: 10, end: 20 }]));
+  assert.ok(s2.skips.markReviewed(ITEM.id, 'looked').ok);
+  assert.strictEqual(s2.library.get(ITEM.id).reviewMode, 'looked');
+});
+
+test('a level that is Off is counted as "off", not "below your level"', function () {
+  var s = setup('brd-off', doc([{ start: 10, end: 20, category: 'kissing', confidence: 0.9 }]));
+  s.library.update(ITEM.id, { levels: { nudity: 'strict', sex: 'strict', implied: 'strict', kissing: 'off', gore: 'strict', language: 'strict' } });
+  var svc = service(s, [], []);
+  var pv = svc.preview(ITEM.id).data;
+  assert.strictEqual(pv.totals.off, 1);
+  assert.strictEqual(pv.totals.below, 0);
+});

@@ -53,10 +53,12 @@
   }
 
   // Round 3, N3: the keys of the review screen, for the "?" sheet.
+  function cap(t) { return t.charAt(0).toUpperCase() + t.slice(1); }
+
   function review() {
     return BO.el('div', { 'class': 'bo-hotkeys' }, [group('keys.review', [
-      row([['S']], BO.t('review.key.skip')),
-      row([['L']], BO.t('review.key.letPlay')),
+      row([['S']], cap(BO.t('review.key.skip'))),
+      row([['L']], cap(BO.t('review.key.letPlay'))),
       row([['N'], ['P']], BO.t('keys.nextPrev')),
       row([[BO.icon('chevron-left')], [BO.icon('chevron-right')]], BO.t('keys.edge')),
       row([[BO.t('keys.shift'), BO.icon('chevron-right')]], BO.t('keys.edgeBig')),
