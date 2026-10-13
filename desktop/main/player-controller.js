@@ -13,6 +13,7 @@ var path = require('path');
 
 var CONNECT_TIMEOUT_MS = 5000;
 var CONNECT_RETRY_MS = 100;
+var CONNECT_GIVEUP_MS = 30000;
 var STOP_KILL_MS = 2000;
 var CRASH_WINDOW_MS = 60000;
 var KID_REFUSED_EXIT = 3;
@@ -265,11 +266,17 @@ function createPlayer(options) {
       sock.on('error', function (err) {
         if (launch.sock === sock) { log.warn('ipc error', err && err.code); return; }
         sock.destroy();
-        if (Date.now() - started >= CONNECT_TIMEOUT_MS) {
+        var waited = Date.now() - started;
+        if (waited >= CONNECT_GIVEUP_MS) {
           done(new Error('ipc connect timeout'));
           return;
         }
-        launch.retryTimer = setTimeout(attempt, CONNECT_RETRY_MS);
+        if (waited >= CONNECT_TIMEOUT_MS && !launch.slowWarned) {
+          // A cold first start (font cache build) can take longer; keep trying while mpv lives.
+          launch.slowWarned = true;
+          log.warn('mpv IPC not up after ' + CONNECT_TIMEOUT_MS + ' ms; still waiting');
+        }
+        launch.retryTimer = setTimeout(attempt, waited >= CONNECT_TIMEOUT_MS ? 250 : CONNECT_RETRY_MS);
       });
       sock.on('close', function () {
         if (launch.sock === sock) {

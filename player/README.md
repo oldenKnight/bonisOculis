@@ -35,24 +35,17 @@ because adding a filter re-initialises the video chain) until `end` (exclusive).
 
 | action | effect | restored |
 |---|---|---|
-| `skip` | screen covered + muted, `seek <end> absolute+exact`, OSD "Scene skipped" | when playback restarts outside |
-| `hide` | full-window black ASS overlay + `mute=yes` + subtitles hidden | at `end` |
+| `skip` | screen covered + muted, `seek <end> absolute+exact`, OSD "Scene skipped" + the panic hint (2 s) | when playback restarts outside |
+| `hide` | full-window black ASS overlay with a small grey "Hidden" / "Oculto" label + `mute=yes` + subtitles hidden | at `end` |
 | `blur` | `vf add @bo-blur:lavfi=[scale=iw/24:-2:flags=area,scale=iw*24:-2:flags=neighbor]` + mute, both from `start - 0.5 s` | at `end` (filter removed) |
 | `mute` | `mute=yes` | at `end` |
 
 - Enforcement runs on every `time-pos` change, on the `seek` event (at that moment `time-pos`
   already holds the seek target, so a seek into a skip range is re-targeted before a single frame
   of it is decoded) and on `playback-restart`.
-- Kid mode intercepts seeks before they happen: every key whose binding (read from mpv's
-  `input-bindings`) is a seek-like command — `seek` (relative, absolute, percent), chapter steps,
-  `frame-step` / `frame-back-step` — is rebound to a script-side seek. The script computes the
-  target and, if it falls inside an enforced range, asks mpv for the range end (forward) or
-  `start - 1 s` (backward) instead, with `absolute+exact`. With mpv 0.37 defaults that covers
-  LEFT/RIGHT/UP/DOWN, their Shift variants, Shift+PGUP/PGDWN, PGUP/PGDWN (chapters),
-  WHEEL_LEFT/WHEEL_RIGHT, FORWARD/REWIND and `.`/`,` (25 keys; WHEEL_UP/DOWN are volume in 0.37).
-  `sub-seek`, `revert-seek` and `ab-loop` keys do nothing in kid mode, and the on-screen
-  controller is hidden (`osc-visibility never`) because its seek bar cannot be intercepted.
-  `set-kidmode 0` restores the default keys and the controller.
+- Seek keys are intercepted before mpv seeks (both modes): the script computes the target and, if
+  it falls inside an enforced range, asks mpv for the range end (forward) or `start - 1 s`
+  (backward) instead, with `absolute+exact`. No keyboard seek lands inside a range.
 - Post-hoc rules (the safety net, for seeks the script cannot intercept: IPC, other scripts):
   backward seeks landing in a range go to `start - 1 s` in parent mode and to the range end in
   kid mode.
@@ -67,18 +60,55 @@ because adding a filter re-initialises the video chain) until `end` (exclusive).
 - Overlapping ranges combine: skip wins; otherwise black if any hide, mute if any range mutes.
 - Lookup is O(log n): ranges sorted by start with a prefix maximum of ends.
 
-## Keys
+## Locked-down launch and keys
+
+The app starts mpv so that **only the keys below do anything** (`desktop/main/player-controller.js`):
+`--input-default-bindings=no --input-conf=player/input.conf` (an intentionally empty file)
+`--no-input-terminal --osc=no --load-scripts=no --load-osd-console=no --load-stats-overlay=no`
+`--load-auto-profiles=no --ytdl=no --screenshot-directory=<player/input.conf>/no-screenshots`
+(a directory under a regular file can never be created, so every `screenshot` command fails), and
+the IPC socket in a fresh 0700 directory. `--load-scripts=no` alone does not stop mpv's bundled
+console and stats scripts; the two `--load-*` flags do.
 
 | key | mode | effect |
 |---|---|---|
+| `SPACE` | both | Pause / play. |
+| `←` `→` / `↑` `↓` | both | Seek ∓5 s / ±60 s (intercepted, see above). |
+| `Shift+←` `Shift+→` / `Shift+↑` `Shift+↓` | both | Seek ∓1 s / ±5 s (intercepted). |
+| `PGUP` / `PGDWN` | both | Next / previous chapter (intercepted; nothing without chapters). |
+| `Shift+PGUP` / `Shift+PGDWN` | both | Seek ±10 min (intercepted). |
+| `f`, `ENTER`, double click | both | Toggle fullscreen (`ENTER` ends panic while hidden). |
+| `m` | both | Mute toggle. Inside a range the range keeps the sound off; the key changes what is restored when the range ends (OSD says so). |
+| `9` / `0` | both | Volume −2 / +2. |
+| `ESC` | both | Leave fullscreen. When windowed: quit (parent), nothing (kid). |
+| `q`, window close button | parent | Quit. In kid mode nothing: only the app can stop playback. |
 | `i` | parent | Mark in at the current time. OSD "Mark set at 00:01:23". |
 | `o` | parent | Mark out: creates a range (`category other`, `source manual`, `review pending`, `action skip`, `confidence 1`), appends it to the marks file, sends `mark`. |
 | `u` | parent | Undo: drops a pending mark-in, else the last completed mark (writes and sends `undo`). |
 | `p` / `Ctrl+Space` | both | Panic phase 1: black + mute at once. Phase 2 (same key again, or `Enter`): restore, save the range `[pressed - leadin, now]`, `source panic`, `review approved`, `action skip`. The range is also enforced for the rest of the session. |
 | `→` | while panic-hidden | Seek +10 s without OSD (jumps past any enforced range it would land in). |
 
+Everything else does nothing, including mpv's screenshot keys (`s`, `S`, `Ctrl+s`, `Alt+s`), the
+console (`` ` ``), stats (`I`), track, speed, zoom, colour, subtitle, loop, playlist and quit-variant
+keys, wheel and media keys. `test/lockdown.test.js` injects all of them over IPC inside a hide range
+and inside a panic cover and checks that no property, file or process changes.
+
 In kid mode `i`/`o`/`u` show "Not available in kid mode" and do nothing. Mark times are written in
 the skip file's own timeline (`media.offset` subtracted), with 3 decimals.
+
+At every file start the OSD shows "Press P to hide the picture at once" / "Presiona P para ocultar
+la imagen" (one language, from `lang`) for 4 s, and again for 2 s with "Scene skipped" after every
+automatic skip. The last OSD text is mirrored in the property `user-data/bonis-osd`.
+
+### Residual risk: `screenshot-to-file` and `screenshot-raw`
+
+The black cover is an OSD overlay, so the decoded frame underneath is the real picture. The
+`screenshot` command always fails (see above), but mpv cannot disable the IPC commands
+`screenshot-to-file <path>` and `screenshot-raw`: they write or return the real frame. They are
+reachable only through the IPC socket, which sits in a 0700 directory owned by the user who runs
+the app. Anything that can use that socket runs as the same user and can read the movie file itself,
+so this is not an escalation, but it means a cover is not a guarantee against software on the same
+account.
 
 ## Messages to the app
 
