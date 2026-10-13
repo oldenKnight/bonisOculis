@@ -213,7 +213,8 @@ M6  Extension: subtitle pre-read + skip-file import ............... DONE 2026-10
 M7  Analyzer v2: audio + captions + fusion tuning + profiling ...... DONE 2026-10-12 (reviewed)
 M8  Extension live-audio mode ..................................... DONE 2026-10-12 (reviewed)
 M9a Packaging + CI ................................................ DONE 2026-10-12 (reviewed; Linux-verified)
-M9b Board review pass + fixes ...................................... in progress
+M9b Board round 1 FAILED (both halves); fixes landed for app, player, clean copy, model;
+    analyzer hardening (telemetry/gating/resume/pause/pins) in flight; round 2 started 2026-10-13
 
 ## Handoff note
 Nothing is built. Repo layout proposed for M1: desktop/ (Electron, ES5 IIFE modules), analyzer/
