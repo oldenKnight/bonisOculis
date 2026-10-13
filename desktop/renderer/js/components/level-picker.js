@@ -12,6 +12,7 @@
     var inputs = {};
     var fs = BO.el('fieldset', { 'class': 'bo-level bo-cat--' + cat, data: { category: cat } });
     fs.appendChild(BO.el('legend', { 'class': 'bo-level__legend' }, [BO.icon('cat-' + cat), BO.t('cat.' + cat)]));
+    fs.appendChild(BO.el('p', { 'class': 'bo-level__def', text: BO.t('cat.' + cat + '.def') }));
     LEVELS.forEach(function (lv) {
       var input = BO.el('input', { 'class': 'bo-level__input bo-level__input--' + lv, type: 'radio', id: name + '-' + lv, attrs: { name: name, value: lv } });
       input.checked = o.value === lv;

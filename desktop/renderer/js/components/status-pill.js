@@ -6,6 +6,10 @@
   function create(item, scan) {
     var st = item.status;
     var cls, iconName, words, progress = null, spin = false;
+    if (item.panicUnseen && st !== 'scanning' && st !== 'queued') {
+      // Planner decision 3: a moment hidden during playback stays visible until the parent looks.
+      return BO.el('span', { 'class': 'bo-pill bo-pill--attention', data: { status: st, panic: '' } }, [BO.icon('panic'), BO.el('span', { text: BO.t('status.panicUnseen') })]);
+    }
     if (st === 'scanning' || st === 'queued') {
       var running = scan && scan.running === item.id;
       var pct = Math.round(((running ? scan.p : item.progress) || 0) * 100);
@@ -24,13 +28,13 @@
       }
     } else if (st === 'needsReview') {
       cls = 'review'; iconName = 'eye';
-      words = item.pending ? BO.tn('status.toReview', item.pending) : BO.t('status.needsReview');
+      words = item.pending ? BO.tn('status.toReview', item.pending) : BO.t(item.cleanPending ? 'status.cleanPending' : 'status.needsReview');
     } else if (st === 'protected') {
       cls = 'protected'; iconName = 'shield-check';
       words = BO.tn('status.protected', item.enforced || 0);
     } else if (st === 'needsAttention') {
       cls = 'attention'; iconName = 'alert';
-      words = BO.t('status.attention');
+      words = BO.t(item.error === 'skipCorrupt' ? 'status.damaged' : 'status.attention');
     } else {
       cls = 'not-scanned'; iconName = 'scan';
       words = BO.t('status.notScanned');

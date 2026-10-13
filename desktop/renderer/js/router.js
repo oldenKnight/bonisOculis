@@ -4,7 +4,7 @@
 (function (window) {
   'use strict';
   var BO = window.BO;
-  var SHELL_VIEWS = ['library', 'settings', 'export', 'help', 'accuracy'];
+  var SHELL_VIEWS = ['library', 'settings', 'export', 'help', 'accuracy', 'activity'];
   var current = null;
   var currentParams = null;
   var inited = {};

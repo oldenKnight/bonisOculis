@@ -237,3 +237,68 @@ ol.bo-help__list { list-style: decimal; }
 .bo-acc__defs { display: grid; grid-template-columns: minmax(7rem, auto) minmax(0, 1fr); gap: var(--bo-space-2) var(--bo-space-4); margin: 0; }
 .bo-acc__defs dt { font-weight: var(--bo-fw-bold); }
 .bo-acc__defs dd { margin: 0; color: var(--bo-text-2); }
+
+/* ---- toasts: bottom-left of the content, click-through except their own buttons (planner 5) ---- */
+.bo-app { --bo-rail-w: 6rem; }
+.bo-toast-region { inset-inline-end: auto; inset-inline-start: var(--bo-gutter); width: min(24rem, calc(100vw - 2 * var(--bo-gutter))); }
+#shell:not([hidden]) ~ .bo-toast-region { inset-inline-start: calc(var(--bo-sidebar-w) + var(--bo-gutter)); }
+.bo-toast { pointer-events: none; }
+.bo-toast button, .bo-toast a { pointer-events: auto; }
+
+/* ---- rail at 1024-1100 px: icons keep a small label, so "Lock for kids" can be found ---- */
+@container bo-app (max-width: 1100px) {
+  .bo-shell { grid-template-columns: var(--bo-rail-w) minmax(0, 1fr); }
+  #shell .bo-drawer--dock { inset-inline-start: var(--bo-rail-w); }
+  #shell:not([hidden]) ~ .bo-toast-region { inset-inline-start: calc(var(--bo-rail-w) + var(--bo-gutter)); }
+  .bo-sidebar { padding-inline: var(--bo-space-1); }
+  .bo-sidebar .bo-nav__item { flex-direction: column; gap: 0.125rem; padding: var(--bo-space-2) 0.125rem; min-height: 3.5rem; }
+  .bo-sidebar .bo-nav__label { position: static; width: auto; height: auto; overflow: visible; clip-path: none; white-space: normal;
+    font-size: var(--bo-fs-2xs); line-height: 1.2; text-align: center; font-weight: var(--bo-fw-semibold); }
+  .bo-sidebar .bo-nav__item .bo-icon { width: var(--bo-icon-md); height: var(--bo-icon-md); }
+}
+
+/* ---- review: actions come first in tab order but stay at the bottom; key hints ---- */
+.bo-review > .bo-panel > .bo-panel__header { grid-row: 1; }
+.bo-review > .bo-panel > .bo-panel__scroll { grid-row: 2; }
+.bo-review > .bo-panel > .bo-panel__footer { grid-row: 3; }
+.bo-review__keys { grid-column: 1 / -1; margin: 0; display: flex; flex-wrap: wrap; align-items: center; gap: 0.25rem 0.5rem; font-size: var(--bo-fs-xs); color: var(--bo-text-3); max-width: none; }
+.bo-review__keys .bo-kbd { height: 1.5rem; min-width: 1.5rem; font-size: var(--bo-fs-2xs); }
+.bo-range-row__below { display: flex; align-items: center; gap: 0.25rem; margin-top: 0.125rem; font-size: var(--bo-fs-xs); font-weight: var(--bo-fw-semibold); color: var(--bo-status-review-fg); }
+.bo-review__clean { display: grid; gap: var(--bo-space-3); }
+.bo-panel .bo-notice p { margin: 0; }
+
+/* ---- level picker: what each kind of scene covers ---- */
+.bo-level__def { margin: -0.25rem 0 0; font-size: var(--bo-fs-sm); color: var(--bo-text-2); }
+.bo-parents-card__footer p { margin: 0; max-width: none; }
+.bo-parents-card__footer p + p { margin-top: var(--bo-space-1); }
+
+/* ---- library: hidden moments, clean scans ---- */
+.bo-library__panic { flex: 1 0 100%; }
+.bo-title-card__hint--quiet { color: var(--bo-text-2); font-weight: var(--bo-fw-regular); }
+
+/* ---- pre-play sheet ---- */
+.bo-preplay__summary { margin: 0 0 var(--bo-space-3); color: var(--bo-text); }
+.bo-preplay__list { display: grid; gap: 0; border: var(--bo-border-width) solid var(--bo-border); border-radius: var(--bo-radius-md); margin-bottom: var(--bo-space-3); }
+.bo-preplay__row { display: grid; grid-template-columns: minmax(8rem, auto) minmax(0, 1fr); gap: var(--bo-space-3); padding: var(--bo-space-2) var(--bo-space-3); border-top: var(--bo-border-width) solid var(--bo-border); }
+.bo-preplay__row:first-child { border-top: 0; }
+.bo-preplay__cat { display: inline-flex; align-items: center; gap: var(--bo-space-2); font-weight: var(--bo-fw-semibold); color: var(--bo-text); }
+.bo-preplay__cat .bo-icon { width: 1.125rem; height: 1.125rem; color: var(--_c-ink); }
+.bo-preplay__what { color: var(--bo-text-2); }
+.bo-modal--preplay .bo-notice { margin-bottom: var(--bo-space-3); }
+
+/* ---- activity ---- */
+.bo-activity { display: grid; gap: 0; background: var(--bo-surface); border: var(--bo-border-width) solid var(--bo-border); border-radius: var(--bo-radius-lg); }
+.bo-activity__row { display: grid; grid-template-columns: 2rem minmax(0, 1fr) auto; align-items: center; gap: var(--bo-space-3); padding: var(--bo-space-3) var(--bo-space-4); border-top: var(--bo-border-width) solid var(--bo-border); }
+.bo-activity__row:first-child { border-top: 0; }
+.bo-activity__icon { display: grid; place-items: center; width: 2rem; height: 2rem; border-radius: 50%; background: var(--bo-surface-2); color: var(--bo-text-2); }
+.bo-activity__icon .bo-icon { width: 1.125rem; height: 1.125rem; }
+.bo-activity__row.is-warn .bo-activity__icon { background: var(--bo-status-review-bg); color: var(--bo-status-review-fg); }
+.bo-activity__when { font-size: var(--bo-fs-sm); color: var(--bo-text-3); font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+/* ---- now playing: the panic key at the top ---- */
+.bo-nowplaying__panic { display: flex; align-items: center; gap: var(--bo-space-3); margin: 0; font-weight: var(--bo-fw-semibold); color: var(--bo-danger); max-width: none; }
+.bo-nowplaying__panic .bo-kbd { border-color: var(--bo-danger); color: var(--bo-danger); }
+
+/* ---- export: actions right after the text ---- */
+.bo-export__card { grid-template-rows: none; }
+.bo-acc__compared { margin: 0; }

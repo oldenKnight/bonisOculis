@@ -22,6 +22,9 @@
     return (BO.store.get('library') || []).filter(function (it) { return it.status === 'protected' || it.status === 'needsReview'; });
   }
 
+  // DESIGN 13.7: "Oct 12, 2026" / "12 oct 2026".
+  function dateText(d) { return d.toLocaleDateString(BO.i18n.lang(), { year: 'numeric', month: 'short', day: 'numeric' }).replace('.', ''); }
+
   function pct(v) { return v === null || v === undefined ? null : Math.round(v * 100) + '%'; }
 
   function cell(v, kind) {
@@ -77,15 +80,17 @@
       defs.appendChild(BO.el('dd', { text: BO.t(c.help) }));
     });
     var at = new Date(res.at);
+    var autoAt = res.autoAt ? new Date(res.autoAt) : null;
     return BO.el('section', { 'class': 'bo-card bo-acc__result', attrs: { 'aria-labelledby': 'acc-result-h' } }, [
       BO.el('h2', { 'class': 'bo-acc__h', id: 'acc-result-h', text: BO.t('acc.resultTitle') }),
+      BO.el('p', { 'class': 'bo-body-2 bo-acc__compared', data: { compared: '' }, text: BO.t('acc.compared', { file: res.truthName, date: autoAt && !isNaN(autoAt.getTime()) ? dateText(autoAt) : '?' }) }),
       BO.el('p', { 'class': 'bo-lead bo-acc__summary', text: summary(res.report) }),
       res.sameCopy ? null : BO.el('div', { 'class': 'bo-notice bo-notice--warning' }, [BO.icon('alert'), BO.el('p', { text: BO.t('acc.otherCopy') })]),
       table(res.report),
       BO.el('h3', { 'class': 'bo-acc__sub', text: BO.t('acc.howToRead') }),
       defs,
       BO.el('div', { 'class': 'bo-notice' }, [BO.icon('info'), BO.el('p', { text: BO.t('acc.honest', { tolerance: res.report.tolerance === null ? 3 : res.report.tolerance }) })]),
-      BO.el('p', { 'class': 'bo-caption', text: BO.t('acc.meta', { file: res.truthName, date: isNaN(at.getTime()) ? '' : at.toLocaleString(BO.i18n.lang()) }) }),
+      BO.el('p', { 'class': 'bo-caption', text: BO.t('acc.meta', { file: res.truthName, date: isNaN(at.getTime()) ? '' : dateText(at) }) }),
       BO.el('div', { 'class': 'bo-toolbar' }, [copy])
     ]);
   }

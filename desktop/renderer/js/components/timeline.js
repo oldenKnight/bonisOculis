@@ -197,14 +197,14 @@
           BO.el('span', { 'class': 'bo-range__icon' }, BO.icon('cat-' + r.category)),
           BO.el('span', { 'class': 'bo-range__state' }, st === 'approved' ? BO.icon('check') : (st === 'rejected' ? BO.icon('close') : null))
         ]);
-        bodyBtn.addEventListener('click', function () { if (o.onSelect) { o.onSelect(r.id); } });
+        bodyBtn.addEventListener('click', function () { if (o.onSelect) { o.onSelect(r.id, false); } });
         bodyBtn.addEventListener('keydown', function (e) {
           var j = null;
           if (e.key === 'ArrowRight') { j = Math.min(ranges.length - 1, idx + 1); } else if (e.key === 'ArrowLeft') { j = Math.max(0, idx - 1); }
           if (j === null || j === idx) { return; }
           e.preventDefault();
           focusAfter = { id: ranges[j].id, edge: null };
-          if (o.onSelect) { o.onSelect(ranges[j].id); }
+          if (o.onSelect) { o.onSelect(ranges[j].id, true); }
         });
         node.appendChild(bodyBtn);
         if (r.id === selected) {
@@ -226,7 +226,7 @@
       ranges.forEach(function (r) { present[r.category] = true; });
       BO.CATEGORIES.forEach(function (cat) {
         if (cat === 'other' && !present.other) { return; }
-        legend.appendChild(BO.el('span', { 'class': 'bo-legend__item bo-cat--' + cat }, [BO.el('span', { 'class': 'bo-swatch bo-swatch--' + cat }), BO.icon('cat-' + cat), BO.t('cat.' + cat)]));
+        legend.appendChild(BO.el('span', { 'class': 'bo-legend__item bo-cat--' + cat, attrs: { title: BO.t('cat.' + cat + '.def') } }, [BO.el('span', { 'class': 'bo-swatch bo-swatch--' + cat }), BO.icon('cat-' + cat), BO.t('cat.' + cat)]));
       });
     }
 

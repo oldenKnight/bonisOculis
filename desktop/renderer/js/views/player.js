@@ -45,9 +45,12 @@
         BO.el('p', { 'class': 'bo-overline', text: BO.t('player.nowPlaying') }),
         BO.el('h1', { 'class': 'bo-nowplaying__title', text: session.title || '', attrs: { tabindex: '-1', 'data-view-heading': '' } }),
         BO.el('div', { 'class': 'bo-nowplaying__meta' }, [
-          BO.el('span', { 'class': 'bo-pill bo-pill--protected bo-pill--lg' }, [BO.icon('shield-check'), BO.el('span', { text: BO.t('player.protectedScenes', { count: session.enforced || 0 }) })]),
+          session.unprotected || !session.enforced ?
+            BO.el('span', { 'class': 'bo-pill bo-pill--attention bo-pill--lg', data: { pill: 'nothing' } }, [BO.icon('alert'), BO.el('span', { text: BO.t(session.unprotected ? 'nowPlaying.unprotected' : 'nowPlaying.nothingSkipped') })]) :
+            BO.el('span', { 'class': 'bo-pill bo-pill--protected bo-pill--lg', data: { pill: 'skips' } }, [BO.icon('shield-check'), BO.el('span', { text: BO.tn('nowPlaying.willSkip', session.enforced) })]),
           BO.el('span', { 'class': 'bo-nowplaying__state', attrs: { role: 'status' }, data: { state: session.state } }, [BO.icon(session.state === 'starting' ? 'clock' : 'play'), stateLine()])
         ]),
+        BO.el('p', { 'class': 'bo-nowplaying__panic' }, [BO.el('kbd', { 'class': 'bo-kbd', text: String(session.panicKey || 'p').toUpperCase() }), BO.t('nowPlaying.panicHint')]),
         BO.el('p', { 'class': 'bo-body-2', text: BO.t(kid ? 'nowPlaying.kidText' : 'nowPlaying.text') }),
         BO.el('div', { 'class': 'bo-nowplaying__actions' }, stopBtn)
       ]),
@@ -69,7 +72,7 @@
         from = BO.router.current() || 'library';
         fromParams = BO.router.params() || {};
       }
-      session = { id: ev.id, title: ev.title, enforced: ev.enforced, kidMode: ev.kidMode, panicKey: ev.panicKey, state: 'starting', marks: [] };
+      session = { id: ev.id, title: ev.title, enforced: ev.enforced, kidMode: ev.kidMode, panicKey: ev.panicKey, unprotected: !!ev.unprotected, state: 'starting', marks: [] };
       BO.router.go('player');
       return;
     }

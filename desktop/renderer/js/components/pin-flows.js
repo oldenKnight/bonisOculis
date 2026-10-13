@@ -4,6 +4,20 @@
   'use strict';
   var BO = window.BO;
 
+  /* Same rule as desktop/main/pin.js isWeak: PINs kids guess first. */
+  var COMMON = ['1212', '1122', '2580', '0852', '6969', '4545', '1004', '2000'];
+  function isWeak(pin) {
+    if (/^(\d)\1+$/.test(pin)) { return true; }
+    var up = true, down = true, i;
+    for (i = 1; i < pin.length; i++) {
+      var d = pin.charCodeAt(i) - pin.charCodeAt(i - 1);
+      if (d !== 1) { up = false; }
+      if (d !== -1) { down = false; }
+    }
+    if (up || down || COMMON.indexOf(pin) >= 0) { return true; }
+    return pin.length % 2 === 0 && new Array(pin.length / 2 + 1).join(pin.slice(0, 2)) === pin;
+  }
+
   /* Inline "choose, then confirm" inside a container. cb(pin) once both entries match. */
   function choose(container, opts, cb) {
     var o = opts || {};
@@ -12,6 +26,7 @@
       title: o.title || BO.t('pin.choose'),
       onSubmit: function (pin, p) {
         if (first === null) {
+          if (isWeak(pin)) { p.error(BO.t('pin.weak')); return; }
           first = pin;
           p.reset();
           p.setTitle(o.againTitle || BO.t('pin.again'));
@@ -38,12 +53,16 @@
     var check = BO.el('input', { 'class': 'bo-switch__input', type: 'checkbox', id: BO.nextId('wrote') });
     var cont = BO.el('button', { 'class': 'bo-button bo-button--primary bo-button--lg', type: 'button', disabled: true, data: { action: 'code-continue' } }, [confirmLabel || BO.t('common.continue'), BO.icon('chevron-right')]);
     check.addEventListener('change', function () { cont.disabled = !check.checked; });
+    var copy = BO.el('button', { 'class': 'bo-button bo-button--ghost', type: 'button', data: { action: 'copy-code' } }, [BO.icon('download'), BO.t('code.copy')]);
+    copy.addEventListener('click', function () {
+      BO.invoke('app:copyText', { text: 'bonis oculis: ' + code }, function (r) { if (r.ok) { BO.toast.show({ kind: 'success', title: BO.t('code.copied') }); } });
+    });
     cont.addEventListener('click', function () { if (check.checked) { onConfirm(); } });
     return BO.el('div', { 'class': 'bo-code' }, [
       BO.el('p', { 'class': 'bo-code__value bo-num', attrs: { 'aria-label': code.split('').join(' ') }, text: code }),
       BO.el('div', { 'class': 'bo-notice bo-notice--warning' }, [BO.icon('alert'), BO.el('p', { text: BO.t('code.warning') })]),
       BO.el('label', { 'class': 'bo-switch', attrs: { 'for': check.id } }, [check, BO.el('span', { 'class': 'bo-switch__track' }), BO.el('span', { 'class': 'bo-switch__label', text: BO.t('code.wrote') })]),
-      BO.el('div', { 'class': 'bo-code__actions' }, cont)
+      BO.el('div', { 'class': 'bo-code__actions' }, [copy, cont])
     ]);
   }
 
@@ -118,5 +137,5 @@
     return m;
   }
 
-  BO.pinFlows = { choose: choose, codeBlock: codeBlock, change: change, recover: recover, showCodeModal: showCodeModal };
+  BO.pinFlows = { isWeak: isWeak, choose: choose, codeBlock: codeBlock, change: change, recover: recover, showCodeModal: showCodeModal };
 }(window));

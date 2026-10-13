@@ -1,10 +1,12 @@
-/* Toasts (DESIGN 7.6): bottom-right, at most three, extra ones wait. 6 s, 10 s with an action,
-   errors stay until dismissed; never dismissed while hovered or focused.
+/* Toasts (DESIGN 7.6 as amended by planner decision 5): bottom-left of the content, never over
+   the review panel; the toast itself lets clicks through, only its own buttons take them. At most
+   two at once, extra ones wait. 4 s, 6 s with an action (Undo), errors stay until dismissed; never
+   dismissed while a button in it has focus.
    BO.toast.show({kind, title, text, actions: [{label, onClick}], timeout}). ES5. */
 (function (window) {
   'use strict';
   var BO = window.BO;
-  var MAX = 3;
+  var MAX = 2;
   var waiting = [];
   var ICON = { info: 'info', success: 'check', warning: 'alert', error: 'alert' };
 
@@ -36,7 +38,7 @@
     function arm() {
       clearTimeout(timer);
       if (kind === 'error' && !o.timeout) { return; }
-      var ms = o.timeout || (actions.length ? 10000 : 6000);
+      var ms = o.timeout || (actions.length ? 6000 : 4000);
       timer = setTimeout(function () { if (!hovering) { dismiss(); } else { arm(); } }, ms);
     }
 
@@ -52,8 +54,6 @@
       ]),
       BO.el('button', { 'class': 'bo-toast__close', type: 'button', attrs: { 'aria-label': BO.t('common.dismiss') }, on: { click: dismiss } }, BO.icon('close', 'bo-icon--md'))
     ]);
-    node.addEventListener('mouseenter', function () { hovering = true; });
-    node.addEventListener('mouseleave', function () { hovering = false; });
     node.addEventListener('focusin', function () { hovering = true; });
     node.addEventListener('focusout', function () { hovering = false; });
     region().appendChild(node);

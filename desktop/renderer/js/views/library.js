@@ -23,15 +23,13 @@
     return parts.join(' · ');
   }
 
-  function play(it) {
-    function go() {
-      BO.invoke('player:play', { id: it.id, kidMode: false }, function (r) { if (!r.ok) { BO.toast.error(r.error); } });
-    }
-    if (it.status === 'protected') { go(); return; }
-    BO.modal.confirm({
-      title: BO.t('library.playUnprotected.title'), body: BO.t(it.status === 'needsReview' ? 'library.playUnprotected.review' : 'library.playUnprotected.text'),
-      okLabel: BO.t('library.playUnprotected.ok'), okIcon: 'play', icon: 'alert'
-    }, function (yes) { if (yes) { go(); } });
+  function play(it) { BO.playFlow(it); }
+
+  function approveClean(it) {
+    BO.invoke('skip:approveClean', { id: it.id }, function (r) {
+      if (!r.ok) { BO.toast.error(r.error); return; }
+      BO.toast.show({ kind: 'success', title: BO.t('library.cleanApproved', { title: it.title }) });
+    });
   }
 
   function rescan(it) {
@@ -58,7 +56,7 @@
   function more(it, btn) {
     var scanning = it.status === 'scanning' || it.status === 'queued';
     BO.popupMenu.open(btn, [
-      it.status !== 'protected' ? { id: 'play', label: BO.t('library.menu.play'), icon: 'play', onClick: function () { play(it); } } : null,
+      it.status !== 'protected' || it.panicUnseen ? { id: 'play', label: BO.t(it.status === 'protected' ? 'library.play' : 'library.menu.play'), icon: 'play', onClick: function () { play(it); } } : null,
       { id: 'review', label: BO.t('library.menu.review'), icon: 'eye', disabled: scanning, onClick: function () { BO.router.go('review', { id: it.id }); } },
       { id: 'export', label: BO.t('library.menu.export'), icon: 'tv', disabled: scanning || it.status === 'notScanned', onClick: function () { BO.router.go('export', { id: it.id }); } },
       { id: 'accuracy', label: BO.t('library.menu.accuracy'), icon: 'check', disabled: !(it.status === 'protected' || it.status === 'needsReview'), onClick: function () { BO.router.go('accuracy', { id: it.id }); } },
@@ -71,9 +69,15 @@
   function primaryAction(it) {
     var scan = BO.store.get('scan') || {};
     var b;
-    if (it.status === 'protected') {
+    if (it.panicUnseen && it.status !== 'scanning' && it.status !== 'queued') {
+      b = BO.el('button', { 'class': 'bo-button bo-button--primary', type: 'button', data: { act: 'review' } }, [BO.icon('eye'), BO.t('library.takeLook')]);
+      b.addEventListener('click', function () { BO.router.go('review', { id: it.id }); });
+    } else if (it.status === 'protected') {
       b = BO.el('button', { 'class': 'bo-button bo-button--primary', type: 'button', data: { act: 'play' } }, [BO.icon('play'), BO.t('library.play')]);
       b.addEventListener('click', function () { play(it); });
+    } else if (it.status === 'needsReview' && it.cleanPending) {
+      b = BO.el('button', { 'class': 'bo-button bo-button--primary', type: 'button', data: { act: 'approve-clean' } }, [BO.icon('shield-check'), BO.t('review.approveClean')]);
+      b.addEventListener('click', function () { approveClean(it); });
     } else if (it.status === 'needsReview') {
       b = BO.el('button', { 'class': 'bo-button bo-button--primary', type: 'button', data: { act: 'review' } }, [BO.icon('eye'), BO.t('library.review')]);
       b.addEventListener('click', function () { BO.router.go('review', { id: it.id }); });
@@ -87,7 +91,7 @@
         b.addEventListener('click', function () { BO.invoke('scan:cancel', { id: it.id }, function () {}); });
       }
     } else if (it.status === 'needsAttention') {
-      b = BO.el('button', { 'class': 'bo-button bo-button--secondary', type: 'button', data: { act: 'retry' } }, [BO.icon('rescan'), BO.t('library.retry')]);
+      b = BO.el('button', { 'class': 'bo-button bo-button--secondary', type: 'button', data: { act: 'retry' } }, [BO.icon('rescan'), BO.t(it.error === 'skipCorrupt' ? 'library.menu.rescan' : 'library.retry')]);
       b.addEventListener('click', function () { rescan(it); });
     } else {
       b = BO.el('button', { 'class': 'bo-button bo-button--secondary', type: 'button', data: { act: 'scan' } }, [BO.icon('scan'), BO.t('library.scanNow')]);
@@ -112,7 +116,9 @@
     var titleId = BO.nextId('card-title');
     var moreBtn = BO.el('button', { 'class': 'bo-button bo-button--secondary bo-button--icon', type: 'button', attrs: { 'aria-label': BO.t('library.more', { title: it.title }), 'aria-haspopup': 'menu', 'aria-expanded': 'false' }, data: { act: 'more' } }, BO.icon('more'));
     moreBtn.addEventListener('click', function () { more(it, moreBtn); });
-    var hint = it.status === 'needsAttention' ? BO.el('p', { 'class': 'bo-title-card__hint', text: BO.t('attention.' + (it.error || 'scanFailed')) }) : null;
+    var hint = it.status === 'needsAttention' ? BO.el('p', { 'class': 'bo-title-card__hint', text: BO.t('attention.' + (it.error || 'scanFailed')) }) :
+      (it.panicUnseen ? BO.el('p', { 'class': 'bo-title-card__hint', text: BO.t(it.panicUnseen.mode === 'kid' ? 'library.panicKid' : 'library.panicParent') }) :
+        (it.cleanPending ? BO.el('p', { 'class': 'bo-title-card__hint bo-title-card__hint--quiet', text: BO.t('library.cleanHint') }) : null));
     var el = BO.el('article', { 'class': 'bo-title-card', attrs: { 'aria-labelledby': titleId }, data: { id: it.id, status: it.status } }, [
       thumb.el,
       BO.el('div', { 'class': 'bo-title-card__body' }, [
@@ -138,6 +144,11 @@
       BO.el('p', { 'class': 'bo-page__sub', text: filter === 'review' ? BO.tn('library.toReviewSub', items().length) : BO.t('library.sub', { movies: BO.tn('library.movies', all.length), protected: BO.tn('library.protected', prot) }) })
     ]));
     header.appendChild(add);
+    var hidden = all.filter(function (it) { return it.panicUnseen; });
+    if (hidden.length && filter !== 'review') {
+      header.appendChild(BO.el('div', { 'class': 'bo-notice bo-notice--warning bo-library__panic', data: { banner: 'panic' } }, [BO.icon('panic'),
+        BO.el('p', { text: BO.tn('library.panicBanner', hidden.length, { title: hidden[0].title }) })]));
+    }
   }
 
   function render() {

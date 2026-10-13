@@ -159,6 +159,7 @@
       var v = BO.router.current();
       return !BO.store.get('locked') && v !== 'kid' && v !== 'player' && (v !== 'setup' || BO.views.setup.acceptsFiles());
     });
+    BO.idle.start();
     BO.invoke('app:state', {}, function (r) {
       if (!r.ok) { return; }
       var st = r.data;

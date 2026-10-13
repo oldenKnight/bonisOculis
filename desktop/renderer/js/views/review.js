@@ -2,7 +2,10 @@
    Left: bar (Back, title, Mark as fully reviewed, Approve all), category summary, timeline with the
    blurred strip, list of scenes. Right: the scene panel (category, intensity, certainty, signal
    bars, action, note, edges +-0.5 s / +-5 s, Approve, Reject, hold to peek) or, with nothing
-   selected, the parents card. Every change is saved at once; a toast offers Undo. ES5. */
+   selected, the parents card. Every change is saved at once; a toast offers Undo.
+   Keys (planner decision 14): selecting a scene moves focus to "Skip this scene"; S skips, L lets it
+   play, N / P go to the next / previous scene. The panel and the list say what will really happen
+   with the current levels ("Below your Kissing level - will play unless you skip it"). ES5. */
 (function (window) {
   'use strict';
   var BO = window.BO;
@@ -22,6 +25,8 @@
   var savedToast = null;
   var toastTimer = null;
   var peekState = { holding: false, timer: null, thumb: null };
+  var damaged = false;
+  var focusPanel = false;
   var ACTIONS = ['skip', 'hide', 'blur', 'mute'];
   var STATE_PILL = { pending: ['review', 'eye', 'review.state.pending'], approved: ['protected', 'check', 'review.state.approved'], rejected: ['not-scanned', 'close', 'review.state.rejected'] };
 
@@ -61,6 +66,12 @@
   }
 
   function span(r) { return BO.fmt.time(r.start) + ' – ' + BO.fmt.time(r.end); }
+
+  function settings() { return BO.store.get('settings') || {}; }
+
+  function eff(r) { return BO.effective.of(r, settings()); }
+
+  function belowText(r) { return BO.t('review.below', { category: BO.t('cat.' + r.category) }); }
 
   /* --------------------------------------------------------------- saving */
 
@@ -119,7 +130,7 @@
     mutate(kind === 'approve' ? 'skip:approve' : 'skip:reject', { rangeIds: [r.id] }, {
       after: function () {
         selected = nextId;
-        if (timeline) { timeline.focusRange(nextId); }
+        focusPanel = true;
       }
     });
   }
@@ -180,7 +191,7 @@
   }
 
   function peekButton(r, thumb) {
-    var btn = BO.el('button', { 'class': 'bo-button bo-button--ghost bo-peek', type: 'button', attrs: { 'aria-describedby': null }, data: { act: 'peek' } },
+    var btn = BO.el('button', { 'class': 'bo-button bo-button--ghost bo-peek', type: 'button', attrs: { title: BO.t('panel.peekTip') }, data: { act: 'peek' } },
       [BO.icon('eye'), BO.t('panel.peek'), BO.el('span', { 'class': 'bo-peek__ring' })]);
     btn.addEventListener('pointerdown', function (e) { if (e.button === 0) { startPeek(r, thumb, btn); } });
     btn.addEventListener('pointerup', endPeek);
@@ -302,27 +313,41 @@
       BO.el('div', { 'class': 'bo-panel__header-row' }, [BO.el('span', { 'class': 'bo-chip bo-chip--' + r.category }, [BO.icon('cat-' + r.category), BO.t('cat.' + r.category)]), statePill(r)]),
       BO.el('h2', { 'class': 'bo-panel__title', text: span(r), attrs: { 'aria-label': BO.t('panel.spanLabel', { start: BO.fmt.time(r.start), end: BO.fmt.time(r.end) }) } })
     ]));
+    panel.appendChild(BO.el('div', { 'class': 'bo-panel__footer' }, [approve, reject, peekButton(r, thumb),
+      BO.el('p', { 'class': 'bo-review__keys', attrs: { 'aria-hidden': 'true' } }, [
+        kbd('S'), BO.t('review.key.skip'), kbd('L'), BO.t('review.key.letPlay'), kbd('N'), BO.t('review.key.next'), kbd('P'), BO.t('review.key.prev')])]));
     panel.appendChild(BO.el('div', { 'class': 'bo-panel__scroll' }, [
       section(null, [thumb.el, noteSection(r)]),
       section('panel.found', found),
       section('panel.category', [catGroup]),
-      section('panel.whenPlays', [seg, BO.el('p', { 'class': 'bo-caption', text: BO.t('action.' + r.action + '.desc') })]),
+      section('panel.whenPlays', [seg].concat(eff(r) === 'below' ?
+        [BO.el('div', { 'class': 'bo-notice bo-notice--warning', data: { below: '' } }, [BO.icon('alert'), BO.el('p', { text: belowText(r) })])] :
+        [BO.el('p', { 'class': 'bo-caption', text: BO.t(st === 'rejected' ? 'action.none.desc' : 'action.' + (eff(r) === 'letPlay' ? 'none' : eff(r)) + '.desc') })])),
       section('panel.edges', [edgeRow(r, 'start', b), edgeRow(r, 'end', b), BO.el('p', { 'class': 'bo-caption', text: BO.t('panel.edgesHint') })])
     ]));
-    panel.appendChild(BO.el('div', { 'class': 'bo-panel__footer' }, [approve, reject, peekButton(r, thumb)]));
+    approve.setAttribute('aria-keyshortcuts', 'S');
+    reject.setAttribute('aria-keyshortcuts', 'L');
   }
+
+  function kbd(k) { return BO.el('kbd', { 'class': 'bo-kbd', text: k }); }
 
   function renderPanelOverview() {
     BO.clear(panel);
     panel.className = 'bo-panel';
-    var s = BO.skipfile.summarise(doc);
     var n = pending().length;
     var scanned = !!(doc.scan && doc.scan.status && doc.scan.status !== 'none');
     var top = BO.el('div', { 'class': 'bo-panel__section' }, [
-      BO.parentsCard.create({ compact: true, title: item.title, meta: [item.year, item.duration ? BO.fmt.duration(item.duration) : null].filter(function (x) { return x; }).join(' · '), summary: s })
+      BO.parentsCard.create({ compact: true, title: item.title, meta: [item.year, item.duration ? BO.fmt.duration(item.duration) : null].filter(function (x) { return x; }).join(' · '), doc: doc, settings: settings() })
     ]);
     var msg;
-    if (!doc.ranges.length) {
+    if (damaged) {
+      msg = BO.el('div', { 'class': 'bo-notice bo-notice--error' }, [BO.icon('alert'), BO.el('p', { text: BO.t('review.damaged') })]);
+    } else if (item.cleanPending) {
+      var ok = BO.el('button', { 'class': 'bo-button bo-button--primary bo-button--block', type: 'button', data: { act: 'approve-clean' } }, [BO.icon('shield-check'), BO.t('review.approveClean')]);
+      ok.addEventListener('click', function () { mutate('skip:approveClean', {}); });
+      msg = BO.el('div', { 'class': 'bo-review__clean' }, [
+        BO.el('div', { 'class': 'bo-notice bo-notice--warning' }, [BO.icon('eye'), BO.el('p', { text: BO.t('review.clean.text') })]), ok]);
+    } else if (!doc.ranges.length) {
       msg = BO.el('div', { 'class': 'bo-empty' }, [BO.el('span', { 'class': 'bo-empty__icon' }, BO.icon('check')), BO.el('h3', { 'class': 'bo-empty__title', text: BO.t(scanned ? 'review.empty.title' : 'review.notScanned.title') }), BO.el('p', { 'class': 'bo-empty__text', text: BO.t(scanned ? 'review.empty.text' : 'review.notScanned.text') })]);
     } else if (n) {
       msg = BO.el('div', { 'class': 'bo-notice' }, [BO.icon('info'), BO.el('p', { text: BO.tn('review.pick', n) })]);
@@ -361,7 +386,7 @@
   function renderSummary() {
     BO.clear(summary);
     var counts = {};
-    doc.ranges.forEach(function (r) { if (r.review !== 'rejected') { counts[r.category] = (counts[r.category] || 0) + 1; } });
+    doc.ranges.forEach(function (r) { counts[r.category] = (counts[r.category] || 0) + 1; });
     if (item.status) { summary.appendChild(BO.statusPill.create(item, BO.store.get('scan'))); }
     BO.CATEGORIES.forEach(function (cat) {
       if (!counts[cat]) { return; }
@@ -378,7 +403,8 @@
       var st = stateOf(r);
       var b = BO.el('button', { 'class': 'bo-range-row bo-cat--' + r.category + (r.id === selected ? ' is-selected' : ''), type: 'button', attrs: { 'aria-pressed': r.id === selected ? 'true' : 'false' }, data: { range: r.id } }, [
         BO.el('span', { 'class': 'bo-range-row__icon' }, BO.icon('cat-' + r.category)),
-        BO.el('span', null, [BO.el('span', { 'class': 'bo-range-row__title', text: BO.t('cat.' + r.category) }), BO.el('span', { 'class': 'bo-range-row__time', text: span(r) + ' · ' + BO.fmt.duration(r.end - r.start) })]),
+        BO.el('span', null, [BO.el('span', { 'class': 'bo-range-row__title', text: BO.t('cat.' + r.category) }), BO.el('span', { 'class': 'bo-range-row__time', text: span(r) + ' · ' + BO.fmt.duration(r.end - r.start) }),
+          eff(r) === 'below' ? BO.el('span', { 'class': 'bo-range-row__below', data: { below: '' } }, [BO.icon('alert', 'bo-icon--sm'), belowText(r)]) : null]),
         statePill(r)
       ]);
       b.addEventListener('click', function () { select(r.id); });
@@ -387,11 +413,36 @@
     listEl.appendChild(ul);
   }
 
-  function select(rid) {
+  function select(rid, viaTimelineKeys) {
     endPeek();
     selected = rid;
+    focusPanel = !viaTimelineKeys;
     render();
     if (timeline && rid) { timeline.reveal(rid); }
+  }
+
+  function step(dir) {
+    var list = sorted();
+    if (!list.length) { return; }
+    var i = -1, j;
+    for (j = 0; j < list.length; j++) { if (list[j].id === selected) { i = j; } }
+    var k = i < 0 ? (dir > 0 ? 0 : list.length - 1) : Math.max(0, Math.min(list.length - 1, i + dir));
+    select(list[k].id, false);
+  }
+
+  function onKey(e) {
+    if (BO.router.current() !== 'review' || BO.modal.isOpen() || e.ctrlKey || e.metaKey || e.altKey) { return; }
+    var tag = e.target && e.target.tagName;
+    if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') { return; }
+    var k = (e.key || '').toLowerCase();
+    var r = selected ? rangeById(selected) : null;
+    if (k === 'n') { e.preventDefault(); step(1); } else if (k === 'p') { e.preventDefault(); step(-1); } else if (k === 's' && r) {
+      e.preventDefault();
+      if (stateOf(r) !== 'approved') { verdict(r, 'approve'); }
+    } else if (k === 'l' && r) {
+      e.preventDefault();
+      if (stateOf(r) !== 'rejected') { verdict(r, 'reject'); }
+    }
   }
 
   function render() {
@@ -403,6 +454,10 @@
     renderList();
     var r = selected ? rangeById(selected) : null;
     if (r) { renderPanelRange(r); } else { renderPanelOverview(); }
+    if (focusPanel && r) {
+      focusPanel = false;
+      BO.focus(BO.qs('[data-act="approve"]', panel));
+    }
   }
 
   function build() {
@@ -412,7 +467,7 @@
     listEl = BO.el('div', { 'class': 'bo-review__list' });
     timeline = BO.timeline.create({
       duration: duration(),
-      onSelect: function (rid) { select(rid); },
+      onSelect: function (rid, viaKeys) { select(rid, viaKeys); },
       onEdge: function (rid, which, t) { setEdge(rid, which, t); }
     });
     mainCol = BO.el('div', { 'class': 'bo-review__main' }, [bar, summary, timeline.el, listEl]);
@@ -426,6 +481,7 @@
       if (!r.ok) { BO.toast.error(r.error); BO.router.go('library'); return; }
       doc = r.data.doc;
       item = r.data.item;
+      damaged = !!r.data.damaged;
       if (rebuild !== false) {
         build();
         thumbs = {};
@@ -455,6 +511,8 @@
       });
       BO.i18n.onChange(function () { if (BO.router.current() === 'review' && id) { load(true); } });
       document.addEventListener('visibilitychange', function () { if (document.hidden) { endPeek(); } });
+      document.addEventListener('keydown', onKey);
+      BO.store.subscribe('settings', function () { if (BO.router.current() === 'review' && doc) { render(); } });
     },
     show: function (params) {
       id = params && params.id ? params.id : id;

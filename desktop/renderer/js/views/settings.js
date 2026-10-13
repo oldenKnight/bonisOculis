@@ -184,9 +184,22 @@
     change.addEventListener('click', function () { BO.pinFlows.change(); });
     var lock = BO.el('button', { 'class': 'bo-button bo-button--secondary', type: 'button', data: { act: 'lock-now' } }, [BO.icon('lock'), BO.t('nav.lock')]);
     lock.addEventListener('click', function () { BO.app.lock(); });
+    var sel = BO.el('select', { 'class': 'bo-input bo-select', id: BO.nextId('autolock'), data: { setting: 'autoLockMinutes' } });
+    [5, 10, 30, 0].forEach(function (m) {
+      var opt = BO.el('option', { text: m ? BO.t('settings.autoLock.minutes', { n: m }) : BO.t('settings.autoLock.never'), attrs: { value: String(m) } });
+      if (m === (typeof s().autoLockMinutes === 'number' ? s().autoLockMinutes : 10)) { opt.selected = true; }
+      sel.appendChild(opt);
+    });
+    sel.addEventListener('change', function () { save({ autoLockMinutes: parseInt(sel.value, 10) }); });
+    var activity = BO.el('button', { 'class': 'bo-button bo-button--secondary', type: 'button', data: { act: 'activity' } }, [BO.icon('clock'), BO.t('activity.title')]);
+    activity.addEventListener('click', function () { BO.router.go('activity'); });
     return card('pin', [
       BO.el('p', { 'class': 'bo-body-2', text: BO.t('settings.pin.lead') }),
-      BO.el('div', { 'class': 'bo-toolbar' }, [change, lock]),
+      BO.el('div', { 'class': 'bo-toolbar' }, [change, lock, activity]),
+      BO.el('div', { 'class': 'bo-settings-row' }, [
+        BO.el('div', null, [BO.el('label', { 'class': 'bo-settings-row__title', attrs: { 'for': sel.id }, text: BO.t('settings.autoLock') }), BO.el('p', { 'class': 'bo-settings-row__help', text: BO.t('settings.autoLock.help') })]),
+        sel
+      ]),
       BO.el('p', { 'class': 'bo-caption', text: BO.t('settings.pin.recovery') })
     ]);
   }

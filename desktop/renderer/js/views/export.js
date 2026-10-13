@@ -91,8 +91,17 @@
         BO.toast.show({ kind: 'success', title: BO.t('export.saved.clean'), text: r.data.path, actions: [reveal(r.data.path)] });
       });
     }
-    start.addEventListener('click', function () { go(null); });
-    where.addEventListener('click', function () { pickFolder(function (d) { go(d); }); });
+    // A copy for the TV of a movie still waiting for review: say so before making it.
+    function guarded(fn) {
+      var it = BO.store.item(selectedId);
+      if (!it || it.status === 'protected') { fn(); return; }
+      BO.modal.confirm({ title: BO.t('export.clean.unreviewed.title'), body: BO.t('export.clean.unreviewed.text'), icon: 'alert',
+        okLabel: BO.t('export.clean.unreviewed.ok'), cancelLabel: BO.t('library.review') }, function (yes) {
+        if (yes) { fn(); } else { BO.router.go('review', { id: selectedId }); }
+      });
+    }
+    start.addEventListener('click', function () { guarded(function () { go(null); }); });
+    where.addEventListener('click', function () { guarded(function () { pickFolder(function (d) { go(d); }); }); });
     body.appendChild(BO.el('label', { 'class': 'bo-switch', attrs: { 'for': aac.id } }, [aac, BO.el('span', { 'class': 'bo-switch__track' }), BO.el('span', { 'class': 'bo-switch__label', text: BO.t('export.clean.aac') })]));
     body.appendChild(BO.el('p', { 'class': 'bo-caption', text: BO.t('export.clean.aacHelp') }));
     body.appendChild(BO.el('div', { 'class': 'bo-export__actions' }, [start, where, helpLink()]));
@@ -189,10 +198,11 @@
     if (cur && cur.status !== 'protected') {
       page.appendChild(BO.el('div', { 'class': 'bo-notice bo-notice--warning' }, [BO.icon('alert'), BO.el('p', { text: BO.tn('export.notReviewed', cur.pending || 0) })]));
     }
+    // Same order as the help: the clean copy is the easiest way to the TV.
     page.appendChild(BO.el('div', { 'class': 'bo-export__grid' }, [
-      exportCard('json', 'download', 'export:json'),
+      cleanCardEl(),
       exportCard('edl', 'tv', 'export:edl'),
-      cleanCardEl()
+      exportCard('json', 'download', 'export:json')
     ]));
   }
 

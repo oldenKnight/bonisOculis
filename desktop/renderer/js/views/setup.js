@@ -68,7 +68,7 @@
     frame('pin', 'setup.pin.title', 'setup.pin.lead', host, [button(BO.t('common.back'), 'ghost', 'chevron-left', function () { go('language'); })]);
     BO.pinFlows.choose(host, {}, function (pin, pad) {
       BO.invoke('pin:set', { pin: pin }, function (r) {
-        if (!r.ok) { pad.error(BO.t('error.' + (r.error || 'failed') + '.title')); return; }
+        if (!r.ok) { pad.error(BO.t(r.error === 'pinWeak' ? 'pin.weak' : 'error.' + (r.error || 'failed') + '.title')); return; }
         code = r.data.recoveryCode;
         go('code');
       });
@@ -126,7 +126,7 @@
 
   function renderMovie() {
     var dz = BO.dropZone.create({ title: BO.t('setup.movie.drop'), hint: BO.t('drop.hint'), onPick: function () { BO.app.pickMovies(function (res) { if (res && res.added && res.added.length) { finish(); } }); } });
-    frame('movie', 'setup.movie.title', 'setup.movie.lead', dz.el, [
+    frame('movie', 'setup.movie.title', 'setup.movie.lead', [dz.el, BO.el('div', { 'class': 'bo-notice' }, [BO.icon('clock'), BO.el('p', { text: BO.t('setup.movie.note') })])], [
       button(BO.t('setup.movie.later'), 'ghost', null, finish, { action: 'later' })
     ]);
   }
