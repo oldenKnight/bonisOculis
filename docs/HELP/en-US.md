@@ -97,7 +97,7 @@ When the app is locked, kids see only the movies you approved, as big tiles. The
 - A movie appears for kids only when it has been scanned and a parent has decided every scene (or approved a movie where nothing was found).
 - If anything is wrong with its list of scenes, the movie does not play for kids. It never plays unprotected in kid mode.
 - To get back to the library, press **Parent** and enter the PIN.
-- Lock the app with **Lock for kids** in the side bar. It also locks by itself after 10 minutes without use. Change this in Settings › PIN (5, 10 or 30 minutes, or never). A message warns you 30 seconds before. A movie never locks the app while it plays, but its time counts: if the time ran out during a movie, the app locks as soon as the movie ends. In Settings › PIN you can also turn on **Lock when I switch to another app**.
+- Lock the app with **Lock for kids** in the side bar. It also locks by itself after 10 minutes without use. Change this in Settings › PIN (5, 10 or 30 minutes, or never). A message warns you 30 seconds before. While a movie plays in parent mode the app does not lock, and what you do on the Now playing page does not count as being there. If the time ran out during the movie, the app locks as soon as the movie reaches its end, you press **Stop**, or you close the movie's window. When the app opens in kid mode (the usual setup), it also locks when you switch to another app: see **Lock when I switch to another app** in Settings › PIN.
 
 **Before you play in parent mode** a short summary says what will happen, for example "12 scenes will be skipped · 1 muted · 2 will play (below your level)". Press **Play**, or **Review first** to look again. In kid mode the movie plays straight away.
 

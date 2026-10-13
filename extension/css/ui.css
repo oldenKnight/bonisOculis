@@ -107,16 +107,19 @@ details.bo-section[open] > summary { margin-bottom: var(--bo-space-3); }
 .bo-chip .bo-icon { width: 1.1em; height: 1.1em; }
 
 /* ---- level picker (DESIGN 7.4), compact: one line per category ---- */
-.bo-levels { display: grid; grid-template-columns: max-content minmax(0, 1fr); column-gap: var(--bo-space-3); row-gap: var(--bo-space-2); }
+.bo-levels { display: grid; grid-template-columns: max-content minmax(0, 1fr); column-gap: var(--bo-space-2); row-gap: var(--bo-space-2); }
 .bo-level { grid-column: 1 / -1; display: grid; grid-template-columns: 6.5rem minmax(0, 1fr); align-items: center; column-gap: var(--bo-space-3); row-gap: var(--bo-space-1); min-width: 0; margin: 0; padding: 0; border: 0; }
 .bo-level__name { display: flex; align-items: center; gap: var(--bo-space-2); min-width: 0; font-weight: var(--bo-fw-bold); font-size: var(--bo-fs-sm); line-height: var(--bo-lh-tight); overflow-wrap: anywhere; }
 .bo-level__name .bo-icon { flex: none; color: var(--_c, currentColor); }
-.bo-level .bo-seg__opt { min-height: 2.5rem; padding-inline: 2px; overflow-wrap: normal; font-size: var(--bo-fs-2xs); }
+/* options sized by their words, so "Moderado" fits next to "Ligero" at popup width */
+.bo-level .bo-seg { grid-template-columns: repeat(4, auto); }
+.bo-level .bo-seg__opt { min-height: 2.5rem; padding-inline: 3px; overflow-wrap: normal; white-space: nowrap; font-size: var(--bo-fs-2xs); }
 /* rows share one name column (Chrome 117+); older versions use the fixed 6.5rem column */
 @supports (grid-template-columns: subgrid) { .bo-level { grid-template-columns: subgrid; } }
 .bo-level__desc, .bo-level__note { grid-column: 1 / -1; margin: 0; }
 .bo-level__desc { display: none; }
-.bo-level.is-open .bo-level__desc, .bo-level:focus-within .bo-level__desc { display: block; }
+/* one explanation slot under the list, two lines high whether empty or not, so nothing moves */
+.bo-levels__slot { grid-column: 1 / -1; margin: 0; min-height: calc(2 * var(--bo-lh-snug) * var(--bo-fs-sm)); color: var(--bo-text-2); font-size: var(--bo-fs-sm); line-height: var(--bo-lh-snug); }
 .bo-level__note { color: var(--bo-text-2); font-size: var(--bo-fs-xs); }
 .bo-seg { position: relative; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); border: var(--bo-border-width-strong) solid var(--bo-border-strong); border-radius: var(--bo-radius-md); overflow: hidden; background: var(--bo-surface); }
 .bo-seg__input { position: absolute; opacity: 0; width: 1px; height: 1px; pointer-events: none; }

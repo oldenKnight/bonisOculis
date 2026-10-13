@@ -221,6 +221,9 @@
     show: function (params) {
       filter = params && params.filter === 'review' ? 'review' : null;
       render();
+      // Round 3, X8: every visit asks main again, which re-reads any list changed on disk, so a
+      // damaged list shows "Needs attention" at once instead of the last known "Protected".
+      if (!BO.store.get('locked')) { BO.app.refreshLibrary(); }
     },
     hide: function () { BO.popupMenu.close(); }
   };

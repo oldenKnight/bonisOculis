@@ -12,6 +12,12 @@
   function stop() {
     var b = BO.qs('[data-act="stop"]', root);
     if (b) { b.disabled = true; }
+    // Round 3, N-R1: if the idle time ran out during the movie, lock first (the movie goes on in
+    // kid mode or stops), so Stop never hands over an unlocked library.
+    if (session && !session.kidMode && BO.idle.expired()) {
+      BO.invoke('pin:lock', { reason: 'idle' }, function () { BO.invoke('player:stop', {}, function () {}); });
+      return;
+    }
     BO.invoke('player:stop', {}, function () {});
   }
 
@@ -111,6 +117,8 @@
     show: function () { render(); },
     hide: function () {},
     onEvent: onEvent,
-    active: function () { return !!session; }
+    active: function () { return !!session; },
+    // A movie is playing (not stopped, not resting on its last frame).
+    playing: function () { return !!session && session.state !== 'eof'; }
   };
 }(window));

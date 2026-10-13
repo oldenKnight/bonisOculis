@@ -1,7 +1,9 @@
 /* Auto-relock (planner decision 10): parent mode locks again after Settings > PIN > "Lock again
    after" minutes without input (5 / 10 / 30 / never; default 10), with a 30-second warning toast.
-   A parent-mode movie does not lock the app while it plays, but its time counts: when it ends and
-   the time is already up, the app locks at once (board round 2, K5). ES5. */
+   A parent-mode movie does not lock the app while it plays, and nothing done on Now playing counts
+   as a parent being there (round 3, N-R1): the time keeps running. When the movie reaches its end
+   (the player stays open on the last frame), is stopped with the app's Stop, or its window is
+   closed, and the time is already up, the app locks at once, before the library shows. ES5. */
 (function (window) {
   'use strict';
   var BO = window.BO;
@@ -21,9 +23,10 @@
     return minutes() > 0 && !BO.store.get('locked') && s.setupDone && BO.router.current() !== 'setup';
   }
 
-  function playing() { return BO.router.current() === 'player' && BO.views.player && BO.views.player.active(); }
+  function playing() { return BO.router.current() === 'player' && BO.views.player && BO.views.player.playing(); }
 
   function touch() {
+    if (playing()) { return; } // input while a movie plays is not presence
     last = Date.now();
     if (warning) { warning.dismiss(); warning = null; }
   }
@@ -44,14 +47,17 @@
     }
   }
 
+  // True when the time is up (Stop asks this before stopping the movie).
+  function expired() { return active() && minutes() * 60000 - (Date.now() - last) <= 0; }
+
   function start() {
     ['pointerdown', 'keydown', 'wheel'].forEach(function (ev) { window.addEventListener(ev, touch, true); });
     var lastMove = 0;
     window.addEventListener('mousemove', function () { if (Date.now() - lastMove > 1000) { lastMove = Date.now(); touch(); } }, true);
-    BO.store.subscribe('locked', function () { touch(); });
+    BO.store.subscribe('locked', function () { last = Date.now(); if (warning) { warning.dismiss(); warning = null; } });
     clearInterval(timer);
     timer = setInterval(tick, 1000);
   }
 
-  BO.idle = { start: start, touch: touch, tick: tick, _setLast: function (t) { last = t; } };
+  BO.idle = { start: start, touch: touch, tick: tick, expired: expired, _setLast: function (t) { last = t; } };
 }(window));

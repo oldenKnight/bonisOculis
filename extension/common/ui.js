@@ -32,14 +32,21 @@
   function clear(node) { while (node.firstChild) { node.removeChild(node.firstChild); } }
 
   /* Level pickers for the six categories, one line each (name + Off/Light/
-     Moderate/Strict). The level's explanation shows only under the row that
-     was just changed or has keyboard focus, so the list stays short; the
-     "muted, not skipped" note always shows under Language.
+     Moderate/Strict). One explanation slot of fixed height sits under the
+     list and shows the row under the pointer, the focused row, or the row
+     just changed, so the list stays short and never jumps; the "muted, not
+     skipped" note always shows under Language. Each row's own description
+     stays in the DOM (hidden) for aria-describedby.
      onChange(levels) on every change. */
   function buildLevels(container, levels, onChange, idPrefix) {
-    var cats = BO.store.CATEGORIES, current = {}, i, pre = idPrefix || 'lv';
+    var cats = BO.store.CATEGORIES, current = {}, i, pre = idPrefix || 'lv', slot = el('p', 'bo-levels__slot');
     clear(container);
     container.classList.add('bo-levels');
+    slot.setAttribute('aria-hidden', 'true');
+    function explain(cat) {
+      slot.textContent = cat ? t(CAT_KEYS[cat]) + ': ' + t(LEVEL_KEYS[current[cat]] + 'Desc') : '';
+    }
+    function settle() { explain(lastChanged[pre] && current[lastChanged[pre]] ? lastChanged[pre] : null); }
     for (i = 0; i < cats.length; i++) { current[cats[i]] = levels[cats[i]]; }
     cats.forEach(function (cat) {
       var fs = el('div', 'bo-level bo-cat--' + cat), name = el('div', 'bo-level__name'), seg = el('div', 'bo-seg'), desc = el('p', 'bo-level__desc'), note;
@@ -76,6 +83,7 @@
           for (k = 0; k < open.length; k++) { open[k].classList.remove('is-open'); }
           fs.classList.add('is-open');
           lastChanged[pre] = cat;
+          explain(cat);
           onChange(JSON.parse(JSON.stringify(current)));
         });
         seg.appendChild(input);
@@ -88,8 +96,15 @@
         note = el('p', 'bo-level__note', t('languageMuteNote'));
         fs.appendChild(note);
       }
+      fs.addEventListener('mouseenter', function () { explain(cat); });
+      fs.addEventListener('focusin', function () { explain(cat); });
       container.appendChild(fs);
     });
+    /* properties, not listeners: the container is rebuilt on every render */
+    container.onmouseleave = settle;
+    container.onfocusout = function (e) { if (!container.contains(e.relatedTarget)) { settle(); } };
+    container.appendChild(slot);
+    settle();
   }
 
   function chips(container, byCategory) {

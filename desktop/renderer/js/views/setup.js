@@ -118,7 +118,12 @@
   }
 
   function finish() {
-    BO.invoke('settings:set', { patch: { setupDone: true } }, function (r) {
+    // Round 3: a family that opens in kid mode also locks when the parent switches to another app
+    // (a new install only; an existing one keeps its choice).
+    var st = BO.store.get('settings') || {};
+    var patch = { setupDone: true };
+    if (st.lockOnStart !== false) { patch.lockOnBlur = true; }
+    BO.invoke('settings:set', { patch: patch }, function (r) {
       if (r.ok) { BO.store.set('settings', r.data.settings); }
       BO.router.go('library');
     });
