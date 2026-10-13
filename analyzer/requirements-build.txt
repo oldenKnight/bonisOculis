@@ -1,4 +1,23 @@
-# Build-time only (never imported by the shipped analyzer).
+# Build-time only (never imported by the shipped analyzer). Exact pins, versions installed and
+# used on the Linux dev container (2026-10-13) unless noted.
 -r requirements.txt
-tokenizers>=0.15      # tools/make-clip-prompts.py (CLIP prompt embeddings), tools/make-florence-prompts.py
-pyinstaller>=6.0      # onedir packaging (M9)
+tokenizers==0.23.3        # tools/make-clip-prompts.py (CLIP prompt embeddings), tools/make-florence-prompts.py
+huggingface-hub==2.2.0
+click==8.5.0
+filelock==4.1.1
+fsspec==2026.9.0
+hf-xet==1.7.0
+httpx2==2.13.0
+httpcore2==2.13.0
+h11==0.16.0
+anyio==4.15.1
+truststore==0.10.4
+pyyaml==6.0.1
+pyinstaller==6.22.3       # onedir packaging (M9)
+pyinstaller-hooks-contrib==2026.8
+altgraph==0.17.5
+setuptools==68.1.2
+# platform-only PyInstaller dependencies (current PyPI releases, not installed here)
+macholib==1.16.4 ; sys_platform == "darwin"
+pefile==2024.8.26 ; sys_platform == "win32"
+pywin32-ctypes==0.2.3 ; sys_platform == "win32"

@@ -35,7 +35,9 @@ test('payload shapes are checked before any handler runs', function () {
   assert.strictEqual(ipc.validate('skip:approve', { id: '0123456789abcdef', rangeIds: ['r../x'] }), 'bad:rangeIds');
   assert.strictEqual(ipc.validate('skip:strip', { id: '0123456789abcdef', n: 100000 }), 'bad:n');
   assert.strictEqual(ipc.validate('library:add', { paths: [] }), 'bad:paths');
-  assert.strictEqual(ipc.validate('export:clean', { id: '0123456789abcdef', aac: 'yes' }), 'bad:aac');
+  assert.strictEqual(ipc.validate('export:clean', { id: '0123456789abcdef', keepHevc: 'yes' }), 'bad:keepHevc');
+  assert.strictEqual(ipc.validate('export:clean', { id: '0123456789abcdef', aac: true }), 'unexpected:aac', 'audio is always AAC: no switch any more');
+  assert.strictEqual(ipc.validate('export:estimate', { id: '0123456789abcdef', keepHevc: true }), null);
   assert.strictEqual(ipc.validate('app:state', undefined), null);
 });
 

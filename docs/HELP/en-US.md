@@ -125,7 +125,7 @@ The TV files follow your levels exactly as the app's player does: a scene below 
 4. Plug the stick into the TV. If the TV offers to **format** the stick or use it as **internal storage**, say no: choose **View**, **Cancel** or **Not now**. Formatting erases the movie.
 5. Open VLC, go to **Browsing**, choose the stick by its name, and pick the movie.
 
-**What the copy has.** Not one frame of a cut scene is left, and the sound stays in step with the picture after every cut. The picture is made again as an H.264 video in an .mp4 file, which TVs and VLC play. Every sound track is kept (each language), always as AAC, so you do not need **Also convert the sound to AAC** any more. Up to 5.1 surround is kept. Subtitles are not included in the clean copy, because they could still show the words of a cut scene. A movie in HDR is converted to normal colors, so it may look a little flatter.
+**What the copy has.** Not one frame of a cut scene is left, and the sound stays in step with the picture after every cut. The picture is made again as an H.264 video in an .mp4 file, which TVs and VLC play. Every sound track is kept (each language), always as AAC, so you do not need **Also convert the sound to AAC** any more. Up to 5.1 surround is kept. Subtitles are not included in the clean copy, because they could still show the words of a cut scene. A movie in HDR is converted to normal colors, so it may look a little flatter. Making the copy takes a while on a computer without a video chip; before it starts, bonis oculis measures how long it will take on this computer and shows the time left while it works.
 
 ### Advanced: Kodi with a Kodi list (.edl)
 

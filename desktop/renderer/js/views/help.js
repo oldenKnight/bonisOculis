@@ -45,7 +45,11 @@
     BO.invoke('help:open', { doc: current.doc }, function (r) {
       if (!r.ok) { BO.toast.error(r.error); return; }
       render(r.data);
-      if (current.anchor) { scrollTo(current.anchor); } else { BO.focus(BO.qs('[data-view-heading]', root)); }
+      if (current.anchor) {
+        var item = BO.qs('.bo-nav__item[data-anchor="' + current.anchor.replace(/"/g, '') + '"]', toc);
+        if (item) { item.setAttribute('aria-current', 'true'); }
+        scrollTo(current.anchor);
+      } else { BO.focus(BO.qs('[data-view-heading]', root)); }
     });
   }
 

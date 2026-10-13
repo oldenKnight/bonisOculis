@@ -1,11 +1,57 @@
 # bonis oculis analyzer - runtime dependencies (Python 3.11+). Nothing else is imported at runtime.
-numpy>=1.26
-onnxruntime>=1.17 ; sys_platform != "win32"
-onnxruntime-directml>=1.17 ; sys_platform == "win32"
+# Every package is pinned to an exact version (review A9). Unless noted, the version is the one
+# installed and tested on the Linux dev container (2026-10-13). The list is the whole dependency
+# closure, platform markers included, so the resolver has nothing left to choose:
+#   python -m pip install -r analyzer/requirements.txt
+# Next step (not done): hash-lock with `pip-compile --generate-hashes` per platform and install
+# with --require-hashes.
+
+# numpy 2.5 needs Python >= 3.12; CI and the build runners use 3.11 -> 2.4.6 (newest with
+# cp311 wheels; NOT tested on the dev container, which runs 3.13 + 2.5.3).
+numpy==2.5.3 ; python_version >= "3.12"
+numpy==2.4.6 ; python_version < "3.12"
+
+# ONNX Runtime: pinned to releases WITHOUT Microsoft's 1DS telemetry client (review A1).
+# 1.29.0 is the first PyPI release that carries it on Linux and macOS (it uploads to
+# mobile.events.data.microsoft.com and writes ~/.cache/Microsoft/DeveloperTools); 1.28.0 and
+# older have no such code (checked in the wheels' native libraries). bonis_analyzer/__init__.py
+# also sets ORT_DISABLE_TELEMETRY=1, which silences 1.29+ should one ever be installed.
+#   Linux x64, macOS arm64: 1.28.0 (newest without the client)
+#   macOS x64: 1.23.2 (the last release with an Intel macOS wheel; no client)
+#   Windows: onnxruntime-directml 1.24.4 (newest DirectML release; no 1DS client; its ETW
+#            provider is switched off with onnxruntime.disable_telemetry_events())
+onnxruntime==1.28.0 ; sys_platform == "linux" or (sys_platform == "darwin" and platform_machine != "x86_64")
+onnxruntime==1.23.2 ; sys_platform == "darwin" and platform_machine == "x86_64"
+onnxruntime-directml==1.24.4 ; sys_platform == "win32"
+flatbuffers==25.12.19
+packaging==26.3
+protobuf==7.36.1
+# required by onnxruntime 1.23.2 (macOS x64) and onnxruntime-directml 1.24.4 only; versions are
+# the current PyPI releases, not installed on the dev container
+sympy==1.14.0 ; sys_platform == "win32" or (sys_platform == "darwin" and platform_machine == "x86_64")
+mpmath==1.3.0 ; sys_platform == "win32" or (sys_platform == "darwin" and platform_machine == "x86_64")
+coloredlogs==15.0.1 ; sys_platform == "darwin" and platform_machine == "x86_64"
+humanfriendly==10.0 ; sys_platform == "darwin" and platform_machine == "x86_64"
+
 # Optional: dialogue LM stage and caption LM (Qwen3-0.6B GGUF via llama.cpp). When it is missing
-# the scan continues with the keyword/SDH scorer alone and emits a warning.
-llama-cpp-python>=0.3.2
+# the scan continues with the keyword/SDH scorer alone and emits a warning. Built from the sdist
+# (CMAKE_ARGS in CI).
+llama-cpp-python==0.3.36
+diskcache==5.6.3
+jinja2==3.1.6
+markupsafe==3.0.3
+typing-extensions==4.16.0
+
 # Optional: speech-to-text stage (whisper.cpp small q5_1, MIT). Runs only when a film has no
 # readable subtitles. When it is missing, a whisper-cli executable (--whisper-cli /
-# $BONIS_WHISPER_CLI) is used instead, else the stage is skipped with a warning.
-pywhispercpp>=1.3
+# $BONIS_WHISPER_CLI) is used instead, else the stage is skipped with a warning. macOS x64 has
+# no 1.5.1 wheel: pip builds it from the sdist there.
+pywhispercpp==1.5.1
+platformdirs==4.13.0
+requests==2.34.2
+certifi==2026.7.22
+charset-normalizer==3.5.1
+idna==3.20
+urllib3==2.8.0
+tqdm==4.70.1
+colorama==0.4.6 ; sys_platform == "win32"

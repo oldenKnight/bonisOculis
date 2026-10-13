@@ -132,8 +132,9 @@
     BO.on('scan:progress', function (s) { BO.store.set('scan', s); });
     BO.on('player:event', function (ev) { BO.views.player.onEvent(ev); });
     BO.on('toast', function (ev) {
-      // Kid mode stays quiet about scans; player and data-safety messages still show.
-      if (BO.store.get('locked') && ev && /^toast\.(scan|integrity)/.test(ev.key || '')) { return; }
+      // Kid mode stays quiet about scans and about parents' data messages (a damaged list, a
+      // changed file): a kid gets "ask a grown-up" from the kid screen itself; player messages show.
+      if (BO.store.get('locked') && ev && /^toast\.(scan|integrity|list|skipTampered|tampered|recovered|lostFile)/.test(ev.key || '')) { return; }
       BO.toast.fromMain(ev);
     });
     BO.on('app:locked', function (ev) {

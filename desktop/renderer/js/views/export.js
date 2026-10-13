@@ -1,13 +1,15 @@
-/* Export / Send to TV (PLAN 5.6): choose a movie, then three cards: skip file (.bonis.json), Kodi
-   list (.edl), clean copy for USB (progress, Cancel, optional AAC). Each card says in plain words
-   what it is for and links to the TV help. Import of a skip file lives here too. ES5. */
+/* Export / Send to TV (PLAN 5.6): choose a movie, then three cards: clean copy for USB (an exact
+   re-encode: a confirm dialog with the measured time first, then progress with the time left and
+   Cancel; audio is always AAC), Kodi list (.edl), skip file (.bonis.json). Each card says in plain
+   words what it is for and links to the TV help. Import of a skip file lives here too. ES5. */
 (function (window) {
   'use strict';
   var BO = window.BO;
   var root = null;
   var page = null;
   var selectedId = null;
-  var clean = { running: false, done: 0, total: 1, state: null };
+  var clean = { running: false, pct: 0, etaSec: null, state: null };
+  var keepHevc = false;
   var cleanCard = null;
 
   function exportable() {
@@ -57,28 +59,65 @@
     ]);
   }
 
+  function progressText() {
+    var pct = Math.max(0, Math.min(100, Math.round(clean.pct || 0)));
+    if (typeof clean.etaSec === 'number' && clean.etaSec > 0) {
+      return BO.t('cleancopy.progress', { pct: pct, min: Math.max(1, Math.ceil(clean.etaSec / 60)) });
+    }
+    return BO.t('cleancopy.progressStarting', { pct: pct });
+  }
+
+  // Before the copy: how long it will take on this computer, and what will be left out.
+  function confirmCopy(cb) {
+    var status = BO.el('p', { 'class': 'bo-body-2', attrs: { role: 'status' }, data: { estimate: '' } }, [BO.el('span', { 'class': 'bo-spinner', attrs: { 'aria-hidden': 'true' } }), BO.t('cleancopy.estimate.measuring')]);
+    var notes = BO.el('div', { 'class': 'bo-stack', data: { notes: '' } });
+    var answered = false;
+    var m = BO.modal.open({
+      title: BO.t('cleancopy.confirm.title'), icon: 'usb', variant: 'clean-confirm',
+      body: [BO.el('p', { text: BO.t('cleancopy.confirm.text') }), status, notes],
+      actions: [
+        { label: BO.t('common.cancel'), kind: 'secondary', id: 'cancel' },
+        { label: BO.t('cleancopy.confirm.ok'), kind: 'primary', id: 'ok', icon: 'usb', onClick: function (close) { answered = true; close(); cb(true); } }
+      ],
+      onClose: function () { if (!answered) { BO.invoke('export:cancel', {}, function () {}); cb(false); } }
+    });
+    BO.invoke('export:estimate', { id: selectedId, keepHevc: keepHevc }, function (r) {
+      if (answered || !m.el.isConnected) { return; }
+      BO.clear(status);
+      BO.clear(notes);
+      if (!r.ok) {
+        status.appendChild(document.createTextNode(BO.t('cleancopy.estimate.unknown')));
+        return;
+      }
+      var d = r.data;
+      status.appendChild(BO.el('strong', { text: BO.t(d.words.key, d.words.params) }));
+      status.appendChild(document.createTextNode(' ' + BO.t(d.hw ? 'cleancopy.encoder.hw' : 'cleancopy.encoder.sw')));
+      if (d.subtitles) { notes.appendChild(BO.el('div', { 'class': 'bo-notice', data: { note: 'subtitles' } }, [BO.icon('info'), BO.el('p', { text: BO.t('cleancopy.subtitles') })])); }
+      if (d.hdrConverted) { notes.appendChild(BO.el('div', { 'class': 'bo-notice bo-notice--warning', data: { note: 'hdr' } }, [BO.icon('alert'), BO.el('p', { text: BO.t('cleancopy.hdr') })])); }
+    });
+  }
+
   function renderClean() {
     if (!cleanCard) { return; }
     var body = BO.qs('.bo-export__dynamic', cleanCard);
     BO.clear(body);
     if (clean.running) {
-      var pct = Math.round(clean.done / Math.max(1, clean.total) * 100);
+      var pct = Math.max(0, Math.min(100, Math.round(clean.pct || 0)));
       var cancel = BO.el('button', { 'class': 'bo-button bo-button--secondary', type: 'button', data: { act: 'clean-cancel' } }, [BO.icon('close'), BO.t('common.cancel')]);
       cancel.addEventListener('click', function () { BO.invoke('export:cancel', {}, function () {}); });
       body.appendChild(BO.el('div', { 'class': 'bo-export__progress' }, [
-        BO.el('p', { 'class': 'bo-body-2', attrs: { role: 'status' }, text: BO.t('export.clean.progress', { pct: pct }) }),
-        BO.el('progress', { 'class': 'bo-progress bo-progress--thick', attrs: { value: pct, max: 100, 'aria-label': BO.t('export.clean.progress', { pct: pct }) } }),
+        BO.el('p', { 'class': 'bo-body-2', attrs: { role: 'status' }, data: { progress: '' }, text: progressText() }),
+        BO.el('progress', { 'class': 'bo-progress bo-progress--thick', attrs: { value: pct, max: 100, 'aria-label': progressText() } }),
         cancel
       ]));
       return;
     }
-    var aac = BO.el('input', { 'class': 'bo-switch__input', type: 'checkbox', id: BO.nextId('aac'), data: { setting: 'aac' } });
     var start = BO.el('button', { 'class': 'bo-button bo-button--primary', type: 'button', disabled: !selectedId, data: { act: 'export-clean' } }, [BO.icon('usb'), BO.t('export.clean.button')]);
     var where = BO.el('button', { 'class': 'bo-button bo-button--ghost bo-button--sm', type: 'button', disabled: !selectedId, data: { act: 'clean-where' } }, [BO.icon('folder-plus'), BO.t('export.clean.where')]);
     function go(dir) {
-      clean = { running: true, done: 0, total: 1, state: 'running' };
+      clean = { running: true, pct: 0, etaSec: null, state: 'running' };
       renderClean();
-      var payload = { id: selectedId, aac: aac.checked };
+      var payload = { id: selectedId, keepHevc: keepHevc };
       if (dir) { payload.dir = dir; }
       BO.invoke('export:clean', payload, function (r) {
         clean.running = false;
@@ -94,16 +133,23 @@
     // A copy for the TV of a movie still waiting for review: say so before making it.
     function guarded(fn) {
       var it = BO.store.item(selectedId);
-      if (!it || it.status === 'protected') { fn(); return; }
+      function ask() { confirmCopy(function (yes) { if (yes) { fn(); } }); }
+      if (!it || it.status === 'protected') { ask(); return; }
       BO.modal.confirm({ title: BO.t('export.clean.unreviewed.title'), body: BO.t('export.clean.unreviewed.text'), icon: 'alert',
         okLabel: BO.t('export.clean.unreviewed.ok'), cancelLabel: BO.t('library.review') }, function (yes) {
-        if (yes) { fn(); } else { BO.router.go('review', { id: selectedId }); }
+        if (yes) { ask(); } else { BO.router.go('review', { id: selectedId }); }
       });
     }
     start.addEventListener('click', function () { guarded(function () { go(null); }); });
-    where.addEventListener('click', function () { guarded(function () { pickFolder(function (d) { go(d); }); }); });
-    body.appendChild(BO.el('label', { 'class': 'bo-switch', attrs: { 'for': aac.id } }, [aac, BO.el('span', { 'class': 'bo-switch__track' }), BO.el('span', { 'class': 'bo-switch__label', text: BO.t('export.clean.aac') })]));
-    body.appendChild(BO.el('p', { 'class': 'bo-caption', text: BO.t('export.clean.aacHelp') }));
+    where.addEventListener('click', function () { pickFolder(function (d) { guarded(function () { go(d); }); }); });
+    // HEVC can only be kept with a Mac's video chip (encoders.js); elsewhere the copy is H.264.
+    if ((BO.store.get('boot') || {}).platform === 'darwin') {
+      var hevc = BO.el('input', { 'class': 'bo-switch__input', type: 'checkbox', id: BO.nextId('hevc'), data: { setting: 'keepHevc' } });
+      hevc.checked = keepHevc;
+      hevc.addEventListener('change', function () { keepHevc = hevc.checked; });
+      body.appendChild(BO.el('label', { 'class': 'bo-switch', attrs: { 'for': hevc.id } }, [hevc, BO.el('span', { 'class': 'bo-switch__track' }), BO.el('span', { 'class': 'bo-switch__label', text: BO.t('cleancopy.keepHevc') })]));
+      body.appendChild(BO.el('p', { 'class': 'bo-caption', text: BO.t('cleancopy.keepHevcHelp') }));
+    }
     body.appendChild(BO.el('div', { 'class': 'bo-export__actions' }, [start, where, helpLink()]));
   }
 
@@ -213,7 +259,11 @@
       root.appendChild(page);
       BO.on('export:progress', function (p) {
         if (!p) { return; }
-        if (p.state === 'running') { clean.running = true; clean.done = p.done || 0; clean.total = p.total || 1; }
+        if (p.state === 'running') {
+          clean.running = true;
+          clean.pct = typeof p.pct === 'number' ? p.pct : Math.round((p.done || 0) / Math.max(0.001, p.total || 1) * 100);
+          clean.etaSec = typeof p.etaSec === 'number' ? p.etaSec : null;
+        }
         if (BO.router.current() === 'export') { renderClean(); }
       });
     },

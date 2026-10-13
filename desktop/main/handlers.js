@@ -9,7 +9,8 @@ var BO = require('../../shared/skipfile.js');
 var enforce = require('./enforce.js');
 var exportJson = require('./exporters/json.js').exportJson;
 var exportEdl = require('./exporters/edl.js').exportEdl;
-var cleanCopy = require('./exporters/clean-copy.js').cleanCopy;
+var cc = require('./exporters/clean-copy.js');
+var cleanCopy = cc.cleanCopy;
 var importJson = require('./importers/json.js').importJson;
 
 var VIDEO_EXT = ['mkv', 'mp4', 'm4v', 'avi', 'mov', 'wmv', 'webm', 'mpg', 'mpeg', 'ts', 'm2ts', 'mts', 'vob', 'ogv', 'flv', '3gp'];
@@ -38,6 +39,7 @@ function createHandlers(c) {
   function dirAllowed(dir) { return dir === undefined || dir === null || pickedDirs[dir] === true; }
   var importTokens = {};
   var clean = null;
+  var estimating = null;
   var toolVersions = null;
 
   function t(k, p) { return c.i18n.t(k, p); }
@@ -325,6 +327,24 @@ function createHandlers(c) {
   h['export:json'] = exportWith(exportJson, 'json');
   h['export:edl'] = exportWith(exportEdl, 'edl');
 
+  // How long the clean copy will take here (a short sample encode with the encoder it would use).
+  h['export:estimate'] = function (p, ctx, cb) {
+    var it = c.library.get(p.id);
+    if (!it) { cb('notFound'); return; }
+    if (clean) { cb('busy'); return; }
+    var doc = enforcedDocOf(p.id);
+    if (!doc) { cb('noSkip'); return; }
+    if (estimating && estimating.handle) { estimating.handle.cancel(); }
+    var job = {};
+    estimating = job;
+    job.handle = cc.estimate({ input: it.path, doc: doc, ffmpeg: c.paths.ffmpeg(), ffprobe: c.paths.ffprobe(), threads: c.settings.value('threads'), keepHevc: !!p.keepHevc },
+      function (err, res) {
+        if (estimating === job) { estimating = null; }
+        if (err) { cb(err.code || 'ffmpegFailed'); return; }
+        cb(null, { seconds: res.seconds, kept: res.kept, words: res.words, encoder: res.encoder, hw: !!res.hw, subtitles: res.subtitles || 0, hdrConverted: !!res.hdrConverted });
+      });
+  };
+
   h['export:clean'] = function (p, ctx, cb) {
     var it = c.library.get(p.id);
     if (!it) { cb('notFound'); return; }
@@ -332,26 +352,34 @@ function createHandlers(c) {
     if (!dirAllowed(p.dir)) { cb('forbidden'); return; }
     var doc = enforcedDocOf(p.id);
     if (!doc) { cb('noSkip'); return; }
+    if (estimating) { estimating.handle.cancel(); estimating = null; }
     var tmp = c.paths.tmpDir();
     try { fs.mkdirSync(tmp, { recursive: true }); } catch (e) { /* exists */ }
     var job = { id: p.id };
     clean = job;
-    c.emit('export:progress', { id: p.id, done: 0, total: 1, state: 'running' });
+    // done/total are seconds of the kept movie; etaSec is null until the encoder's speed is known.
+    c.emit('export:progress', { id: p.id, done: 0, total: 1, pct: 0, etaSec: null, state: 'running' });
     job.handle = cleanCopy({
-      input: it.path, doc: doc, outDir: p.dir, aac: !!p.aac, ffmpeg: c.paths.ffmpeg(), ffprobe: c.paths.ffprobe(), tmpDir: tmp,
-      onProgress: function (pr) { c.emit('export:progress', { id: p.id, done: pr.done, total: pr.total, state: 'running' }); }
+      input: it.path, doc: doc, outDir: p.dir, ffmpeg: c.paths.ffmpeg(), ffprobe: c.paths.ffprobe(), tmpDir: tmp,
+      threads: c.settings.value('threads'), keepHevc: !!p.keepHevc,
+      onProgress: function (pr) {
+        c.emit('export:progress', { id: p.id, done: pr.done, total: pr.total, pct: pr.pct, etaSec: pr.etaSec, hw: !!pr.hw, state: 'running' });
+      }
     }, function (err, res) {
       clean = null;
       if (err) {
         c.emit('export:progress', { id: p.id, state: err.code === 'cancelled' ? 'cancelled' : 'failed' });
+        if (err.detail) { c.log.warn('clean copy failed', err.code, String(err.detail).slice(0, 300)); }
         cb(err.code || 'exportFailed');
         return;
       }
-      c.emit('export:progress', { id: p.id, state: 'done', done: 1, total: 1 });
-      cb(null, { path: rememberExport(res.path), kept: res.kept });
+      c.emit('export:progress', { id: p.id, state: 'done', done: res.kept, total: res.kept, pct: 100, etaSec: 0 });
+      c.log.info('clean copy', res.encoder, res.container);
+      cb(null, { path: rememberExport(res.path), kept: res.kept, encoder: res.encoder, hw: !!res.hw, subtitlesDropped: res.subtitlesDropped || 0, hdrConverted: !!res.hdrConverted });
     });
   };
   h['export:cancel'] = function (p, ctx, cb) {
+    if (estimating && estimating.handle) { estimating.handle.cancel(); estimating = null; }
     if (clean && clean.handle) { clean.handle.cancel(); }
     cb(null, true);
   };

@@ -39,10 +39,13 @@ var shots = [];
 
 function log(msg) { process.stdout.write('[' + ((Date.now() - started) / 1000).toFixed(1) + 's] ' + msg + '\n'); }
 
-function makeVideo(file, seconds, rate) {
-  var r = childProcess.spawnSync(FFMPEG, ['-v', 'error', '-y', '-f', 'lavfi', '-i', 'testsrc2=size=640x360:rate=' + rate, '-f', 'lavfi', '-i', 'sine=frequency=330',
-    '-t', String(seconds), '-g', String(rate * 2), '-keyint_min', String(rate * 2), '-sc_threshold', '0', '-c:v', 'libx264', '-preset', 'ultrafast',
-    '-pix_fmt', 'yuv420p', '-c:a', 'aac', '-shortest', file], { stdio: 'ignore' });
+// srt: optional subtitle file muxed in as mov_text (the clean copy leaves subtitles out and says so).
+function makeVideo(file, seconds, rate, srt) {
+  var subIn = srt ? ['-i', srt] : [];
+  var subOut = srt ? ['-map', '0:v', '-map', '1:a', '-map', '2:s', '-c:s', 'mov_text'] : [];
+  var r = childProcess.spawnSync(FFMPEG, ['-v', 'error', '-y', '-f', 'lavfi', '-i', 'testsrc2=size=640x360:rate=' + rate, '-f', 'lavfi', '-i', 'sine=frequency=330'].concat(subIn,
+    ['-t', String(seconds), '-g', String(rate * 2), '-keyint_min', String(rate * 2), '-sc_threshold', '0', '-c:v', 'libx264', '-preset', 'ultrafast',
+    '-pix_fmt', 'yuv420p', '-c:a', 'aac'], subOut, srt ? [file] : ['-shortest', file]), { stdio: 'ignore' });
   if (r.status !== 0) { throw new Error('ffmpeg could not make ' + file); }
 }
 
@@ -219,7 +222,9 @@ function main() {
   fs.mkdirSync(SHOTS, { recursive: true });
   var picnic = path.join(MOVIES, 'Family Picnic (2019).mp4');
   var river = path.join(MOVIES, 'River Trip.mp4');
-  makeVideo(picnic, 60, 25);
+  var srt = path.join(WORK, 'picnic.srt');
+  fs.writeFileSync(srt, '1\n00:00:02,000 --> 00:00:04,000\nHello there.\n\n2\n00:00:30,000 --> 00:00:32,000\nLook at the lake.\n');
+  makeVideo(picnic, 60, 25, srt);
   makeVideo(river, 30, 25);
   var garden = path.join(MOVIES, 'Garden Walk [clean].mp4');
   makeVideo(garden, 20, 25);
@@ -340,6 +345,7 @@ function main() {
     waitFor(function () { return document.querySelector('.bo-range-list li:nth-child(2) .bo-range-row.is-selected'); }),
     function () { return activeAct().then(function (a) { assert.strictEqual(a, 'approve', 'focus moved to the next scene\'s first action'); }); },
     toastClearOfPanel('after Skip'),
+    sleep(400),
     shot('es-light-review-toast', true),
     press('n'),
     waitFor(function () { return document.querySelector('.bo-range-list li:nth-child(3) .bo-range-row.is-selected'); }),
@@ -399,8 +405,19 @@ function main() {
       assert.strictEqual(lines.length, 2, 'the rejected scene is not in the Kodi list');
       lines.forEach(function (l) { assert.match(l, /^\d+\.\d\d \d+\.\d\d 0$/); });
     },
+    // third batch: the exact re-encode asks first, with the measured time and what is left out
     click('[data-act="export-clean"]'),
-    waitFor(function () { return document.body.innerText.indexOf('La copia limpia está lista') >= 0; }, null, 60000),
+    waitSel('.bo-modal [data-estimate]'),
+    waitText('¿Hacer una copia limpia?'),
+    waitFor(function () { var n = document.querySelector('.bo-modal [data-estimate] strong'); return n && /Más o menos/.test(n.textContent); }, null, 60000),
+    waitSel('.bo-modal [data-note="subtitles"]'),
+    waitText('Los subtítulos no se incluyen en la copia limpia'),
+    function () { return page.$('.bo-modal [data-setting="aac"]').then(function (n) { assert.strictEqual(n, null, 'no AAC switch: audio is always AAC'); }); },
+    shot('es-light-clean-confirm'),
+    click('.bo-modal [data-action="ok"]'),
+    waitFor(function () { return document.body.innerText.indexOf('La copia limpia está lista') >= 0 || !!document.querySelector('[data-progress]'); }, null, 60000),
+    function () { return page.$('[data-progress]').then(function (n) { return n ? page.textContent('[data-progress]').then(function (t) { assert.match(t, /^Haciendo la copia… \d+%/); }) : null; }); },
+    waitFor(function () { return document.body.innerText.indexOf('La copia limpia está lista') >= 0; }, null, 120000),
     function () { assert.ok(fs.existsSync(path.join(MOVIES, 'Family Picnic (2019) (bonis oculis clean).mp4')), 'clean copy next to the movie'); },
     shot('es-light-export'),
     // ---- check accuracy against a hand-marked file (mocked file dialog)
@@ -469,6 +486,7 @@ function main() {
     waitSel('.bo-modal [data-action="play"]'),
     waitText('Se omitirán 2 escenas · 1 que dejaste ver'),
     function () { return page.$$eval('.bo-preplay__row', function (n) { return n.map(function (x) { return x.getAttribute('data-category'); }); }).then(function (c) { assert.ok(c.indexOf('nudity') >= 0 && c.indexOf('gore') >= 0, c.join(',')); }); },
+    sleep(400),
     shot('es-light-preplay'),
     setTheme('dark'), shot('es-dark-preplay'), setTheme('light'),
     click('.bo-modal [data-action="play"]'),
@@ -560,6 +578,7 @@ function main() {
     function () { return page.click('.bo-kid__grid .bo-play-tile[data-id="' + ids.lake + '"]'); },
     waitText('Esta película no se puede ver ahora. Pídele ayuda a un adulto.'),
     function () { return poll(function (id) { return !document.querySelector('.bo-kid__grid .bo-play-tile[data-id="' + id + '"]'); }, ids.lake, 20000); },
+    sleep(400),
     shot('es-light-kid-refused', true),
     invoke('library:list', {}, function (r) { assert.deepStrictEqual(r.data.map(function (x) { return x.id; }), [ids['Family Picnic']], 'main serves only protected titles while locked'); }),
     invoke('settings:set', { patch: { lockOnStart: false } }, function (r) { assert.strictEqual(r.error, 'locked'); }),
@@ -587,11 +606,14 @@ function main() {
         assert.ok(t.indexOf('Protegida') < 0, 'never Protected');
       });
     },
+    function () { return page.$eval('.bo-title-card[data-id="' + ids.lake + '"]', function (c) { c.scrollIntoView({ block: 'center' }); }); },
+    sleep(200),
     shot('es-light-library-damaged'),
     function () { return page.click('.bo-title-card[data-id="' + ids.lake + '"] [data-act="more"]'); },
     click('[data-menu="play"]'),
     waitSel('.bo-modal [data-action="play-unprotected"]'),
     waitText('Esta película no tiene lista de escenas. ¿Verla sin protección?'),
+    sleep(400),
     shot('es-light-play-unprotected'),
     click('.bo-modal [data-action="cancel"]'),
     noModal(),
@@ -619,6 +641,7 @@ function main() {
     go('library'), sleep(200),
     evaluate(function () { window.BO.idle._setLast(Date.now() - 5 * 60000 + 20000); window.BO.idle.tick(); }),
     waitText('Se bloqueará para niños en 30 segundos'),
+    sleep(400),
     shot('es-light-idle-warning', true),
     evaluate(function () { window.BO.idle._setLast(Date.now() - 5 * 60000 - 1000); window.BO.idle.tick(); }),
     waitSel('[data-view="kid"]:not([hidden])', { timeout: 10000 }),
