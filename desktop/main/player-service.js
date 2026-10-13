@@ -229,6 +229,19 @@ function createPlayerService(options) {
     if (!fs.existsSync(item.path)) { done(null, { ok: false, error: 'fileMissing' }); return; }
     // Board security round 2, N3: mpv or bonis.lua does not match what shipped: never start it.
     if (o.blocked && o.blocked()) { done(null, { ok: false, error: kidMode ? 'kidRefused' : 'bundleDamaged' }); return; }
+    // Security round 3: mpv and bonis.lua are hashed again right before each play (cached by size
+    // and time). A mismatch refuses to start the player.
+    if (o.preflight && !(opts && opts.checked)) {
+      o.preflight(function (bad) {
+        if (bad) { done(null, { ok: false, error: kidMode ? 'kidRefused' : 'bundleDamaged' }); return; }
+        var o2 = {};
+        var k;
+        for (k in (opts || {})) { if (Object.prototype.hasOwnProperty.call(opts, k)) { o2[k] = opts[k]; } }
+        o2.checked = true;
+        play(id, o2, cb);
+      });
+      return;
+    }
     var loaded = skips.load(id);
     var doc = loaded.doc;
     if (kidMode && !kidPlayable(item, loaded)) { done(null, { ok: false, error: 'kidRefused' }); return; }
@@ -268,7 +281,8 @@ function createPlayerService(options) {
       var enforcedCount = BO.enforced(playDoc).length;
       send({ type: 'starting', title: item.title, enforced: enforcedCount, panicKey: s.panicKey || 'p', unprotected: unprotected });
       player.play(item.path, playFile, { kidMode: kidMode, lang: s.lang, marksPath: marksPath, resumeAt: resumeAt,
-        startTime: typeof item.start === 'number' ? item.start : undefined }, function (err) {
+        startTime: typeof item.start === 'number' ? item.start : undefined,
+        duration: item.duration }, function (err) {
         if (err && cur && cur.id === id && player && player.status().state === 'idle') { finishSession('error'); }
       });
       done(null, { ok: true, data: { id: id, title: item.title, enforced: enforcedCount, kidMode: kidMode } });

@@ -228,3 +228,40 @@ test('no resume (watch-later) file can be written, and kid mode cannot be switch
       assert.deepStrictEqual(watchLaterFiles(), before, 'no watch-later file written or changed');
     }, function (err) { return rec.stop().then(function () { throw err; }); });
 });
+
+// Board review 3, NEW-3: during the 1.5 s between a kid-mode refusal and mpv quitting, the cover
+// and mute hold and every key is dead.
+function refusalWindow(file, skip, playOptions) {
+  var rec = h.startRecorder();
+  var keys = ['SPACE', 'RIGHT', 'RIGHT', 'Shift+RIGHT', 'PGUP', 'UP', 'f', 'm', '0', 'p', 'ENTER'];
+  function inject() {
+    return keys.reduce(function (p, k) {
+      return p.then(function () { return rec.cmd(['keypress', k]).catch(function () {}); });
+    }, Promise.resolve()).then(function () { return rec.cmd(['set_property', 'pause', false]).catch(function () {}); });
+  }
+  var o = { kidMode: true };
+  Object.keys(playOptions || {}).forEach(function (k) { o[k] = playOptions[k]; });
+  return rec.play(file, skip, o)
+    .then(inject, function () { /* exited before IPC */ })
+    .then(function () { return rec.waitEvent('error', 8000, function (e) { return e.exitCode === 3; }); })
+    .then(function () {
+      var firstCover = -1;
+      rec.transitions.forEach(function (tr, i) { if (firstCover < 0 && tr.black) { firstCover = i; } });
+      assert.ok(firstCover >= 0, 'covered');
+      var after = rec.transitions.slice(firstCover);
+      var released = after.filter(function (tr) { return !tr.black || !tr.mute; });
+      assert.strictEqual(released.length, 0, 'cover or mute released before quit: ' + JSON.stringify(released));
+      var shown = rec.samples.filter(function (sm) { return !sm.black; });
+      assert.strictEqual(shown.length, 0, 'uncovered frames reported: ' + shown.map(function (sm) { return sm.t; }).join(','));
+      assert.strictEqual(rec.eventsOf('panic').length, 0, 'keys are dead');
+    });
+}
+
+test('kid-mode refusal of a corrupt skip file: covered and muted until mpv quits, keys dead', opts, function () {
+  return refusalWindow(h.ensureVideo(), h.writeRaw('refuse-corrupt', '{"format":'));
+});
+
+test('kid-mode refusal on a timeline mismatch: covered and muted until mpv quits, keys dead', opts, function () {
+  var fx = h.ensureTimelineFixtures()[0];
+  return refusalWindow(fx.file, h.writeSkip('refuse-timeline', [h.range('rrefuse01', 10, 15, 'skip')]));
+});

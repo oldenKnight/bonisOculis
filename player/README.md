@@ -24,6 +24,7 @@ mpv --script=player/bonis.lua \
 | `markin` / `markout` / `undo` | `i` / `o` / `u` | Marking keys (parent mode only). |
 | `leadin` | `2` | Seconds the panic range starts before the moment the key was pressed. |
 | `start` | (empty) | The media's probed `format.start_time` (ffprobe), i.e. where skip-file time 0 is. Empty = unknown. |
+| `duration` | (empty) | Probed duration on the skip-file timeline, for clamping seek keys (mpv's own `duration` grows as it reads an MP4 with a start offset). Empty = mpv's. |
 | `resume` | (empty) | Start playback here, in skip-file time (the app never uses mpv's `--start`, which is on mpv's clock). |
 
 The app passes each option as its own `--script-opts-append` so paths containing commas survive
@@ -52,10 +53,14 @@ Measured with mpv 0.37 on the test fixtures (`test/timeline.test.js`):
 | MPEG-TS starting at 1.4 s | 1.379 | 1.379 | 0 |
 | plain MP4 | 0 | 0 | 0 |
 
-Check: the first frame must land within 1 s of where it should (0, or the resume point). If it
-does not — typically because the start time was unknown — kid mode refuses to play (`error` with
-code `timeline`, then exit 3) and parent mode shows a warning and goes on. Kid mode stays covered
-from before the first frame until this check has passed.
+Check: the first frame must land where it should (0, or the resume point): within
+[−1 s, +3 s] when `start` was probed (an MPEG-TS cut mid-GOP or with audio leading video shows
+its first frame 1–1.5 s in), within ±1 s when it is unknown. If it does not, kid mode refuses to
+play (`error` with code `timeline`, then exit 3) and parent mode shows a warning and goes on. Kid
+mode stays covered from before the first frame until this check has passed.
+
+During any kid-mode refusal (bad skip file, timeline mismatch) the player stays black and muted
+and every key is dead until mpv has quit 1.5 s later.
 
 ## What is enforced
 
@@ -65,7 +70,7 @@ because adding a filter re-initialises the video chain) until `end` (exclusive).
 
 | action | effect | restored |
 |---|---|---|
-| `skip` | screen covered + muted, `seek <end> absolute+exact`, OSD "Scene skipped" + the panic hint (2 s) | when playback restarts outside |
+| `skip` | screen covered + muted, `seek <end + 0.05 s> absolute+exact`, OSD "Scene skipped" + the panic hint (2 s) | when playback restarts outside |
 | `hide` | full-window black ASS overlay with a small grey "Hidden" / "Oculto" label + `mute=yes` + subtitles hidden | at `end` |
 | `blur` | `vf add @bo-blur:lavfi=[scale=iw/24:-2:flags=area,scale=iw*24:-2:flags=neighbor]` + mute, both from `start - 0.5 s` | at `end` (filter removed) |
 | `mute` | `mute=yes` | at `end` |
@@ -82,6 +87,11 @@ because adding a filter re-initialises the video chain) until `end` (exclusive).
 - Forward seeks landing in a skip range go to its end; into hide/mute/blur ranges the effect
   applies at once.
 - Seek-loop guard: the script never re-issues a seek to the same target within 0.3 s.
+- Skip landings: mpv's exact seek may show the frame up to ~5 ms *before* its target, so skips
+  (and intercepted forward seeks) target the range end + 0.05 s. Any landing at or after
+  target − 0.01 s counts as ours, including overshoots (MPEG-TS can land seconds later), and
+  lifts the cover and mute at once. A landing a hair before the end right after our own skip seek
+  is also released. Measured: 8–12 ms from the landing frame to the cover lifting.
 - Blur watchdog: if `frame-drop-count` grows by more than 5 while blurring, or the filter cannot be
   added, the filter is removed and blur becomes hide for the rest of the session.
 - Mute and subtitle visibility are restored to exactly what they were before the range; if

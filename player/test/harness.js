@@ -58,6 +58,48 @@ function probeStart(file) {
   return isFinite(v) ? v : 0;
 }
 
+function probeDuration(file) {
+  var out = childProcess.execFileSync(FFPROBE, ['-v', 'error', '-show_entries', 'format=duration',
+    '-of', 'csv=p=0', file], { encoding: 'utf8' });
+  var v = parseFloat(out);
+  return isFinite(v) ? v : 0;
+}
+
+function cached(name, build) {
+  var p = path.join(SCRATCH, 'fx-' + name);
+  if (!fs.existsSync(p)) {
+    var tmp = path.join(SCRATCH, 'tmp-' + process.pid + '-' + name);
+    build(tmp);
+    fs.renameSync(tmp, p);
+  }
+  return { name: name, file: p, start: probeStart(p), duration: probeDuration(p) };
+}
+
+// Board review 3 fixtures:
+//   f24.mp4:  24 fps, start 0 (frames at k/24; a range ending at 10.004 ends just after a frame)
+//   mid.ts:   MPEG-TS cut mid-GOP (2 s GOP): first shown frame ~1.05 s after format.start_time
+//   lead.ts:  MPEG-TS whose audio leads video by 1.5 s
+function ensureReview3Fixtures() {
+  var base = ensureVideo();
+  return {
+    f24: cached('f24.mp4', function (out) {
+      ffmpeg(['-f', 'lavfi', '-i', 'testsrc2=size=320x180:rate=24', '-f', 'lavfi', '-i', 'sine=frequency=440:sample_rate=48000',
+        '-t', '30', '-c:v', 'libx264', '-preset', 'ultrafast', '-g', '48', '-bf', '2', '-c:a', 'aac', '-shortest', '-f', 'mp4', out]);
+    }),
+    mid: cached('mid.ts', function (out) {
+      var src = out + '.src.ts';
+      ffmpeg(['-f', 'lavfi', '-i', 'testsrc2=size=320x180:rate=25', '-f', 'lavfi', '-i', 'sine=frequency=440:sample_rate=48000',
+        '-t', '60', '-c:v', 'libx264', '-preset', 'ultrafast', '-g', '50', '-bf', '2', '-c:a', 'aac', '-shortest', '-f', 'mpegts', src]);
+      ffmpeg(['-i', src, '-ss', '11.0', '-c', 'copy', '-muxdelay', '0', '-muxpreload', '0', '-f', 'mpegts', out]);
+      fs.unlinkSync(src);
+    }),
+    lead: cached('lead.ts', function (out) {
+      ffmpeg(['-i', base, '-itsoffset', '1.5', '-i', base, '-map', '1:v', '-map', '0:a', '-c', 'copy',
+        '-muxdelay', '0', '-muxpreload', '0', '-f', 'mpegts', out]);
+    })
+  };
+}
+
 // Same colour bars on four timelines (board review 2, N1):
 //   mp4-601: MP4 remuxed with -copyts from a TS starting at 601.4 s (edit list; mpv keeps 601.x)
 //   mkv-neg: MKV with B-frames + AAC priming, start -0.021 s
@@ -72,7 +114,7 @@ function ensureTimelineFixtures() {
       build(tmp);
       fs.renameSync(tmp, p);
     }
-    return { name: name, file: p, start: probeStart(p) };
+    return { name: name, file: p, start: probeStart(p), duration: probeDuration(p) };
   }
   return [
     make('mp4-601.mp4', function (out) {
@@ -88,7 +130,7 @@ function ensureTimelineFixtures() {
     make('ts-1.4.ts', function (out) {
       ffmpeg(['-i', base, '-c', 'copy', '-muxdelay', '0', '-muxpreload', '0', '-output_ts_offset', '1.4', '-f', 'mpegts', out]);
     }),
-    { name: 'mp4-0', file: base, start: probeStart(base) }
+    { name: 'mp4-0', file: base, start: probeStart(base), duration: probeDuration(base) }
   ];
 }
 
@@ -208,7 +250,12 @@ function startRecorder(extra) {
     if (p.name === 'user-data/bonis-osd' && p.data && p.data.text) { rec.osd.push(p.data.text); }
     if (p.name === 'user-data/bonis') {
       rec.state.bonis = p.data;
-      if (p.data) { rec.transitions.push(p.data); }
+      if (p.data) {
+        var tr = {};
+        Object.keys(p.data).forEach(function (k) { tr[k] = p.data[k]; });
+        tr.wall = Date.now();
+        rec.transitions.push(tr);
+      }
     }
     // Samples start once every watched property has reported its initial value.
     if (p.name === 'time-pos' && typeof p.data === 'number' && rec.state.mute !== null &&
@@ -300,6 +347,8 @@ module.exports = {
   available: available,
   ensureVideo: ensureVideo,
   ensureTimelineFixtures: ensureTimelineFixtures,
+  ensureReview3Fixtures: ensureReview3Fixtures,
+  probeDuration: probeDuration,
   probeStart: probeStart,
   uniqueName: uniqueName,
   range: range,

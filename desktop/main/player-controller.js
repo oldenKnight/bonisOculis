@@ -105,6 +105,10 @@ function buildArgs(opts, req, ipcPath, resumeAt) {
   if (typeof o.startTime === 'number' && isFinite(o.startTime)) {
     args.push('--script-opts-append=bonis-start=' + o.startTime.toFixed(6));
   }
+  // Probed duration on the skip-file timeline: seek clamping (mpv's own grows as it reads).
+  if (typeof o.duration === 'number' && isFinite(o.duration) && o.duration > 0) {
+    args.push('--script-opts-append=bonis-duration=' + o.duration.toFixed(3));
+  }
   // Resume on the skip-file timeline; bonis.lua converts it (mpv's --start uses mpv's clock).
   if (resumeAt && resumeAt > 0) { args.push('--script-opts-append=bonis-resume=' + resumeAt.toFixed(3)); }
   if (opts.extraArgs && opts.extraArgs.length) { args = args.concat(opts.extraArgs); }

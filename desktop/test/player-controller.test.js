@@ -64,6 +64,8 @@ test('buildArgs follows PLAN 2.2 and only asks for copy-back decoding with blur 
   assert.ok(a.join(' ').indexOf('--start') < 0, 'mpv --start is never used (it is on mpv\'s clock)');
   assert.ok(a.join(' ').indexOf('bonis-start=') < 0, 'no start time unless the probe gave one');
   assert.ok(args(plain, { startTime: 601.378 }).indexOf('--script-opts-append=bonis-start=601.378000') >= 0);
+  assert.ok(args(plain, { duration: 60.032 }).indexOf('--script-opts-append=bonis-duration=60.032') >= 0);
+  assert.ok(a.join(' ').indexOf('bonis-duration') < 0, 'no duration unless the probe gave one');
   assert.ok(a.indexOf('--save-position-on-quit') < 0, 'never saves a resume file');
 });
 

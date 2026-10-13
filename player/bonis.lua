@@ -28,6 +28,7 @@ local opts = {
     leadin = 2,
     start = "",     -- probed format.start_time of the media (seconds); empty = unknown
     resume = "",    -- start playback here (skip-file timeline); empty = from the beginning
+    duration = "",  -- probed duration on the skip-file timeline; empty = use mpv's (partial) value
 }
 options.read_options(opts, "bonis")
 
@@ -35,6 +36,9 @@ local FORMAT = "bonis-oculis-skip"
 local LEAD = 0.05          -- enforce a range from start - LEAD (plan 2.3)
 local BLUR_PREARM = 0.5    -- the blur filter is armed this long before start (filter reinit)
 local SEEK_GUARD = 0.3     -- do not re-seek to the same target within this many seconds
+local SKIP_PAST = 0.05     -- seek this far past a range end: mpv's exact seek may show the frame up
+                           -- to ~5 ms before its target, which must not count as inside
+local LAND_TOL = 0.01      -- a forward seek of ours landing at or after target - LAND_TOL is ours
 local BACK_MARGIN = 1.0    -- parent-mode backward seeks into a range land at start - 1
 local DROP_LIMIT = 5       -- blur watchdog: more drops than this inside a range -> hide
 local PANIC_STEP = 10      -- RIGHT while panic-hidden seeks this far
@@ -156,6 +160,16 @@ local skip_pending = false    -- cover while our own skip seek is in flight
 local busy = false            -- re-entrancy guard
 local inside = {}             -- ids of ranges currently entered (for one-shot notifications)
 local blur_failed = false     -- session-wide: this machine cannot keep up with blur
+local closing = false         -- kid-mode refusal in progress: covered, keys dead, until mpv is gone
+
+-- Key handlers do nothing while a kid-mode refusal is closing the player.
+local function live(fn)
+    return function()
+        if not closing then
+            fn()
+        end
+    end
+end
 local blur_base = nil         -- frame-drop-count when the blur filter was applied
 
 local applied = { black = false, mute = false, blur = false }
@@ -427,6 +441,9 @@ local function set_blur(on)
 end
 
 local function apply(want)
+    if closing then
+        want = { black = true, mute = true, blur = false }
+    end
     if want.blur and not blur_failed then
         if not set_blur(true) then
             msg.warn("blur filter failed; hiding instead")
@@ -459,7 +476,8 @@ local function seek_to(target, why)
     if own_seek and math.abs(own_seek.target - target) < 0.001 and now - own_seek.at < SEEK_GUARD then
         return false
     end
-    own_seek = { target = target, at = now, why = why, pending = true }
+    local from = media_pos() or last_t or 0
+    own_seek = { target = target, at = now, why = why, pending = true, forward = target >= from }
     msg.debug(string.format("seek %s -> %.3f", why, target))
     mp.commandv("seek", string.format("%.3f", target + origin), "absolute+exact")
     return true
@@ -482,17 +500,17 @@ local function notify_entries(act)
 end
 
 -- origin: "tick" (time-pos), "seek" (seek event, t is the target), "restart" (playback-restart)
-local function evaluate_inner(t, origin)
+local function evaluate_inner(t, kind)
     local act = active_at(t)
     local want = { black = panic.active, mute = panic.active, blur = false }
 
     -- A user seek that went backward into a range: parent -> before it, kid -> after it.
-    if origin ~= "tick" and pre_seek_t ~= nil and t < pre_seek_t - 0.5 and #act > 0
+    if kind ~= "tick" and pre_seek_t ~= nil and t < pre_seek_t - 0.5 and #act > 0
         and not (own_seek and math.abs(own_seek.target - t) < 0.05) then
         local target
         for _, r in ipairs(act) do
             if kid then
-                if not target or r.stop > target then target = r.stop end
+                if not target or r.stop + SKIP_PAST > target then target = r.stop + SKIP_PAST end
             else
                 local s = math.max(0, r.start - BACK_MARGIN)
                 if not target or s < target then target = s end
@@ -538,6 +556,13 @@ local function evaluate_inner(t, origin)
         want.mute = true
     end
 
+    if skip_target and own_seek and own_seek.why == "skip" and mp.get_time() - own_seek.at < 2
+        and math.abs(own_seek.target - (skip_target + SKIP_PAST)) < 0.001 and t >= skip_target - 0.05 then
+        -- we already sought past this end and mpv shows a frame a hair before it: that is the
+        -- landing, not the scene. Release instead of holding the cover until the watchdog.
+        skip_target = nil
+        skip_pending = false
+    end
     if skip_pending then
         want.black = true
         want.mute = true
@@ -548,19 +573,19 @@ local function evaluate_inner(t, origin)
         skip_pending = true
         notify_entries(act)
         apply(want)
-        seek_to(skip_target, "skip")
+        seek_to(skip_target + SKIP_PAST, "skip")
         return
     end
     notify_entries(act)
     apply(want)
 end
 
-local function evaluate(t, origin)
-    if busy or t == nil then
+local function evaluate(t, kind)
+    if busy or t == nil or closing then
         return
     end
     busy = true
-    local ok, err = pcall(evaluate_inner, t, origin)
+    local ok, err = pcall(evaluate_inner, t, kind)
     busy = false
     if not ok then
         msg.error("enforcement error: " .. tostring(err))
@@ -626,7 +651,9 @@ mp.register_event("playback-restart", function()
     -- A restart from an earlier (user) seek can arrive after we issued our own corrective seek.
     -- Ignore it while ours is on its way, or it would be judged again and override ours.
     if own_seek and own_seek.pending then
-        if math.abs(own_seek.target - t) < 0.1 or mp.get_time() - own_seek.at > 1.0 then
+        local ours = math.abs(own_seek.target - t) < 0.1
+            or (own_seek.forward and t >= own_seek.target - LAND_TOL)   -- includes overshoots
+        if ours or mp.get_time() - own_seek.at > 1.0 then
             own_seek.pending = false
         else
             in_seek = true
@@ -662,8 +689,6 @@ mp.observe_property("osd-dimensions", "native", function()
         draw_black()
     end
 end)
-
-local closing = false     -- kid-mode refusal in progress: keep the cover until mpv is gone
 
 mp.register_event("end-file", function()
     if closing then
@@ -797,9 +822,13 @@ end
 -- enforcement above stays as the safety net (IPC seeks from the app, other scripts).
 -------------------------------------------------------------------------------------------------
 local function safe_target(target, forward)
-    local dur = mp.get_property_number("duration")    -- mpv's end position
-    if dur then
-        dur = dur - origin
+    -- the probed duration: mpv's own grows with what it has read so far (MP4 with a start offset)
+    local dur = tonumber(opts.duration)
+    if dur == nil or dur <= 0 then
+        dur = mp.get_property_number("duration")    -- mpv's end position
+        if dur then
+            dur = dur - origin
+        end
     end
     for _ = 1, 50 do
         if target < 0 then
@@ -815,7 +844,7 @@ local function safe_target(target, forward)
         local nt
         for _, r in ipairs(act) do
             if forward then
-                if not nt or r.stop > nt then nt = r.stop end
+                if not nt or r.stop + SKIP_PAST > nt then nt = r.stop + SKIP_PAST end
             else
                 local s = r.start - BACK_MARGIN
                 if not nt or s < nt then nt = s end
@@ -859,11 +888,11 @@ local function panic_start()
     local t = now_t()
     panic.active = true
     panic.start = math.max(0, t - (tonumber(opts.leadin) or 2))
-    mp.add_forced_key_binding("RIGHT", "bonis-panic-right", function()
+    mp.add_forced_key_binding("RIGHT", "bonis-panic-right", live(function()
         safe_seek(PANIC_STEP)
-    end, { repeatable = true })
-    mp.add_forced_key_binding("ENTER", "bonis-panic-enter", function() panic_end() end)
-    mp.add_forced_key_binding("KP_ENTER", "bonis-panic-kpenter", function() panic_end() end)
+    end), { repeatable = true })
+    mp.add_forced_key_binding("ENTER", "bonis-panic-enter", live(function() panic_end() end))
+    mp.add_forced_key_binding("KP_ENTER", "bonis-panic-kpenter", live(function() panic_end() end))
     apply({ black = true, mute = true, blur = false })
     send({ t = "panic", phase = "start", at = round3(t) })
     osd(string.format(tr("panic_on"), opts.panickey), 4)
@@ -927,7 +956,7 @@ local function on_quit()
 end
 
 local function bind(key, name, fn, repeatable)
-    mp.add_forced_key_binding(key, name, fn, repeatable and { repeatable = true } or nil)
+    mp.add_forced_key_binding(key, name, live(fn), repeatable and { repeatable = true } or nil)
 end
 
 local SEEK_KEYS = {
@@ -1038,7 +1067,11 @@ end)
 -- The first frame must sit where the skip file's timeline says. If it does not (an unknown or
 -- wrong start time), kid mode refuses to play; parent mode warns and goes on.
 check_origin = function(t)
-    if math.abs(t - expected_first) <= 1.0 then
+    -- With a probed start the origin itself is exact; the first shown frame may still come late
+    -- (MPEG-TS cut mid-GOP, audio leading video). Unknown start: strict.
+    local known = tonumber(opts.start) ~= nil
+    local lo, hi = expected_first - 1.0, expected_first + (known and 3.0 or 1.0)
+    if t >= lo and t <= hi then
         return true
     end
     local why = string.format("timeline mismatch: first frame at %.3f, expected %.3f (origin %.3f)",
