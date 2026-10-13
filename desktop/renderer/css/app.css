@@ -313,3 +313,4 @@ ol.bo-help__list { list-style: decimal; }
 .bo-parents-card--compact .bo-parents-row__count { text-align: start; font-weight: var(--bo-fw-semibold); }
 /* Toasts stay under an open dialog (round 2, X6). */
 .bo-toast-region { z-index: calc(var(--bo-z-modal) - 1); }
+.bo-icon--up { transform: rotate(180deg); }
