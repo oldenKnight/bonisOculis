@@ -2,8 +2,17 @@
 
 READ THIS FIRST on any restart. Then docs/BRIEF.md (the owner's spec). Do not re-derive context.
 
-## Current phase
-IMPLEMENTATION. On 2026-10-12 the owner granted full authority: "treat my prompt as a suggestion...
+## Current phase (2026-10-13)
+BOARD-REVIEWED PROTOTYPE, all milestones done. Three board rounds (docs/reviews/): security
+auditor PASS with conditions, video engineer PASS with conditions (all fixed in the last commits),
+product lead / kids-protection commission / parent PASS with conditions. Nothing has run on real
+Windows or macOS hardware yet; CI builds installers once the whisper-cli pins are completed.
+Next for the OWNER: (1) run the GitHub Actions workflow and pin whisper-cli (packaging/README.md),
+(2) install on a real Windows and Mac and run the Help "first launch" steps, (3) scan hand-marked
+movies and read the Check accuracy screen (brief 6.5), (4) decide the licence (Q1), (5) try the
+Fire TV paths from Help. Open polish and known limits: see "Honest findings" and "Backlog".
+
+IMPLEMENTATION (historical). On 2026-10-12 the owner granted full authority: "treat my prompt as a suggestion...
 you have full authority to fulfill my needs, essential vision, and quality standards". Open
 questions were decided by the planner (see "Decisions on open questions"). docs/PLAN.md is binding.
 Active milestones: M1 (design, Sonnet), M2 (spec + shared lib), M3 (player). Agents run in parallel.
@@ -159,7 +168,20 @@ D24 Clean copy is an EXACT re-encode (supersedes D6 and D21's "mute ranges are c
 - Live tab-audio (extension): YAMNet in wasm costs ~25 ms per 0.96 s window (~5% of a core);
   it reacts ~2 s after a scene starts, so it is a backstop, never the primary protection.
 
-## Polish backlog (for the M9 board pass)
+## Backlog (not blocking; from the board rounds)
+- Check accuracy: no in-app way to make an independent hand-marked list (the owner marks in a
+  separate copy of the title or with another tool); X13.
+- Error toasts can still cover library buttons at 1024x640 briefly (X6, cosmetic).
+- Release page must link FIRST-LAUNCH.txt / PRIMER-INICIO.txt next to the installers (CI only
+  uploads them as artifacts).
+- Help text for Apple Silicon Macs on macOS 13 ("what to do next").
+- `library:add` accepts a renderer path (needed for drag-and-drop); all other channels are ids.
+- IPC `screenshot-to-file` on mpv's local socket still writes the frame (same-OS-user only).
+- Analyzer: no per-stage model hash (the app hashes before each scan instead); no --require-hashes.
+- Player timing tests run at 4x; one intermittent failure seen under heavy host load.
+- Windows bin folder 316 MiB (two static ffmpeg binaries).
+
+## Polish backlog (historical, M9)
 - Extension: iframes unsupported; Disney+ timestamp origin assumption untested on the live site.
 - Player: blur fallback untested under real frame drops.
 
@@ -224,8 +246,7 @@ M6  Extension: subtitle pre-read + skip-file import ............... DONE 2026-10
 M7  Analyzer v2: audio + captions + fusion tuning + profiling ...... DONE 2026-10-12 (reviewed)
 M8  Extension live-audio mode ..................................... DONE 2026-10-12 (reviewed)
 M9a Packaging + CI ................................................ DONE 2026-10-12 (reviewed; Linux-verified)
-M9b Board round 1 FAILED (both halves); fixes landed for app, player, clean copy, model;
-    analyzer hardening (telemetry/gating/resume/pause/pins) in flight; round 2 started 2026-10-13
+M9b Board rounds 1-3 ............................................. DONE 2026-10-13 (all pass with conditions; conditions fixed)
 
 ## Handoff note
 Nothing is built. Repo layout proposed for M1: desktop/ (Electron, ES5 IIFE modules), analyzer/
