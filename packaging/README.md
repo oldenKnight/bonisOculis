@@ -202,3 +202,13 @@ the table was written, and where the publisher offers a checksum it matched (BIN
   the macOS whisper.cpp commit are not pinned, nothing was built on Windows or macOS, and the
   workflow has not run yet. The Linux run above is the evidence that the spec, entry point,
   extraResources mapping and verify-bundle work.
+
+## First-launch text files (from the desktop agent)
+
+The unsigned-build steps (macOS 15+ Privacy & Security › Open Anyway, macOS 14 and earlier
+Control-click › Open, Windows SmartScreen More info › Run anyway) must be readable before the app
+opens. They live in `docs/INSTALL/en-US.md` and `docs/INSTALL/es-MX.md` (the same text as the
+in-app Help section "Before you install"). The packaging owner should ship them next to the
+installer as plain text files: `FIRST-LAUNCH.txt` (en-US) and `PRIMER-INICIO.txt` (es-MX), inside
+the DMG window and beside the NSIS installer on the download page. Not wired into
+electron-builder.yml by this note.

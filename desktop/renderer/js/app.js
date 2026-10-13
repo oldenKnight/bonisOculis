@@ -33,7 +33,7 @@
     var added = (res.added || []).length;
     var dup = (res.duplicates || []).length;
     var failed = res.failed || [];
-    if (added) { BO.toast.show({ kind: 'success', title: BO.tn('add.added', added), text: BO.t('add.scanning') }); }
+    if (added) { BO.toast.show({ kind: 'success', title: BO.tn('add.added', added), text: BO.tn('add.scanning', added) }); }
     if (dup) { BO.toast.show({ kind: 'info', title: BO.tn('add.duplicate', dup) }); }
     if (failed.length) {
       var reason = failed[0].reason === 'notFound' ? 'notFound' : 'notVideo';

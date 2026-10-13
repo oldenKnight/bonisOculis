@@ -24,14 +24,29 @@ test('markdown subset renders and escapes', function () {
 
 test('both help files cover every required topic with the same anchors', function () {
   var dir = path.join(__dirname, '..', '..', 'docs', 'HELP');
-  var need = ['start', 'scanning', 'review', 'kids', 'panic', 'tv', 'limits', 'pin', 'privacy', 'accuracy'];
+  var need = ['install', 'start', 'scanning', 'review', 'kids', 'panic', 'tv', 'limits', 'pin', 'privacy', 'accuracy'];
   ['en-US.md', 'es-MX.md'].forEach(function (f) {
     var r = help.render(fs.readFileSync(path.join(dir, f), 'utf8'));
     var ids = r.toc.filter(function (e) { return e.level === 2; }).map(function (e) { return e.id; });
     assert.deepStrictEqual(ids, need, f);
   });
   var en = fs.readFileSync(path.join(dir, 'en-US.md'), 'utf8');
-  ['Gatekeeper', 'SmartScreen', 'More info', 'Run anyway', 'VLC', 'Amazon Appstore', 'Kodi', '.edl', 'DRM', 'administrator'].forEach(function (w) {
-    assert.ok(en.indexOf(w) >= 0 || (w === 'Gatekeeper' && /Control key and click/.test(en)) || (w === 'SmartScreen' && /Windows protected your PC/.test(en)), w);
+  ['Privacy & Security', 'Open Anyway', 'SmartScreen', 'More info', 'Run anyway', 'VLC', 'Amazon Appstore', 'Kodi', '.edl', 'DRM', 'administrator',
+    '7 times', 'Install unknown apps', 'Downloader', 'ARMV7A (32BIT)', 'exFAT', 'FAT32', 'internal storage', 'real frame'].forEach(function (w) {
+    assert.ok(en.indexOf(w) >= 0, w);
   });
+  assert.ok(en.indexOf('(F1)') < 0, 'no jargon');
+  assert.ok(en.indexOf('None found \u2713') < 0 && en.indexOf('None found ✓') < 0);
+  var es = fs.readFileSync(path.join(dir, 'es-MX.md'), 'utf8');
+  ['Privacidad y seguridad', 'Abrir de todos modos', 'Más información', 'Ejecutar de todas formas', '7 veces', 'Instalar apps desconocidas', 'ARMV7A (32BIT)', 'imagen real'].forEach(function (w) {
+    assert.ok(es.indexOf(w) >= 0, w);
+  });
+});
+
+test('install files outside the app carry the same first-launch steps', function () {
+  var inst = path.join(__dirname, '..', '..', 'docs', 'INSTALL');
+  var en = fs.readFileSync(path.join(inst, 'en-US.md'), 'utf8');
+  var es = fs.readFileSync(path.join(inst, 'es-MX.md'), 'utf8');
+  ['Privacy & Security', 'Open Anyway', 'More info', 'Run anyway', 'FIRST-LAUNCH'].forEach(function (w) { assert.ok(en.indexOf(w) >= 0, w); });
+  ['Privacidad y seguridad', 'Abrir de todos modos', 'Más información', 'Ejecutar de todas formas', 'PRIMER-INICIO'].forEach(function (w) { assert.ok(es.indexOf(w) >= 0, w); });
 });
