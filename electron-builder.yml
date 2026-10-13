@@ -46,7 +46,9 @@ extraResources:
     to: models
     filter:
       - manifest.json
-      - nudenet-320n.onnx
+      - nsfw-vit-int8.onnx
+      - nsfw-vit-config.json
+      - nsfw-vit-preprocessor_config.json
       - clip-vit-b32-vision_quantized.onnx
       - clip-vit-b32-preprocessor_config.json
       - clip_prompts.npz

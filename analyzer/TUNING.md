@@ -21,7 +21,7 @@ Signals (`SIGNALS`) and their groups (`SIGNAL_GROUPS`):
 
 | signal | group | what it is |
 |---|---|---|
-| frames | picture | NudeNet (nudity) + CLIP zero-shot (sex, kissing, implied, gore), 1 fps |
+| frames | picture | nsfw classifier max()ed with 0.8 x CLIP "nudity" prompts (nudity) + CLIP zero-shot (sex, kissing, implied, gore), 1 fps |
 | captions | description | Florence-2 caption of one keyframe per shot -> lexicon + caption LM |
 | subtitles | dialogue | subtitle cues -> lexicon, max()ed with 0.85 x the dialogue LM |
 | speech | dialogue | whisper transcript (only when there are no subtitles) -> the same scorer |
@@ -35,11 +35,11 @@ per-category minimum duration; confidence = peak score of the run.
 
 | signal | nudity | sex | implied | kissing | gore | language | why |
 |---|---|---|---|---|---|---|---|
-| frames | **1.00** | 0.90 | 0.70 | 0.85 | **0.90** | 0 | Strongest for what is *seen*. NudeNet is a trained detector (1.0). CLIP zero-shot is weaker and over-fires on red test patterns (ledger), hence 0.9 for gore/sex. Implied scenes are by definition not explicit in the picture: 0.70. |
+| frames | **1.00** | 0.90 | 0.70 | 0.85 | **0.90** | 0 | Strongest for what is *seen*. Nudity is a trained classifier (AdamCodd/vit-base-nsfw-detector) backed by a discounted CLIP group (1.0, see §6). CLIP zero-shot is weaker and over-fires on red test patterns (ledger), hence 0.9 for gore/sex. Implied scenes are by definition not explicit in the picture: 0.70. |
 | subtitles | 0.70 | 0.85 | 0.85 | 0.75 | 0.75 | 1.00 | Moderate for all visual categories: dialogue talks *about* things that may be off screen, so it cannot be a strong nudity signal; SDH cues such as "[moaning]" are reliable for sex/implied. Language is dialogue by definition. |
 | speech | 0.60 | 0.75 | 0.75 | 0.65 | 0.65 | 0.90 | The subtitle weights minus ~0.1: recognition errors, no SDH cues (whisper rarely writes "(moaning)"). |
 | audio | 0 | 0.60 | 0.50 | 0 | **0.35** | 0 | Moderate for sex (moans, panting are distinctive); weak for gore (gunshots, screams and explosions are everyday action-film sounds). No AudioSet class indicates nudity or kissing. |
-| captions | 0.60 | 0.70 | 0.75 | 0.70 | 0.60 | 0 | Moderate for implied/sex/kissing: a description such as "a couple lying in bed under the sheets" is exactly the implied scene that has no nudity for NudeNet to find. Lower for nudity/gore, where the detector and CLIP see the same pixels more directly. |
+| captions | 0.60 | 0.70 | 0.75 | 0.70 | 0.60 | 0 | Moderate for implied/sex/kissing: a description such as "a couple lying in bed under the sheets" is exactly the implied scene that has no nudity for the classifier to find. Lower for nudity/gore, where the classifier and CLIP see the same pixels more directly. |
 
 What a single signal can do on its own at the strict threshold (0.40):
 frames nudity >= 0.40; subtitles "[moaning]" (0.85 -> 0.72); audio "Wail, moan"
@@ -83,6 +83,33 @@ change thresholds only together with the spec.
 | language timing | no snap, 0.5 s lead/tail, 1 s merge | muting a whole shot for one word would mute far too much dialogue |
 
 ## 6. Inside the signals
+
+**Frame nudity (`CLIP_NUDITY_WEIGHT` = 0.8).** Per sampled frame:
+`nudity = max(classifier nsfw probability, 0.8 x CLIP "nudity" group)`.
+The classifier (AdamCodd/vit-base-nsfw-detector, Apache-2.0) replaced NudeNet
+(ledger D22). It is a whole-image sfw/nsfw classifier, so it loses NudeNet's
+body-part granularity: no "exposed vs covered", no "breast vs feet", and it can
+miss a small unclothed figure in a wide shot. The CLIP group (10 plain
+prompts: naked or topless people, showering, bathing, undressing, nude beach;
+`signals/clip_prompts.py`, with swimwear / shirtless-sport / bathrobe
+counter-prompts in "safe") covers part of that gap. Why 0.8:
+- CLIP zero-shot is a guess from prompt similarity, not a trained nudity
+  model; it already over-fires (gore on red test patterns, ledger), so it must
+  not count as much as the classifier. 0.8 is the same discount NudeNet's
+  buttocks class had against genitalia (0.8 vs 1.0).
+- With the frames->nudity fusion weight of 1.0 the CLIP group alone reaches
+  strict (0.40) when half of the softmax mass sits on nudity prompts, moderate
+  (0.60) at 0.75, and light (0.80) only at certainty: a "light" family only
+  sees CLIP-alone nudity when CLIP is unequivocal, a "strict" one (the
+  default) whenever CLIP leans clearly that way. That is the brief's
+  "catch too much" at strict without flooding the lighter levels.
+- `max()`, not a noisy-OR of the two: both look at the same pixels, so their
+  errors are correlated; adding them would double count.
+Expect more false alarms on swimwear, shirtless men and medical scenes than
+NudeNet gave until this is tuned on hand-marked films (`tools/tune.py` cannot
+tune it yet: frames.npz stores the fused score; keep the classifier and CLIP
+values separately first if this constant needs a grid search).
+
 
 **Audio classes (`AUDIO_CLASS_MAP`).** Per 0.96 s YAMNet frame:
 `category = max_k weight_k * score_k`; per second = max over overlapping frames.

@@ -117,7 +117,7 @@ function full() {
     finishedAt: '2026-10-01T10:29:59.5+02:00',
     stages: {
       subtitles: { status: 'done', progress: 1, seconds: 12.5, model: 'qwen3-0.6b-q4', detail: 'track 2 (es)' },
-      frames: { status: 'done', progress: 1, seconds: 2400, model: 'nudenet-320n' },
+      frames: { status: 'done', progress: 1, seconds: 2400, model: 'nsfw-vit-int8' },
       audio: { status: 'skipped', detail: 'disabled in settings' },
       speech: { status: 'skipped' },
       captions: { status: 'failed', progress: 0.4, resumeAt: 2160, detail: 'model missing' },

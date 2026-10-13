@@ -27,7 +27,7 @@ captions.
 |---|---|---|---|---|
 | subtitles | none found | 0.00 s | 0.00 s | 34 MB |
 | speech (whisper small q5_1) | 3 windows of 30 s | 28.0 s | 16.1 s | 515 MB |
-| frames (NudeNet 320n + CLIP B/32 int8) | 60 frames + scene cuts | 4.1 s | 3.5 s | 307-323 MB |
+| frames (NudeNet 320n + CLIP B/32 int8; superseded, see below) | 60 frames + scene cuts | 4.1 s | 3.5 s | 307-323 MB |
 | audio (YAMNet) | 7 chunks of 10 s (+1 s overlap) | 0.49 s | 0.41 s | 149-159 MB |
 | lm (Qwen3-0.6B Q4_K_M) | 1 window (speech cues) | 4.8 s | 4.5 s | 986 MB |
 | captions (Florence-2 base-ft q4f16) | 3 shots (no cuts: 60 s split in 20 s shots), 40 tokens each | 18.4 s | 15.5 s | 956-1013 MB |
@@ -44,7 +44,8 @@ peaked at 938-974 MB, under the 1.2 GB budget.
 
 | model | load (2 / 4 thr) | per item, 2 threads | per item, 4 threads |
 |---|---|---|---|
-| NudeNet + CLIP | 0.44 / 0.47 s | 67 ms per frame | 46 ms per frame |
+| nsfw classifier + CLIP (since 2026-10-12, below) | 0.46 / 0.44 s | 287 ms per frame | 162 ms per frame |
+| NudeNet + CLIP (dropped, D22) | 0.44 / 0.47 s | 67 ms per frame | 46 ms per frame |
 | YAMNet | 0.06 s | 17 ms per 11 s chunk | 17 ms per 11 s chunk |
 | whisper small q5_1 | 0.33 s | 9.1 s per 30 s window | 4.5 s per 30 s window (one outlier 11.8 s) |
 | Qwen3-0.6B | 0.63-0.68 s | 5.9 s first window (cold few-shot prefix), ~1.1 s warm (ledger) | 5.4 s cold |
@@ -61,6 +62,32 @@ Memory notes: Florence sessions run with the ORT CPU arena **off**
 instead of 1131 MB, same speed (the vision encoder needs ~0.4 GB of scratch that
 the arena would otherwise keep). The merged decoder is patched in memory at
 load (`signals/onnx_fix.py`, +0.25 s, ~60 MB transient).
+
+## Nudity classifier swap (2026-10-12, ledger D22)
+
+NudeNet 320n was replaced by AdamCodd/vit-base-nsfw-detector (ViT-B/16 at
+384 px, int8 ONNX, 84 MiB). Measured on this container through
+`ModelFrameScorer` (320x180 noise frames, `--device cpu`, median of 5 runs
+after one warm-up; an ad-hoc script calling `classify` / `embed` /
+`score_batch`):
+
+| | 2 threads | 4 threads |
+|---|---|---|
+| classifier, batches of 8 (`NSFW_BATCH`) | **245 ms per frame** (222-255) | 143 ms per frame (130-164) |
+| classifier, batch of 1 | 216 ms per frame (213-238) | 147 ms per frame (131-157) |
+| CLIP B/32 int8, batch of 8 | 45 ms per frame | 29 ms per frame |
+| whole frame score (preprocess + classifier + CLIP + fusion) | **287 ms per frame** | 162 ms per frame |
+| resize to 384 x 384 + normalise (numpy) | 15 ms per frame | 15 ms per frame |
+
+The ViT at 384 px (576 patches) costs about 4x what NudeNet + CLIP cost
+together (67 ms per frame at 2 threads). Batching 8 frames does **not** help on
+this CPU (ORT already parallelises inside one image); the batch is kept at 8 to
+bound memory and match the decode batch. Frames-stage peak RSS on the 4 s noise
+scan: 478 MB (was ~310 MB). Load: 0.46 s for both sessions. A 2 h film at 1 fps
+now needs ~34 min of frame scoring at 2 threads (~20 min at 4) instead of
+~8 / 5.5 min. Levers if this is too slow on the owner's i5: score the
+classifier on every second frame and CLIP on all, or a DirectML/CoreML device
+(untested here: no GPU in this container).
 
 ## Keyframe extraction: per-shot seek vs. one `select` pass
 
@@ -82,7 +109,7 @@ both.
 
 | stage | estimate |
 |---|---|
-| frames | 7200 x 46 ms ~ 5.5 min + decode |
+| frames | 7200 x 162 ms ~ **19.5 min** + decode (NudeNet era: 7200 x 46 ms ~ 5.5 min); 2 threads: 7200 x 287 ms ~ 34 min |
 | audio | 720 chunks x 17 ms ~ 12 s + decode (~30 s) |
 | speech (only without subtitles) | 258 windows x 4.5 s ~ 19 min |
 | lm | <= 600 windows x ~1.1 s (typically far fewer) |

@@ -19,7 +19,7 @@ cd analyzer && python -m bonis_analyzer scan --input movie.mkv --work /tmp/w --o
 | `scan --input F --work DIR --out F.bonis.json [--lang es-MX\|en-US] [--levels JSON] [--stages subtitles,frames,audio,speech,captions] [--threads N] [--device auto\|cpu\|dml\|coreml] [--priority low\|normal] [--models DIR] [--restart] [--force-speech] [--whisper-cli EXE] [--profile] [--scores-from JSON]` | scan, checkpoint, write/merge the skip file |
 | `evaluate --truth a.bonis.json --pred b.bonis.json [--tolerance 3] [--out report.json]` | per-category precision / recall / F1 (1 s resolution), range hit rate ±tolerance, seconds missed / falsely flagged; markdown table on stdout, JSON to `--out` |
 | `probe --input F` | one `{"t":"probe",...}` line: duration, streams, subtitle tracks, keyframe interval, fingerprint |
-| `version` | one `{"t":"version",...}` line: analyzer, Python, ORT (+providers), llama.cpp versions |
+| `version [--cpu-features]` | one `{"t":"version",...}` line: analyzer, Python, ORT (+providers), llama.cpp versions; `--cpu-features` adds `"cpu": {arch, avx2, flags, source, ggmlStages: ok\|skipped, skippedStages}` (llama.cpp is not imported when AVX2 is missing) |
 
 `--levels` is a JSON object `{"nudity":"strict",...}` (missing categories use the defaults:
 strict for the five visual categories, `language` off), or a preset name string
@@ -35,22 +35,30 @@ otherwise whisper auto-detects. `--force-speech` runs speech-to-text even when s
 {"t":"progress","stage":"frames","p":0.42,"eta":610}
 {"t":"stage","stage":"frames","status":"done"}
 {"t":"warn","msg":"No readable subtitles were found; dialogue was not checked."}
+{"t":"warn","code":"cpu-no-avx2","stage":"lm","msg":"This computer's processor is too old for the dialogue model (no AVX2); ..."}
 {"t":"paused"}            once when <work>/PAUSE appears
 {"t":"resumed"}           when it is removed
 {"t":"done","out":"/abs/path/movie.bonis.json"}
-{"t":"error","code":3,"msg":"nudity model (NudeNet 320n) not found in ..."}
+{"t":"error","code":3,"msg":"nudity model (nsfw-vit-int8.onnx) not found in ..."}
 {"t":"profile","stages":{"frames":{"wall":3.5,"peakRssMB":317.5},...},"peakRssMB":986.1,
  "framesProcessed":60,"shotsCaptioned":3,"windowsScored":{"lm":1,"speech":3,"audioChunks":7,"captionLm":0}}
                           (--profile only, after "done")
 ```
 Stages in order: `subtitles` (extract + keyword/SDH lexicon), `speech` (only when no subtitles
-were read, or `--force-speech`), `frames` (one ffmpeg pass: 1 fps frames + scene cuts; NudeNet +
-CLIP), `audio` (YAMNet sound events), `lm` (dialogue LM over 60 s windows of the subtitle cues,
+were read, or `--force-speech`), `frames` (one ffmpeg pass: 1 fps frames + scene cuts; nsfw
+classifier + CLIP), `audio` (YAMNet sound events), `lm` (dialogue LM over 60 s windows of the subtitle cues,
 or of the speech cues when there were no subtitles; runs after frames so frame scores can
 trigger windows), `captions` (Florence-2 per shot, then the caption LM), `fusion`. Exactly one
 model set is loaded at a time (`models.model_set` registry; every stage releases its models,
 `gc` + `malloc_trim`, before the next loads). A missing optional model (YAMNet, whisper,
-Florence-2, the LM) skips that stage with a `warn`; only the frames models are mandatory (exit 3). Progress lines are throttled (≤ 2/s per
+Florence-2, the LM) skips that stage with a `warn`; only the frames models are mandatory (exit 3).
+CPU guard (`cpu.py`): llama.cpp and whisper.cpp are built for AVX2 on x86 and would die with an
+illegal instruction on an older CPU, so without AVX2 the `speech` and `lm` stages (and the caption
+LM) are skipped with a `{"t":"warn","code":"cpu-no-avx2","stage":...}` line and a `detail` on the
+stage; subtitles, frames, audio and captions still run (ONNX Runtime picks its own kernels).
+Detection: Linux `/proc/cpuinfo` flags, macOS `sysctl -n machdep.cpu.leaf7_features` (arm64 always
+supported), Windows `IsProcessorFeaturePresent(40)`; unknown counts as supported;
+`BONIS_CPU_AVX2=0|1` overrides. Progress lines are throttled (≤ 2/s per
 stage unless p moves ≥ 0.05). Exit codes: 0 ok, 2 bad input (incl. bad arguments), 3 model
 missing, 4 interrupted (SIGTERM/SIGINT; resumable), 5 internal. Tracebacks only ever go to stderr.
 
@@ -101,10 +109,14 @@ native library that prints cannot corrupt the protocol.
   pre-filter or a neighbouring frame score (> 0.2) is non-zero, plus always the top 20 windows by
   keyword score; hard budget 600. Each window's score covers its central 15 s; the subtitle signal
   is `max(keywords, 0.85 * lm)`.
-- **Frames**: NudeNet 320n (letterbox to 320, YOLOv8 decoding + numpy NMS; exposed genitalia /
-  anus 1.0, breast 0.9, buttocks 0.8, covered genitalia 0.25 → nudity) and CLIP ViT-B/32 int8
-  (224 centre crop; cosine vs `models/clip_prompts.npz`; softmax over all prompts incl. 28 safe
-  counter-prompts, summed per group → sex / kissing / implied / gore).
+- **Frames**: the AdamCodd/vit-base-nsfw-detector classifier (ViT-B/16, int8 ONNX, Apache-2.0;
+  plain resize to 384 x 384, mean/std 0.5 as its `preprocessor_config.json` says, which is read
+  at load together with `id2label` from its `config.json`; batches of 8; softmax nsfw
+  probability) and CLIP ViT-B/32 int8 (224 centre crop; cosine vs `models/clip_prompts.npz`;
+  softmax over all prompts incl. 31 safe counter-prompts, summed per group → sex / kissing /
+  implied / gore / nudity). Frame nudity = `max(classifier, 0.8 x CLIP nudity group)`
+  (`CLIP_NUDITY_WEIGHT`, `TUNING.md`). NudeNet was dropped (licence ambiguity, ledger D22):
+  no body-part granularity any more.
 - **Audio** (`signals/audio.py`): YAMNet ONNX (`waveform` float32 [N] at 16 kHz -> [frames, 521],
   0.96 s frames, 0.48 s hop) over 10 s chunks with the previous chunk's last 1 s prepended.
   `config.AUDIO_CLASS_MAP` maps AudioSet classes (names checked against the committed official
@@ -146,8 +158,8 @@ native library that prints cannot corrupt the protocol.
 
 ## Models
 Directory: `--models`, else `$BONIS_MODELS_DIR`, else the bundle's `models/`, else
-`analyzer/models/`. File names as in `models/manifest.json`; NudeNet is read from `320n.onnx` /
-`nudenet-320n.onnx` or, if not extracted, from the sdist tarball (in memory). `clip_prompts.npz`
+`analyzer/models/`. File names as in `models/manifest.json` (nudity: `nsfw-vit-int8.onnx` +
+`nsfw-vit-config.json` + `nsfw-vit-preprocessor_config.json`). `clip_prompts.npz`
 is committed here and rebuilt with `tools/make-clip-prompts.py` (needs `tokenizers`; the CLIP
 text encoder is build-only). ORT session options: `intra_op_num_threads = --threads`,
 `enable_mem_pattern = False`, sequential. `--device auto` picks DirectML (Windows) / CoreML (macOS)
@@ -161,23 +173,24 @@ instead of 1131 MB, see `BENCH.md`).
 | hook | effect |
 |---|---|
 | `--scores-from scores.json` | `{"signals": {signal: {category: [per-second] or {"segments": [[start, end, score], ...]}}}, "cuts": [s, ...]}` replaces model signals (frames, subtitles, audio, ...); no model is loaded, ffmpeg still decodes (cuts, checkpoints). A bare `{signal: {...}}` object also works. |
-| `--scores-from` extra keys | `"audioClasses": {"Wail, moan": [per-second] or {segments}}` (fed YAMNet class scores: decode, chunking, class mapping and checkpoints run, no model), `"transcript": [[start, end, text], ...]` (what the fake speech engine hears), `"captionsText": [[start, end, caption], ...]` (fake scene descriptions by media time; keyframes are still extracted) |
+| `--scores-from` extra keys | `"framesParts": {"nsfw": [per-second] or {segments}, "clipNudity": ...}` (the two nudity inputs of the frames scorer; the scan fuses them with `fuse_nudity` exactly as the real scorer, max()ed with a fed `frames.nudity`), `"audioClasses": {"Wail, moan": [per-second] or {segments}}` (fed YAMNet class scores: decode, chunking, class mapping and checkpoints run, no model), `"transcript": [[start, end, text], ...]` (what the fake speech engine hears), `"captionsText": [[start, end, caption], ...]` (fake scene descriptions by media time; keyframes are still extracted) |
 | `Scan(args, proto, lm_factory=, audio_factory=, stt_factory=, captioner_factory=)` | in-process tests: stand-ins (`FakeLM`, `FedAudioScorer`, `FakeSTT`, `FakeCaptioner`) |
 | `BONIS_TEST_FRAME_DELAY=0.04` | sleep per frame (only together with `--scores-from`): a slow decoder for kill/resume/pause tests |
 | `BONIS_TEST_UNIT_DELAY=0.5` | sleep per audio chunk / speech window / caption shot (only with `--scores-from`) |
 | `BONIS_WHISPER_CLI` | whisper.cpp executable for the fallback speech engine (also `--whisper-cli`) |
 | `BONIS_NO_HWACCEL=1` | skip the `-hwaccel auto` attempt |
+| `BONIS_CPU_AVX2=0\|1` | force the CPU guard's answer (0 = behave as on a CPU without AVX2); tests patch `cpu.has_avx2` instead |
 | `BONIS_MODELS_DIR`, `BONIS_LEXICON_DIR`, `BONIS_FFMPEG`, `BONIS_FFPROBE`, `BONIS_LOG` | locations / log level |
 | `BONIS_REGEN_FIXTURES=1` | regenerate `spec/fixtures/subtitles/expected/*.scores.json` from the Python scorer |
 
 ## Tests
 ```
-python3 -m unittest discover -s analyzer/tests                                  # 168 tests, ~40 s
-BONIS_MODELS_DIR=/path/to/models python3 -m unittest discover -s analyzer/tests  # + real-model tests, ~2 min
+python3 -m unittest discover -s analyzer/tests                                  # 189 tests, ~50 s
+BONIS_MODELS_DIR=/path/to/models python3 -m unittest discover -s analyzer/tests  # + real-model tests, ~4-5 min
 ```
 All inputs are synthetic: ffmpeg `testsrc2`/`color`/sine/silence/noise clips, hand-written subtitle
 fixtures, fed score streams, fed class scores / transcripts / captions. Real models run a handful
-of times: NudeNet + CLIP once on noise, YAMNet once on 2 s of sine, whisper once on 5 s of
+of times: the nsfw classifier + CLIP once on noise, YAMNet once on 2 s of sine, whisper once on 5 s of
 silence + sine, Florence-2 once on one noise frame and three times on the 60 s testsrc2 clip
 (memory budget: captions stage < 1.2 GB), Qwen3 once per prompt type, plus one full real scan of
 a 4 s noise clip.
@@ -194,8 +207,8 @@ thresholds against hand-marked films, see `TUNING.md`).
   grammar sampling over Qwen's 151k vocabulary). It still answers JSON only, at temperature 0.
 - The LM runs as its own stage after frames (protocol stage `lm`) so frame scores can trigger
   windows; in the skip file it is folded into `scan.stages.subtitles` (model + seconds).
-- The frames stage keeps NudeNet and CLIP loaded together (one decode pass feeds both; ~240 MB
-  peak RSS); "one model at a time" holds between stages (LM peak ~0.95 GB RSS incl. mmapped weights).
+- The frames stage keeps the nsfw classifier and CLIP loaded together (one decode pass feeds
+  both; ~480 MB peak RSS); "one model at a time" holds between stages (LM peak ~0.95 GB RSS incl. mmapped weights).
 - No `pysubs2`/`pillow`: own SRT parser, ffmpeg converts everything else to SRT; thumbnails are
   JPEGs written by ffmpeg.
 - Extra protocol details: `{"t":"resumed"}`, `resumeAt` on the frames/audio `running` lines,
@@ -241,3 +254,8 @@ M7 (analyzer v2):
 - The whisper-cli fallback is implemented and unit-tested with a fake executable only; no real
   whisper-cli binary was available here.
 - Picture-based subtitles (PGS/VobSub) cannot be read (no OCR); the scan warns.
+- The nsfw classifier is ~4x slower than NudeNet was (287 vs 67 ms per frame at 2 threads,
+  `BENCH.md`) and is a whole-image sfw/nsfw call: expect more false alarms on swimwear /
+  shirtless / medical scenes and misses on small figures until tuned on hand-marked films.
+- The AVX2 guard was tested with the detection patched both ways; no pre-AVX2 machine was
+  available to confirm that the wheels really crash there or that ONNX Runtime keeps working.

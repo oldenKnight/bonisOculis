@@ -42,7 +42,8 @@ level inside it: electron-builder maps `bin/<platform>-<arch>/` and
                                   bonis_analyzer package, lexicon/{en,es}.json,
                                   models/{clip_prompts.npz, yamnet_class_map.csv, florence_prompts.json}
   models/                         every shipped model (tools/fetch-models.js --print-shipped):
-                                  nudenet-320n.onnx, CLIP vision + preprocessor, YAMNet, whisper
+                                  nsfw-vit-int8.onnx + its config/preprocessor JSON, CLIP vision +
+                                  preprocessor, YAMNet, whisper
                                   small q5_1, Qwen3-0.6B, Florence-2 (8 files), the three
                                   committed sidecars, manifest.json
   player/bonis.lua
@@ -160,8 +161,9 @@ the table was written, and where the publisher offers a checksum it matched (BIN
 - **Models next to the analyzer, not inside it.** `<resources>/models` is the one copy;
   `analyzer-entry.py` points the analyzer at it. Only the three small committed sidecars are
   also inside `_internal/models` so the bare analyzer can run `--scores-from` tests.
-- **NudeNet ships as `nudenet-320n.onnx`**, extracted at build time from the sdist (one member,
-  in memory, hash pinned in `tools/fetch-models.js`), not as the 10 MB tarball.
+- **No model archives.** Every model is a plain file from the manifest. NudeNet (previously
+  extracted from its sdist) was dropped for licence ambiguity (ledger D22); the nudity classifier
+  is `nsfw-vit-int8.onnx` (Apache-2.0).
 - **Hardened runtime off** until a Developer ID exists (it requires a real signature).
 - **asar on, nothing unpacked**: every executable lives in `resources/`, outside the archive.
 
@@ -178,7 +180,7 @@ the table was written, and where the publisher offers a checksum it matched (BIN
 - Real models, `--stages subtitles,frames`, models found through the entry's
   `BONIS_MODELS_DIR` default in a simulated `<resources>` tree: 2.8 s wall, frames stage 2.1 s for
   30 frames, peak RSS 290 MB. Same with `BONIS_MODELS_DIR` pointing at the raw download folder
-  (NudeNet read from the tarball): exit 0.
+  (NudeNet, since dropped, read from the tarball): exit 0.
 - Real models, `--stages subtitles,speech,frames,audio`: whisper.cpp (pywhispercpp), YAMNet and
   the Qwen3 LM all ran inside the bundle; 21.6 s wall, peak RSS 999 MB (LM stage).
 - electron-builder 26.15.3 `--linux dir` with the real models and analyzer: layout as above,

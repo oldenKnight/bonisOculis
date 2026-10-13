@@ -152,7 +152,7 @@
         "status": "done",
         "progress": 1,
         "seconds": 2400,
-        "model": "nudenet-320n"
+        "model": "nsfw-vit-int8"
       },
       "audio": {
         "status": "skipped",

@@ -12,7 +12,7 @@ whisper-cli as separate processes and loads models as data.
 | llama.cpp (via llama-cpp-python) | dialogue LM | MIT | yes |
 | ONNX Runtime (+DirectML on Windows, CoreML on macOS) | model inference | MIT | yes |
 | Python 3.11 (python-build-standalone) | analyzer runtime | PSF | yes |
-| NudeNet 3.4.2 model 320n | nudity detector | MIT | yes (10 MB) |
+| AdamCodd/vit-base-nsfw-detector (ViT-B/16 384, int8 ONNX + config.json + preprocessor_config.json; model card huggingface.co/AdamCodd/vit-base-nsfw-detector) | nudity classifier (replaces NudeNet, see below) | Apache-2.0 | yes (84 MiB) |
 | CLIP ViT-B/32 (OpenAI weights, Xenova ONNX int8) | zero-shot scene scores | MIT | vision only (85 MB) |
 | YAMNet ONNX (andrelgomes) | audio events | Apache-2.0 | yes (16 MB) |
 | whisper small q5_1 | STT model | MIT | yes (182 MB) |
@@ -53,13 +53,13 @@ builds are wanted.
 
 ### Licence findings from M9a (need a decision; not changed here)
 
-- **NudeNet 3.4.2.** The sdist's PKG-INFO says `License: MIT`, but the `LICENSE` and
-  `LICENSE.md` files inside the same tarball are the **GNU Affero GPL v3** text (checked
-  2026-10-12). The table above and decision D14 list the 320n model as MIT. Until the owner or
-  planner settles which applies to the 320n weights we ship, treat it as possibly AGPL-3.0:
-  distributing it inside the installer would then require offering the corresponding source
-  (and AGPL terms for any network use, which bonis oculis does not have). A model with an
-  unambiguous permissive licence would remove the question.
+- **NudeNet 3.4.2 — dropped (resolved 2026-10-12, ledger D22).** The sdist's PKG-INFO says
+  `License: MIT`, but the `LICENSE` and `LICENSE.md` files inside the same tarball are the
+  **GNU Affero GPL v3** text. Because that licence is ambiguous, NudeNet is no longer fetched,
+  shipped or used. The nudity signal now comes from AdamCodd/vit-base-nsfw-detector
+  (Apache-2.0, int8 ONNX; url, sha256 and size in `analyzer/models/manifest.json`), backed by a
+  CLIP zero-shot "nudity" prompt group. The trade-off is that body-part granularity is lost
+  (analyzer/TUNING.md).
 - **mpv for macOS (stolendata).** The bundle carries 45 Homebrew-built dylibs whose exact sources
   are not published with the build. Full GPL compliance needs those sources collected and
   published with each release, or mpv built from source in CI (packaging/BINARIES.md).
